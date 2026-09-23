@@ -10,7 +10,7 @@ All guidance is educational, not financial advice. All user data in this repo is
 
 ```bash
 # 1. Clone
-git clone <REPO_URL> CreditCoach
+git clone https://github.com/SC30GSWNBA/CreditCoach.git
 cd CreditCoach
 
 # 2. Install Python 3.12 and all dependencies into .venv
