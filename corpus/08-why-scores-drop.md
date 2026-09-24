@@ -8,7 +8,7 @@ queries: [1]
 
 # Why did my credit score drop?
 
-A sudden drop is worrying, but most drops have an ordinary, explainable cause. The quickest way to find it is to compare what changed on your credit record in the month the score fell.
+A sudden drop is worrying, but most drops have an ordinary, explainable cause. The quickest way to find it is to compare what changed on your credit record in the month the score fell. The point ranges below are typical, not predictions: every scoring model and every credit history is different.
 
 **Most common causes of a short-term drop**
 1. **A utilization spike.** A card balance rose above roughly 30% of its limit, often after a large purchase reported before the statement date. This is one of the most common causes of a short-term dip. Typical impact: about 10 to 40 points, fading about one reporting cycle after the balance is paid down.
@@ -30,5 +30,3 @@ A sudden drop is worrying, but most drops have an ordinary, explainable cause. T
 - If a card is above 30%, paying it down before the next statement date is usually the fastest fix.
 - If you applied for credit recently, avoid further applications for a while and let the inquiry age.
 - Check your credit report for anything you don't recognise, and dispute errors with the bureau for free.
-
-These ranges are typical, not predictions. Every scoring model and every credit history is different.

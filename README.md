@@ -22,6 +22,9 @@ cp .env.example .env
 
 # 4. Check your setup
 uv run python -m creditcoach.check
+
+# 5. Build the vector store from corpus/ (about 10 seconds; rerun after editing the corpus)
+uv run python -m creditcoach.rag.ingest
 ```
 
 You should see every line marked `[PASS]`, ending with `All checks passed. Ready to build.`
@@ -37,7 +40,8 @@ CreditCoach/
     check.py          #   setup check for fresh clones
     llm.py            #   OpenRouter client with fallback model
     prompts/          #   system_prompt.md (tone, India context, hard rules)
-                      #   coming: agent/, rag/, tools/, memory/, app/
+    rag/              #   corpus loader and ingestion (chunk, embed, store in .chroma/)
+                      #   coming: agent/, tools/, memory/, app/
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
   data/               # synthetic dataset: 13 users, accounts, score history (see data/README.md)
   scripts/

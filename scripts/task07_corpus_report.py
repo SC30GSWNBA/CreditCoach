@@ -7,6 +7,7 @@ import re
 import sys
 
 from creditcoach import config
+from creditcoach.rag.corpus import parse_front_matter
 
 CORPUS = config.ROOT / "corpus"
 EVIDENCE = config.ROOT / "docs" / "evidence" / "week-1" / "task-07-corpus-summary.md"
@@ -37,18 +38,7 @@ GUIDE_SECTIONS = {"§1": "Payment history", "§2": "Credit utilization", "§3": 
 
 
 def parse(path):
-    text = path.read_text(encoding="utf-8")
-    m = re.match(r"---\n(.*?)\n---\n(.*)", text, re.S)
-    if not m:
-        return None, text
-    meta = {}
-    for line in m.group(1).splitlines():
-        key, _, value = line.partition(":")
-        value = value.strip()
-        if len(value) > 1 and value[0] == value[-1] and value[0] in "'\"":
-            value = value[1:-1]
-        meta[key.strip()] = [int(x) for x in re.findall(r"\d+", value)] if key.strip() == "queries" else value
-    return meta, m.group(2)
+    return parse_front_matter(path.read_text(encoding="utf-8"))
 
 
 def main() -> int:
