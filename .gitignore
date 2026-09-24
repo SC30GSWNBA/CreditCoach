@@ -29,5 +29,3 @@ flagged/
 .vscode/
 .idea/
 
-# Raw user-interview responses (personal data; commit only aggregated findings)
-user_interviews/
