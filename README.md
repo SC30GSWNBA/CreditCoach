@@ -4,6 +4,8 @@ A chat assistant that helps first-time borrowers understand why their credit sco
 
 All guidance is educational, not financial advice. All user data in this repo is synthetic.
 
+**Status:** Week 1 (foundations, RAG and chat UI) is built. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 adds account tools (MCP) and goal memory.
+
 ## Quickstart (fresh clone)
 
 **Prerequisites:** git, and [uv](https://docs.astral.sh/uv/getting-started/installation/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`). You don't need to install Python separately: uv downloads Python 3.12 if you don't have it.
