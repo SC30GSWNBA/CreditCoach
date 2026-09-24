@@ -112,7 +112,7 @@ git push -u origin week1/task-05-system-prompt
 | `[FAIL] Python >= 3.11` | Run `uv python install 3.12`, then `uv sync` again. Always run code with `uv run ...`, not a system `python`. |
 | `[FAIL] import ...` | Run `uv sync` again from the repo root. |
 | `[INFO] Vector store not built yet` | Run `uv run python -m creditcoach.rag.ingest`. |
-| Ingest prints "unauthenticated requests to the HF Hub" | Harmless. The first run downloads the embedding model (about 90 MB) from Hugging Face; later runs use the local copy. |
+| Ingest or retrieve prints "unauthenticated requests to the HF Hub" | Harmless. The first ingest downloads the embedding model and the first retrieval downloads the reranker (each about 90 MB) from Hugging Face; later runs use the local copies. |
 
 ## Project Docs
 
