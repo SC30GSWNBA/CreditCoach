@@ -1,0 +1,65 @@
+user_id,date,score,primary_factor_change
+USR-001,2025-10-01,662,Baseline
+USR-001,2025-11-01,668,On-time payments
+USR-001,2025-12-01,671,On-time payments
+USR-001,2026-01-01,665,Utilization increase
+USR-001,2026-02-01,673,Utilization decreased
+USR-001,2026-03-01,678,On-time payments
+USR-001,2026-04-01,682,Account age increase
+USR-001,2026-05-01,676,Hard inquiry (new card)
+USR-001,2026-06-01,684,On-time payments
+USR-001,2026-07-01,690,On-time payments
+USR-001,2026-08-01,670,Utilization spike
+USR-001,2026-09-01,650,Hard inquiry + utilization spike
+USR-002,2026-06-01,648,Baseline
+USR-002,2026-07-01,652,On-time payments
+USR-002,2026-08-01,655,Account age increase
+USR-002,2026-09-01,660,On-time payments
+USR-003,2025-10-01,702,Baseline
+USR-003,2025-11-01,707,On-time payments
+USR-003,2025-12-01,711,On-time payments
+USR-003,2026-01-01,707,Utilization increase
+USR-003,2026-02-01,713,Utilization decreased
+USR-003,2026-03-01,718,On-time payments
+USR-003,2026-04-01,721,Account age increase
+USR-003,2026-05-01,725,On-time payments
+USR-003,2026-06-01,731,On-time payments
+USR-003,2026-07-01,734,On-time payments
+USR-003,2026-08-01,738,Account age increase
+USR-003,2026-09-01,743,On-time payments
+USR-004,2025-10-01,694,Baseline
+USR-004,2025-11-01,698,On-time payments
+USR-004,2025-12-01,701,On-time payments
+USR-004,2026-01-01,706,On-time payments
+USR-004,2026-02-01,709,Account age increase
+USR-004,2026-03-01,713,On-time payments
+USR-004,2026-04-01,719,On-time payments
+USR-004,2026-05-01,722,On-time payments
+USR-004,2026-06-01,727,Utilization decreased
+USR-004,2026-07-01,731,On-time payments
+USR-004,2026-08-01,724,Hard inquiry
+USR-004,2026-09-01,719,Hard inquiry
+USR-005,2025-10-01,741,Baseline
+USR-005,2025-11-01,744,On-time payments
+USR-005,2025-12-01,748,On-time payments
+USR-005,2026-01-01,750,On-time payments
+USR-005,2026-02-01,753,On-time payments
+USR-005,2026-03-01,667,Late payment (30+ days)
+USR-005,2026-04-01,673,On-time payments
+USR-005,2026-05-01,678,On-time payments
+USR-005,2026-06-01,685,On-time payments
+USR-005,2026-07-01,691,On-time payments
+USR-005,2026-08-01,695,Account age increase
+USR-005,2026-09-01,701,On-time payments
+USR-006,2025-10-01,688,Baseline
+USR-006,2025-11-01,691,On-time payments
+USR-006,2025-12-01,685,Utilization increase
+USR-006,2026-01-01,680,Utilization increase
+USR-006,2026-02-01,682,On-time payments
+USR-006,2026-03-01,674,Hard inquiry
+USR-006,2026-04-01,660,Utilization spike
+USR-006,2026-05-01,663,On-time payments
+USR-006,2026-06-01,659,Utilization increase
+USR-006,2026-07-01,647,Utilization spike
+USR-006,2026-08-01,644,Utilization increase
+USR-006,2026-09-01,633,Utilization spike

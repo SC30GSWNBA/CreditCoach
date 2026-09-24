@@ -1,0 +1,17 @@
+account_id,user_id,account_type,balance_usd,credit_limit_usd,utilization_ratio
+ACC-01,USR-001,Credit Card,1180,1500,0.79
+ACC-02,USR-001,Credit Card,220,2000,0.11
+ACC-03,USR-001,Student Loan,8400,,
+ACC-04,USR-001,Auto Loan,6100,,
+ACC-05,USR-001,Retail Card,95,500,0.19
+ACC-06,USR-002,Credit Card,80,1000,0.08
+ACC-07,USR-003,Credit Card,240,3000,0.08
+ACC-08,USR-003,Student Loan,5200,,
+ACC-09,USR-004,Credit Card,610,4000,0.15
+ACC-10,USR-004,Credit Card,150,2500,0.06
+ACC-11,USR-004,Student Loan,3100,,
+ACC-12,USR-005,Credit Card,1100,5000,0.22
+ACC-13,USR-005,Home Loan,142000,,
+ACC-14,USR-006,Credit Card,4450,6000,0.74
+ACC-15,USR-006,Personal Loan,9800,,
+ACC-16,USR-006,Instant Cash Loan,400,,
