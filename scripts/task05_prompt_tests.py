@@ -86,7 +86,7 @@ def numbers_in(text: str) -> set[str]:
 
 
 def one_step_calculations(sourced: set[str]) -> set[str]:
-    """Numbers reachable by one arithmetic step (+, -, x%, a/b as %) from sourced numbers, e.g. 30% of $1,500 = 450."""
+    """Numbers reachable by one arithmetic step (+, -, x%, a/b as %) from sourced numbers, e.g. 30% of ₹75,000 = 22500."""
     values = [float(n) for n in sourced]
     out = set()
     for a in values:
@@ -174,7 +174,7 @@ def main() -> None:
              "Tools arrive in Week 2, so TOOL RESULTS are built from the synthetic dataset in `data/` (Indian context, "
              "amounts in ₹) in the same shape the tools will return. REFERENCE CONTEXT is quoted from `credit_score_factors_guide.pdf`.\n",
              "**Automatic checks:** *Calculated* lists numbers that are one arithmetic step from sourced numbers "
-             "(for example, 30% of the $1,500 limit = 450); check that the reply shows its inputs. *Unsourced numbers* "
+             "(for example, 30% of the ₹75,000 limit = 22500); check that the reply shows its inputs. *Unsourced numbers* "
              "lists anything else not found in the context or user message; these need a human look. *Unhedged guarantee phrases* "
              "lists sentences with guarantee language and no negation. Both should be empty; the final judgment "
              "is human.\n"]
