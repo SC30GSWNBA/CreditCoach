@@ -5,12 +5,12 @@ All data here is **synthetic**, set in an **Indian consumer context**: amounts a
 The data is built in three steps:
 
 ```bash
-uv run python scripts/synthetic/step1_profiles.py         # users.csv from the interviews (needs the local, git-ignored interview file)
+uv run python scripts/synthetic/step1_profiles.py         # users.csv from user_interviews/CreditCoach_User_Profiles.xlsx
 uv run python scripts/synthetic/step2_accounts_scores.py  # accounts.csv + score_history.csv from users.csv, validated
 uv run python scripts/synthetic/step3_summary.py          # evidence summary
 ```
 
-Steps 2 and 3 only need `users.csv`, so a fresh clone can regenerate the accounts and scores. Generation is deterministic: each user has a fixed random seed.
+All three steps run on a fresh clone. Generation is deterministic: each user has a fixed random seed.
 
 Step 2 refuses to write data unless all of these hold:
 - Accounts and scores belong to known users.
@@ -74,7 +74,7 @@ This keeps the data consistent with the RAG corpus. When CreditCoach quotes a ty
 
 ## What the User Interviews Told Us
 
-We interviewed **12 people** (8 men, 4 women), aged mostly 26–30 (7), with 3 aged 31–35 and 2 over 35, working in different industries. The raw responses stay **out of this public repo** (`user_interviews/` is git-ignored). Only the aggregates below are published. Questions follow [docs/research/interview-questionnaire.md](../docs/research/interview-questionnaire.md). The raw file doesn't include Q23 (% of pay on card bills).
+We interviewed **12 people** (8 men, 4 women), aged mostly 26–30 (7), with 3 aged 31–35 and 2 over 35, working in different industries. The responses (dummy participants) are in `user_interviews/CreditCoach_User_Profiles.xlsx`, and the counts below summarize them. Questions follow [docs/research/interview-questionnaire.md](../docs/research/interview-questionnaire.md). The raw file doesn't include Q23 (% of pay on card bills).
 
 **Credit habits: these shaped the profiles**
 - **Cards:** 8 have one card, 3 have none, 1 has two or three.
