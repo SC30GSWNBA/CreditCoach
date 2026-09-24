@@ -28,7 +28,7 @@ Each role owns its area end to end across all four weeks: design, build, tests, 
 | Vector store | **ChromaDB** (persistent, local `./.chroma/`) | Zero-ops, runs embedded in Python, and supports metadata filters (e.g., `category=product_risk`). |
 | RAG orchestration | **Plain Python** (no LangChain/LlamaIndex) | The pipeline is small. Fewer abstractions make it easier to debug retrieval misses in Week 4 error analysis. |
 | Tools / MCP | **`mcp` Python SDK (FastMCP)** server exposing `get_score_history` and `get_account_summary` | Required by Week 2. FastMCP keeps each tool to about 10 lines. |
-| Data | **pandas + openpyxl** reading the synthetic dataset (seeded from `sample_data/credit_profile_sample.xlsx`) | The sample data is already in xlsx. We extend it with more profiles in Task #6. |
+| Data | **pandas** reading the synthetic dataset in `data/` (13 users, Indian context: ₹ amounts, 300–900 score range) | Built in Task #6 from the sample workbook and 12 user interviews. See `data/README.md`. |
 | Memory | **SQLite** (`memory.db`), one row per user goal: `target_score`, `target_date`, `purpose` | Persists across sessions and processes with no server. Easy to inspect for evidence. |
 | Caching | **diskcache** for embeddings and tool lookups, keyed by a hash of the normalized query | Gives a persistent cache hit or miss we can log and badge in the UI (Task #25). |
 | Guardrails | Custom rule layer: regex/keyword pre-check, a small-model classifier (GPT-5 mini / GPT-4.1 mini), and a figure-provenance check against tool output | Maps one-to-one to requirements.md §5. No black-box dependency. |
@@ -61,8 +61,8 @@ See the README for the current layout. Code lives in the `creditcoach/` Python p
 
 **What the sample data already shows (`sample_data/credit_profile_sample.xlsx`):**
 - USR-001's score went from 690 (Jul 2026) to 670 (Aug, *utilization spike*) and then to 650 (Sep, *hard inquiry + utilization spike*). The Sep drop is exactly the "20 points this month" in sample query #1.
-- Revolving accounts: credit card ACC-01 is at $1,180 / $1,500 = **79% utilization**, credit card ACC-02 is at $220 / $2,000 = 11%, and retail card ACC-05 is at $95 / $500 = 19%. Overall revolving utilization is $1,495 / $4,000 = **37.4%**.
-- Installment loans (no limit, so not part of utilization): student loan ACC-03 has an $8,400 balance and auto loan ACC-04 has a $6,100 balance.
+- Revolving accounts (amounts in ₹ after the Task #6 conversion to an Indian context): credit card ACC-01 is at ₹59,000 / ₹75,000 = **79% utilization**, credit card ACC-02 is at ₹11,000 / ₹1,00,000 = 11%, and card ACC-05 is at ₹4,750 / ₹25,000 = 19%. Overall revolving utilization is ₹74,750 / ₹2,00,000 = **37.4%**.
+- Installment loans (no limit, so not part of utilization): education loan ACC-03 has a ₹4,20,000 balance and car loan ACC-04 has a ₹3,05,000 balance.
 - `credit_score_factors_guide.pdf` explains both causes: a utilization spike above 30% typically costs 10 to 40 points, and a hard inquiry costs 2 to 10. It also covers payday loans and credit-repair red flags. This makes it the seed document for the RAG corpus (Task #7).
 
 ## 4. Working Agreements

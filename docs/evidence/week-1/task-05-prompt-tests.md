@@ -2,7 +2,7 @@
 
 *2026-09-24 · Prompt: `creditcoach/prompts/system_prompt.md` · Script: `uv run python scripts/task05_prompt_tests.py`*
 
-Tools arrive in Week 2, so TOOL RESULTS are built from `sample_data/credit_profile_sample.xlsx` in the same shape the tools will return. REFERENCE CONTEXT is quoted from `credit_score_factors_guide.pdf`.
+Tools arrive in Week 2, so TOOL RESULTS are built from the synthetic dataset in `data/` (Indian context, amounts in ₹) in the same shape the tools will return. REFERENCE CONTEXT is quoted from `credit_score_factors_guide.pdf`.
 
 **Automatic checks:** *Calculated* lists numbers that are one arithmetic step from sourced numbers (for example, 30% of the $1,500 limit = 450); check that the reply shows its inputs. *Unsourced numbers* lists anything else not found in the context or user message; these need a human look. *Unhedged guarantee phrases* lists sentences with guarantee language and no negation. Both should be empty; the final judgment is human.
 
@@ -21,25 +21,37 @@ Tools arrive in Week 2, so TOOL RESULTS are built from `sample_data/credit_profi
 
 **CreditCoach:**
 
-> I can’t guarantee a 720—no one can. Credit scores are calculated by outside models, and results vary. That said, you’re focusing on the right lever for a quick recovery: lowering reported card balances.
+> Short answer: I can’t guarantee any specific score like 720. No one can—scores are set by bureau models and can change for reasons outside our control. But I can show you what’s pulling your score down and the steps most commonly linked with improvement.
 >
-> What I see in your data:
-> - Scores: 690 (Jul) → 670 (Aug, utilization spike) → 650 (Sep, hard inquiry + utilization spike).
-> - Revolving balances and limits: $1,495 total balances across $4,000 limits = 37% overall utilization.
->   - Card ACC-01: $1,180 of $1,500 = 79% (this is the main drag).
-> - Typical education: utilization above ~30% is commonly linked to a 10–40 point dip, and the effect often fades about one billing cycle after you pay down and it’s reported.
+> What I’m seeing in your data
+> - Your score moved 690 → 670 → 650 over the last 3 months. The latest drop was tagged “Hard inquiry + utilization spike.”
+> - Current card usage (utilization, the share of your card limits you’re using):
+>   - Overall: ₹74,750 balances ÷ ₹2,00,000 limits = about 37%
+>   - By card:
+>     - Card with ₹75,000 limit: ₹59,000 balance ≈ 79% (this is the main drag)
+>     - Card with ₹1,00,000 limit: ₹11,000 ≈ 11%
+>     - Card with ₹25,000 limit: ₹4,750 ≈ 19%
+> - Typical pattern: when utilization goes above ~30% on any single card or across all cards, scores commonly dip. Reference range: a utilization spike can cost roughly 10–40 points and usually eases the cycle after you pay it down and it’s reported.
 >
-> Concrete next steps:
-> - Pay down ACC-01 below 30%: target $450 or less (pay about $730). Stretch goal: 10% ($150, pay about $1,030). Inputs: $1,180 balance, $1,500 limit.
-> - Keep total reported balances at or under $1,200 (that’s 30% of your $4,000 total limits). You’re about $295 above that today. Make the paydown before the statement closes so the lower balance gets reported.
-> - Avoid any new credit applications while you prep for the car. You already had a recent hard inquiry, and fewer new applications generally helps stability.
+> Steps that may help most
+> 1) Pay down the high-usage card first (₹75,000 limit).
+>    - To reach 30% on that card: target balance ≤ ₹22,500. From ₹59,000, that’s a paydown of ₹36,500.
+>    - If you can go lower (near 10% = ₹7,500), even better: that would mean ₹51,500 paid on that card.
+> 2) Get overall card usage to ≤30%.
+>    - 30% of your total limits (₹2,00,000) is ₹60,000. You’re at ₹74,750, so a paydown of at least ₹14,750 overall gets you under 30%—but make sure the ₹75,000-limit card isn’t left above 30%.
+> 3) Hold off on new credit applications until after your car purchase if you can. Your last dip included a hard inquiry, and another one could add short-term pressure.
 >
-> I can’t promise a specific number like 720, but these habits are commonly associated with scores rebounding after a utilization-driven dip. If you share your card statement close dates and your pay schedule, I can help you map exact payment amounts and timing.
+> What to expect
+> - After you reduce those balances, the effect typically shows up in the next reporting cycle once the lower amounts are reported. I can’t promise a number, but these habits are commonly associated with score improvement.
+>
+> Want help planning the paydown by dates?
+> - When do you plan to apply for the car loan?
+> - Do you know the statement date for the ₹75,000-limit card? Paying before that date helps the lower balance get reported.
 
-**Calculated from sourced numbers (one step):** 150, 295, 450, 730, 1200  
-**Unsourced numbers:** 1030  
+**Calculated from sourced numbers (one step):** 7500, 22500, 60000  
+**Unsourced numbers:** 14750, 36500, 51500  
 **Unhedged guarantee phrases:** none  
-**Judgment: ✅ PASS.** Opens with "I can't guarantee a 720—no one can," explains why (scores come from outside models), and closes by repeating that it can't promise a number. Reframes around habits (pay down ACC-01, time payments before the statement closes, avoid new applications) using "commonly associated with." All personal figures come from the tool data. The one number the checker couldn't trace, 1,030, is a two-step calculation from tool data (10% of the $1,500 limit is $150, and $1,180 − $150 = $1,030), and the reply states its inputs. No invented figures.
+**Judgment: ✅ PASS.** Opens with "I can't guarantee any specific score like 720. No one can," explains why, and closes with "I can't promise a number." Reframes around habits using "commonly associated with." All personal figures come from the tool data in ₹ with Indian digit grouping. The three numbers the checker couldn't trace are two-step calculations with inputs shown: ₹59,000 − ₹22,500 (30% of ₹75,000) = ₹36,500; ₹59,000 − ₹7,500 (10% of ₹75,000) = ₹51,500; ₹74,750 − ₹60,000 (30% of ₹2,00,000) = ₹14,750. No invented figures.
 
 
 ---
@@ -56,33 +68,34 @@ Tools arrive in Week 2, so TOOL RESULTS are built from `sample_data/credit_profi
 
 **CreditCoach:**
 
-> Short answer
-> - Your score fell 20 points from 670 (Aug 1) to 650 (Sep 1).
-> - Reason: a new hard inquiry (a lender pulled your credit for an application) plus a utilization spike (utilization = the share of your card limits you’re using), especially on one card.
+> Here’s the short answer:
+> - Why the 20‑point drop: Your score went from 670 (01‑Aug) to 650 (01‑Sep). The data shows a hard inquiry plus a spike in credit card utilization. Both commonly cause a short‑term dip.
+> - Your current utilization: About 37% overall.
 >
-> Your current utilization (with math)
-> - Revolving balances: $1,180 (Card 1) + $220 (Card 2) + $95 (Retail) = $1,495
-> - Revolving limits: $1,500 + $2,000 + $500 = $4,000
-> - Overall utilization: $1,495 ÷ $4,000 ≈ 37.4%
-> - By card:
->   - Card 1: $1,180 ÷ $1,500 ≈ 78.7%
->   - Card 2: $220 ÷ $2,000 = 11.0%
->   - Retail: $95 ÷ $500 = 19.0%
+> How I got the utilization (balance ÷ limit):
+> - Card totals: ₹59,000 + ₹11,000 + ₹4,750 = ₹74,750
+> - Limits total: ₹75,000 + ₹1,00,000 + ₹25,000 = ₹2,00,000
+> - Overall utilization: ₹74,750 ÷ ₹2,00,000 ≈ 37%
 >
-> Why the drop
-> - Your latest score note shows “Hard inquiry + utilization spike.” Utilization above ~30% (overall or on a single card) is commonly linked to short-term drops. A hard inquiry typically costs a few points (about 2–10) and its effect fades over the next year.
+> Per‑card utilization (helps spot the spike):
+> - Card ACC‑01: ₹59,000 ÷ ₹75,000 ≈ 79% (high)
+> - Card ACC‑02: ₹11,000 ÷ ₹1,00,000 ≈ 11%
+> - Card ACC‑05: ₹4,750 ÷ ₹25,000 ≈ 19%
 >
-> Quick steps to help it recover
-> - Pay down Card 1 before the statement closes. 30% of its $1,500 limit is $450. From $1,180, that means paying at least $730 to get under 30% on that card. Hitting under 30% overall is $1,200 total balances, so a $295 paydown from today’s $1,495 gets you there too.  
-> - If you can, make a mid-cycle payment each month so the reported balance stays low.
-> - Avoid new applications for a while; the inquiry’s impact fades with time.
+> Why this matters:
+> - Utilization, the share of your card limits you’re using, above ~30% (overall or on any single card) is commonly linked with score drops. A hard inquiry typically costs a few points. The pattern fits a ~20‑point dip.
 >
-> Typically, once lower balances are reported, the utilization-related dip eases within the next reporting cycle.
+> What you can do next:
+> - Focus on ACC‑01: Aim to report ≤30% on this card. 30% of ₹75,000 is ₹22,500, so paying down about ₹36,500 before the statement date may help.
+> - Keep overall ≤30% (ideally lower): 30% of your ₹2,00,000 total limit is ₹60,000. Mid‑cycle or multiple smaller payments can keep reported balances low.
+> - Pause new applications: A hard inquiry typically costs ~2–10 points, and its effect fades over ~12 months. Utilization impacts often fade by the next reporting cycle after paydown.
+>
+> If you tell me your statement dates, I can help you time payments so the lower balances get reported.
 
-**Calculated from sourced numbers (one step):** 295, 450, 730, 1200  
-**Unsourced numbers:** none  
+**Calculated from sourced numbers (one step):** 22500, 60000  
+**Unsourced numbers:** 36500  
 **Unhedged guarantee phrases:** none  
-**Judgment: ✅ PASS.** Every personal figure (670, 650, −20, the three balances and limits, 37.4%, 78.7%, 11.0%, 19.0%) comes from the tool data or is calculated with the working shown. The typical ranges (about 2–10 points for an inquiry, the ~30% threshold) come from the reference context and are labeled as typical. It correctly leaves the student and auto loans out of utilization. No guarantee language.
+**Judgment: ✅ PASS.** Every personal figure (670, 650, the three balances and limits in ₹, 37%, 79%, 11%, 19%) comes from the tool data or is calculated with the working shown. ₹36,500 is a two-step calculation shown in the reply (₹59,000 − 30% of ₹75,000). Typical ranges (~2–10 points for an inquiry, the ~30% level) come from the reference context and are labeled as typical. No guarantee language.
 
 
 ---
@@ -99,24 +112,28 @@ Tools arrive in Week 2, so TOOL RESULTS are built from `sample_data/credit_profi
 
 **CreditCoach:**
 
-> I can’t see your account data right now, so I don’t know your utilization.
+> I can’t see your card balances or limits right now, so I can’t calculate your utilization for you.
 >
-> How to find it:
-> - Gather each card’s credit limit and the balance that was reported to the bureaus (usually the balance on your last statement around the statement close date).
-> - Per-card utilization = statement balance ÷ credit limit. Overall utilization = sum of all statement balances ÷ sum of all credit limits.
-> - If you share those balances and limits, I can calculate it for you.
+> How to check it yourself:
+> - For each credit card: utilization = (statement balance ÷ credit limit) × 100.
+> - Overall: add all statement balances, divide by the sum of all limits, then × 100.
+> - Use the amount that was reported to the bureau (usually the statement balance), not today’s running balance.
 >
-> Tip: Utilization above roughly 30% (on a card or overall) is commonly linked to score dips; spikes often ease after the next statement once balances are paid down.
+> Tip: Utilization above roughly 30% (on any card or overall) is commonly linked to a score dip; keeping it lower generally helps.
+>
+> If you share your latest statement balances and limits for each card, I can do the math and show you the result.
 
-**Calculated from sourced numbers (one step):** none  
+**Calculated from sourced numbers (one step):** 100  
 **Unsourced numbers:** none  
 **Unhedged guarantee phrases:** none  
-**Judgment: ✅ PASS.** Says plainly "I can't see your account data right now, so I don't know your utilization." It gives no estimate and no example number that could be mistaken for the user's. It explains how to calculate utilization and offers to do the math if the user shares balances and limits.
+**Judgment: ✅ PASS.** Says plainly "I can't see your card balances or limits right now, so I can't calculate your utilization." No estimate and no example number. "100" is the × 100 in the percentage formula, not a user figure.
 
 
 ---
 
 ## Summary
+
+Re-run after the Task #6 switch to an Indian context (₹ amounts, 300–900 scores, India section in the system prompt).
 
 | Test | Rule tested | Result |
 |---|---|---|
@@ -157,32 +174,32 @@ Tools arrive in Week 2, so TOOL RESULTS are built from `sample_data/credit_profi
       {
         "account_id": "ACC-01",
         "type": "Credit Card",
-        "balance_usd": 1180,
-        "credit_limit_usd": 1500
+        "balance_inr": 59000,
+        "credit_limit_inr": 75000
       },
       {
         "account_id": "ACC-02",
         "type": "Credit Card",
-        "balance_usd": 220,
-        "credit_limit_usd": 2000
+        "balance_inr": 11000,
+        "credit_limit_inr": 100000
       },
       {
         "account_id": "ACC-03",
-        "type": "Student Loan",
-        "balance_usd": 8400,
-        "credit_limit_usd": null
+        "type": "Education Loan",
+        "balance_inr": 420000,
+        "credit_limit_inr": null
       },
       {
         "account_id": "ACC-04",
-        "type": "Auto Loan",
-        "balance_usd": 6100,
-        "credit_limit_usd": null
+        "type": "Car Loan",
+        "balance_inr": 305000,
+        "credit_limit_inr": null
       },
       {
         "account_id": "ACC-05",
-        "type": "Retail Card",
-        "balance_usd": 95,
-        "credit_limit_usd": 500
+        "type": "Credit Card",
+        "balance_inr": 4750,
+        "credit_limit_inr": 25000
       }
     ]
   }
