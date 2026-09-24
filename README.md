@@ -25,6 +25,9 @@ uv run python -m creditcoach.check
 
 # 5. Build the vector store from corpus/ (about 10 seconds; rerun after editing the corpus)
 uv run python -m creditcoach.rag.ingest
+
+# 6. Try retrieval
+uv run python -m creditcoach.rag.retrieve "why did my credit score drop 20 points?"
 ```
 
 You should see every line marked `[PASS]`, ending with `All checks passed. Ready to build.`
@@ -40,7 +43,7 @@ CreditCoach/
     check.py          #   setup check for fresh clones
     llm.py            #   OpenRouter client with fallback model
     prompts/          #   system_prompt.md (tone, India context, hard rules)
-    rag/              #   corpus loader and ingestion (chunk, embed, store in .chroma/)
+    rag/              #   corpus loader, ingestion (chunk, embed, store in .chroma/), retrieval (search + rerank)
                       #   coming: agent/, tools/, memory/, app/
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
   data/               # synthetic dataset: 13 users, accounts, score history (see data/README.md)
@@ -48,6 +51,7 @@ CreditCoach/
     synthetic/        #   step1-3: build data/ from the interviews and the sample
     task05_prompt_tests.py   # system prompt test runs (Task 5)
     task07_corpus_report.py  # corpus validation and coverage report (Task 7)
+    task09_retrieval_eval.py # retrieval test and strategy comparison (Task 9)
   user_interviews/    # 12 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
   docs/               # team.md, 6-pager.md, pr-faq.md, research/, evidence/week-1/
@@ -79,6 +83,7 @@ All settings are read from `.env` (git-ignored). See [.env.example](.env.example
 | `SMALL_MODEL` | No | `openai/gpt-5-mini` | Cheap side calls (guardrail checks, eval judging) |
 | `FALLBACK_MODEL` | No | `openai/gpt-4o` | Used when the chat model is slow or unavailable |
 | `EMBEDDING_MODEL` | No | `sentence-transformers/all-MiniLM-L6-v2` | Local embedding model for the vector store. Rebuild the store after changing it. |
+| `RERANKER_MODEL` | No | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Local cross-encoder that reorders retrieved chunks |
 
 ## Branch Strategy
 

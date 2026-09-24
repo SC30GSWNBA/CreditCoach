@@ -12,7 +12,7 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 | 6 | Synthetic dataset | [data/](../../../data/) (13 users) | [task-06-dataset-summary.md](task-06-dataset-summary.md) | ✅ | ⬜ Review summary |
 | 7 | RAG corpus | [corpus/](../../../corpus/) (17 documents) | [task-07-corpus-summary.md](task-07-corpus-summary.md): all 6 sample queries covered | ✅ | ⬜ Review documents |
 | 8 | Ingestion pipeline | [creditcoach/rag/ingest.py](../../../creditcoach/rag/ingest.py) | [task-08-ingestion-log.md](task-08-ingestion-log.md): 45 chunks stored, 0 truncated | ✅ | ⬜ Review log |
-| 9 | Retrieval test | — | — | ⬜ | ⬜ |
+| 9 | Retrieval test | [creditcoach/rag/retrieve.py](../../../creditcoach/rag/retrieve.py) | [task-09-retrieval-test.md](task-09-retrieval-test.md): 3/3 relevant in top 3 | ✅ | ⬜ Review judgments |
 | 10 | Prototype round trip | — | — | ⬜ | ⬜ |
 | 11 | Gradio UI + share link | — | — | ⬜ | ⬜ |
 
