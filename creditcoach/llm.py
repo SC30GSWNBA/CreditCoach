@@ -21,7 +21,10 @@ def chat(messages: list[dict], model: str | None = None) -> tuple[str, str]:
     primary = model or config.CHAT_MODEL
     for candidate in (primary, config.FALLBACK_MODEL):
         try:
-            response = client.chat.completions.create(model=candidate, messages=messages, timeout=90)
+            extra = {}
+            if candidate.startswith("openai/gpt-5") and config.REASONING_EFFORT:
+                extra["extra_body"] = {"reasoning": {"effort": config.REASONING_EFFORT}}
+            response = client.chat.completions.create(model=candidate, messages=messages, timeout=90, **extra)
             return response.choices[0].message.content or "", candidate
         except Exception as exc:
             if candidate == config.FALLBACK_MODEL:
