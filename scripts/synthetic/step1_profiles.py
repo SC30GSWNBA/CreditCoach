@@ -1,6 +1,6 @@
 """Task 6 redo, step 1: build one synthetic user profile per interviewee.
 
-Reads user_interviews/CreditCoach_User_Profiles.xlsx (git-ignored, local only) and writes
+Reads user_interviews/CreditCoach_User_Profiles.xlsx and writes
 data/users.csv: USR-001 (Aravind, from requirements.md) plus USR-002..USR-013, one per interview.
 Names are fictional; ages are picked inside each person's age band.
 
