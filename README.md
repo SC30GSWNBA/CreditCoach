@@ -28,6 +28,9 @@ uv run python -m creditcoach.rag.ingest
 
 # 6. Try retrieval
 uv run python -m creditcoach.rag.retrieve "why did my credit score drop 20 points?"
+
+# 7. Ask CreditCoach (retrieval + GPT-5; needs your OpenRouter key)
+uv run python -m creditcoach.agent.pipeline "why did my credit score drop 20 points?"
 ```
 
 You should see every line marked `[PASS]`, ending with `All checks passed. Ready to build.`
@@ -44,7 +47,8 @@ CreditCoach/
     llm.py            #   OpenRouter client with fallback model
     prompts/          #   system_prompt.md (tone, India context, hard rules)
     rag/              #   corpus loader, ingestion (chunk, embed, store in .chroma/), retrieval (search + rerank)
-                      #   coming: agent/, tools/, memory/, app/
+    agent/            #   pipeline.py: question -> retrieval -> grounded answer (Task 10 prototype)
+                      #   coming: tools/, memory/, app/
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
   data/               # synthetic dataset: 13 users, accounts, score history (see data/README.md)
   scripts/
@@ -52,6 +56,7 @@ CreditCoach/
     task05_prompt_tests.py   # system prompt test runs (Task 5)
     task07_corpus_report.py  # corpus validation and coverage report (Task 7)
     task09_retrieval_eval.py # retrieval test and strategy comparison (Task 9)
+    task10_prototype_run.py  # prototype round trip with grounding checks (Task 10)
   user_interviews/    # 12 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
   docs/               # team.md, 6-pager.md, pr-faq.md, research/, evidence/week-1/
