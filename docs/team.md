@@ -40,7 +40,7 @@ Each role owns its area end to end across all four weeks: design, build, tests, 
 
 ### Repo layout
 
-See the README for the current layout. Code lives in the `creditcoach/` Python package, with one subpackage per area added as each task starts: `agent/` (prompt, orchestration, guardrails), `rag/` (corpus loader, ingestion, retrieval), `tools/` (MCP server and tools), `memory/` (goal store), and `app/` (Gradio UI). Content and data sit at the repo root: `corpus/` (RAG documents), `data/` (synthetic dataset), `docs/`, and later `evals/`.
+See the README for the current layout. Code lives in the `creditcoach/` Python package, with one subpackage per area added as each task starts: `prompts/` (system prompt), `agent/` (orchestration, later guardrails), `rag/` (corpus loader, ingestion, retrieval), `tools/` (MCP server and tools), `memory/` (goal store), and `app/` (Gradio UI). Content and data sit at the repo root: `corpus/` (RAG documents), `data/` (synthetic dataset), `docs/`, and later `evals/`.
 
 ## 3. Kickoff Review: Key Takeaways from requirements.md
 

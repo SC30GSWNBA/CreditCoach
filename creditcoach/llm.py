@@ -1,8 +1,12 @@
 """Thin OpenRouter client with a fallback model."""
 
+import logging
+
 from openai import OpenAI
 
 from creditcoach import config
+
+log = logging.getLogger(__name__)
 
 
 def get_client() -> OpenAI:
@@ -19,7 +23,9 @@ def chat(messages: list[dict], model: str | None = None) -> tuple[str, str]:
         try:
             response = client.chat.completions.create(model=candidate, messages=messages, timeout=90)
             return response.choices[0].message.content or "", candidate
-        except Exception:
+        except Exception as exc:
             if candidate == config.FALLBACK_MODEL:
                 raise
+            log.warning("Chat model %s failed (%s: %s); falling back to %s",
+                        candidate, type(exc).__name__, exc, config.FALLBACK_MODEL)
     raise AssertionError("unreachable")
