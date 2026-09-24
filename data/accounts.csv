@@ -1,17 +1,26 @@
-account_id,user_id,account_type,balance_usd,credit_limit_usd,utilization_ratio
-ACC-01,USR-001,Credit Card,1180,1500,0.79
-ACC-02,USR-001,Credit Card,220,2000,0.11
-ACC-03,USR-001,Student Loan,8400,,
-ACC-04,USR-001,Auto Loan,6100,,
-ACC-05,USR-001,Retail Card,95,500,0.19
-ACC-06,USR-002,Credit Card,80,1000,0.08
-ACC-07,USR-003,Credit Card,240,3000,0.08
-ACC-08,USR-003,Student Loan,5200,,
-ACC-09,USR-004,Credit Card,610,4000,0.15
-ACC-10,USR-004,Credit Card,150,2500,0.06
-ACC-11,USR-004,Student Loan,3100,,
-ACC-12,USR-005,Credit Card,1100,5000,0.22
-ACC-13,USR-005,Home Loan,142000,,
-ACC-14,USR-006,Credit Card,4450,6000,0.74
-ACC-15,USR-006,Personal Loan,9800,,
-ACC-16,USR-006,Instant Cash Loan,400,,
+account_id,user_id,account_type,balance_inr,credit_limit_inr,utilization_ratio
+ACC-01,USR-001,Credit Card,59000,75000,0.79
+ACC-02,USR-001,Credit Card,11000,100000,0.11
+ACC-03,USR-001,Education Loan,420000,,
+ACC-04,USR-001,Car Loan,305000,,
+ACC-05,USR-001,Credit Card,4750,25000,0.19
+ACC-06,USR-002,Credit Card,6700,90000,0.07
+ACC-07,USR-002,Education Loan,410000,,
+ACC-08,USR-003,Credit Card,39800,145000,0.27
+ACC-09,USR-003,Education Loan,1370000,,
+ACC-10,USR-005,Education Loan,330000,,
+ACC-11,USR-006,Credit Card,66000,250000,0.26
+ACC-12,USR-006,Education Loan,455000,,
+ACC-13,USR-008,Credit Card,8500,110000,0.08
+ACC-14,USR-009,Credit Card,16700,105000,0.16
+ACC-15,USR-009,Car Loan,375000,,
+ACC-16,USR-010,Credit Card,81600,300000,0.27
+ACC-17,USR-010,Home Loan,6100000,,
+ACC-18,USR-011,Credit Card,210900,440000,0.48
+ACC-19,USR-011,Home Loan,5450000,,
+ACC-20,USR-012,Credit Card,378100,455000,0.83
+ACC-21,USR-012,Home Loan,3410000,,
+ACC-22,USR-012,Personal Loan,425000,,
+ACC-23,USR-012,Instant Loan App,24000,,
+ACC-24,USR-013,Credit Card,28600,320000,0.09
+ACC-25,USR-013,Credit Card,30600,345000,0.09

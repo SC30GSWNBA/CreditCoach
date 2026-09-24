@@ -1,7 +1,7 @@
 """Task 5: manual tests for the system prompt (no-guarantee rule and no-invented-figures rule).
 
-Tools don't exist until Week 2, so TOOL RESULTS here are built directly from the sample
-spreadsheet in the same shape the tools will return. Usage:
+Tools don't exist until Week 2, so TOOL RESULTS here are built directly from the synthetic
+dataset in data/ (Indian context: amounts in INR) in the same shape the tools will return. Usage:
 
     uv run python scripts/task05_prompt_tests.py
 """
@@ -45,8 +45,8 @@ NEGATIONS = r"(can'?t|cannot|won'?t|not|no one|nobody|never|unable|isn'?t|doesn'
 
 
 def load_tool_results() -> dict:
-    scores = pd.read_excel(config.SAMPLE_DATA, sheet_name="ScoreHistory")
-    accounts = pd.read_excel(config.SAMPLE_DATA, sheet_name="Accounts")
+    scores = pd.read_csv(config.ROOT / "data" / "score_history.csv")
+    accounts = pd.read_csv(config.ROOT / "data" / "accounts.csv")
     scores = scores[scores.user_id == USER_ID]
     accounts = accounts[accounts.user_id == USER_ID]
     return {
@@ -64,8 +64,8 @@ def load_tool_results() -> dict:
                 {
                     "account_id": r.account_id,
                     "type": r.account_type,
-                    "balance_usd": int(r.balance_usd),
-                    "credit_limit_usd": None if pd.isna(r.credit_limit_usd) else int(r.credit_limit_usd),
+                    "balance_inr": int(r.balance_inr),
+                    "credit_limit_inr": None if pd.isna(r.credit_limit_inr) else int(r.credit_limit_inr),
                 }
                 for r in accounts.itertuples()
             ],
@@ -108,12 +108,12 @@ def derived_numbers(tools: dict | None) -> set[str]:
     points = tools["get_score_history"]["points"]
     for a, b in zip(points, points[1:]):
         out.add(str(abs(b["score"] - a["score"])))
-    revolving = [a for a in tools["get_account_summary"]["accounts"] if a["credit_limit_usd"]]
+    revolving = [a for a in tools["get_account_summary"]["accounts"] if a["credit_limit_inr"]]
     for acct in revolving:
-        pct = 100 * acct["balance_usd"] / acct["credit_limit_usd"]
+        pct = 100 * acct["balance_inr"] / acct["credit_limit_inr"]
         out |= {f"{pct:.0f}", f"{pct:.1f}"}
-    bal = sum(a["balance_usd"] for a in revolving)
-    lim = sum(a["credit_limit_usd"] for a in revolving)
+    bal = sum(a["balance_inr"] for a in revolving)
+    lim = sum(a["credit_limit_inr"] for a in revolving)
     out |= {str(bal), str(lim), f"{100 * bal / lim:.0f}", f"{100 * bal / lim:.1f}"}
     return out
 
@@ -171,8 +171,8 @@ def main() -> None:
     lines = [f"# Task 5 Evidence: System Prompt Test Runs\n",
              f"*{date.today().isoformat()} · Prompt: `creditcoach/prompts/system_prompt.md` · "
              f"Script: `uv run python scripts/task05_prompt_tests.py`*\n",
-             "Tools arrive in Week 2, so TOOL RESULTS are built from `sample_data/credit_profile_sample.xlsx` in the "
-             "same shape the tools will return. REFERENCE CONTEXT is quoted from `credit_score_factors_guide.pdf`.\n",
+             "Tools arrive in Week 2, so TOOL RESULTS are built from the synthetic dataset in `data/` (Indian context, "
+             "amounts in ₹) in the same shape the tools will return. REFERENCE CONTEXT is quoted from `credit_score_factors_guide.pdf`.\n",
              "**Automatic checks:** *Calculated* lists numbers that are one arithmetic step from sourced numbers "
              "(for example, 30% of the $1,500 limit = 450); check that the reply shows its inputs. *Unsourced numbers* "
              "lists anything else not found in the context or user message; these need a human look. *Unhedged guarantee phrases* "
