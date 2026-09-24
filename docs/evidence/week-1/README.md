@@ -10,7 +10,7 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 | 4 | Git repo, README | [README.md](../../../README.md), [GitHub](https://github.com/SC30GSWNBA/CreditCoach) | [task-04-clone-test.md](task-04-clone-test.md) | ✅ | ⬜ Aman and Anik each clone, run, and tick their row |
 | 5 | System prompt | [system_prompt.md](../../../creditcoach/prompts/system_prompt.md) | [task-05-prompt-tests.md](task-05-prompt-tests.md): 3/3 pass | ✅ | ⬜ Review transcripts |
 | 6 | Synthetic dataset | [data/](../../../data/) (13 users) | [task-06-dataset-summary.md](task-06-dataset-summary.md) | ✅ | ⬜ Review summary |
-| 7 | RAG corpus | — | — | ⬜ | ⬜ |
+| 7 | RAG corpus | [corpus/](../../../corpus/) (17 documents) | [task-07-corpus-summary.md](task-07-corpus-summary.md): all 6 sample queries covered | ✅ | ⬜ Review documents |
 | 8 | Ingestion pipeline | — | — | ⬜ | ⬜ |
 | 9 | Retrieval test | — | — | ⬜ | ⬜ |
 | 10 | Prototype round trip | — | — | ⬜ | ⬜ |

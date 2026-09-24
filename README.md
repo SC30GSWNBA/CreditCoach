@@ -38,10 +38,12 @@ CreditCoach/
     llm.py            #   OpenRouter client with fallback model
     prompts/          #   system_prompt.md (tone, India context, hard rules)
                       #   coming: agent/, rag/, tools/, memory/, app/
+  corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
   data/               # synthetic dataset: 13 users, accounts, score history (see data/README.md)
   scripts/
     synthetic/        #   step1-3: build data/ from the interviews and the sample
     task05_prompt_tests.py   # system prompt test runs (Task 5)
+    task07_corpus_report.py  # corpus validation and coverage report (Task 7)
   user_interviews/    # 12 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
   docs/               # team.md, 6-pager.md, pr-faq.md, research/, evidence/week-1/
