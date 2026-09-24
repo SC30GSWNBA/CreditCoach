@@ -14,6 +14,9 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 CHAT_MODEL = os.getenv("CHAT_MODEL", "openai/gpt-5")
 SMALL_MODEL = os.getenv("SMALL_MODEL", "openai/gpt-5-mini")
 FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "openai/gpt-4o")
+# Reasoning effort for GPT-5-family models (minimal | low | medium | high). "low" cut answer time from
+# ~14-37s to ~8s in Task 11 with the same grounding and citation behaviour.
+REASONING_EFFORT = os.getenv("REASONING_EFFORT", "low")
 
 SAMPLE_DATA = ROOT / "sample_data" / "credit_profile_sample.xlsx"
 DATA_DIR = ROOT / "data"  # synthetic dataset (Indian context: INR, 300-900 scores)

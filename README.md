@@ -31,7 +31,12 @@ uv run python -m creditcoach.rag.retrieve "why did my credit score drop 20 point
 
 # 7. Ask CreditCoach (retrieval + GPT-5; needs your OpenRouter key)
 uv run python -m creditcoach.agent.pipeline "why did my credit score drop 20 points?"
+
+# 8. Open the chat UI at http://127.0.0.1:7860 (add --share for a public link)
+uv run python -m creditcoach.app
 ```
+
+> **Share links are public.** Anyone with the link can chat, and every answer uses your OpenRouter key. Set `APP_USERNAME` and `APP_PASSWORD` in `.env` before using `--share`, and stop the app (Ctrl+C) when you're done; the link closes with it.
 
 You should see every line marked `[PASS]`, ending with `All checks passed. Ready to build.`
 
@@ -48,7 +53,8 @@ CreditCoach/
     prompts/          #   system_prompt.md (tone, India context, hard rules)
     rag/              #   corpus loader, ingestion (chunk, embed, store in .chroma/), retrieval (search + rerank)
     agent/            #   pipeline.py: question -> retrieval -> grounded answer (Task 10 prototype)
-                      #   coming: tools/, memory/, app/
+    app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share]
+                      #   coming: tools/, memory/
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
   data/               # synthetic dataset: 13 users, accounts, score history (see data/README.md)
   scripts/
@@ -87,8 +93,10 @@ All settings are read from `.env` (git-ignored). See [.env.example](.env.example
 | `CHAT_MODEL` | No | `openai/gpt-5` | Main chat model |
 | `SMALL_MODEL` | No | `openai/gpt-5-mini` | Cheap side calls (guardrail checks, eval judging) |
 | `FALLBACK_MODEL` | No | `openai/gpt-4o` | Used when the chat model is slow or unavailable |
+| `REASONING_EFFORT` | No | `low` | How long GPT-5 reasons before answering (`minimal`, `low`, `medium`, `high`). `low` keeps UI answers to about 8 s. |
 | `EMBEDDING_MODEL` | No | `sentence-transformers/all-MiniLM-L6-v2` | Local embedding model for the vector store. Rebuild the store after changing it. |
 | `RERANKER_MODEL` | No | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Local cross-encoder that reorders retrieved chunks |
+| `APP_USERNAME`, `APP_PASSWORD` | Recommended with `--share` | — | Login for the chat UI. Without both, the UI is open to anyone with the link. |
 
 ## Branch Strategy
 

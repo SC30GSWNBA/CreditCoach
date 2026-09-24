@@ -14,6 +14,6 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 | 8 | Ingestion pipeline | [creditcoach/rag/ingest.py](../../../creditcoach/rag/ingest.py) | [task-08-ingestion-log.md](task-08-ingestion-log.md): 45 chunks stored, 0 truncated | ✅ | ⬜ Review log |
 | 9 | Retrieval test | [creditcoach/rag/retrieve.py](../../../creditcoach/rag/retrieve.py) | [task-09-retrieval-test.md](task-09-retrieval-test.md): 3/3 relevant in top 3 | ✅ | ⬜ Review judgments |
 | 10 | Prototype round trip | [creditcoach/agent/pipeline.py](../../../creditcoach/agent/pipeline.py) | [task-10-prototype-run.md](task-10-prototype-run.md): 3 runs, all checks pass | ✅ | ⬜ Review transcripts |
-| 11 | Gradio UI + share link | — | — | ⬜ | ⬜ |
+| 11 | Gradio UI + share link | [creditcoach/app/main.py](../../../creditcoach/app/main.py) | [task-11-gradio-ui.md](task-11-gradio-ui.md): screenshot + public link tested | ✅ | ⬜ Post a fresh link (with login) to the team channel |
 
 **Additional (outside the task plan):** [interview questionnaire](../../research/interview-questionnaire.md) and 12 interviews ([user_interviews/](../../../user_interviews/)), used to build the Task 6 dataset.
