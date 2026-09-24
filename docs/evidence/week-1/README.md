@@ -16,4 +16,15 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 | 10 | Prototype round trip | [creditcoach/agent/pipeline.py](../../../creditcoach/agent/pipeline.py) | [task-10-prototype-run.md](task-10-prototype-run.md): 3 runs, all checks pass | ✅ | ⬜ Review transcripts |
 | 11 | Gradio UI + share link | [creditcoach/app/main.py](../../../creditcoach/app/main.py) | [task-11-gradio-ui.md](task-11-gradio-ui.md): screenshot + public link tested | ✅ | ⬜ Post a fresh link (with login) to the team channel |
 
+## Week 1 demo goal
+
+> *A live Gradio chat UI that answers a user's "why did my score drop?" question with a RAG-grounded explanation; no tools, memory, or guardrails yet, but it's clickable and shareable. Plus two written deliverables: an Amazon-style 6-pager and a PR/FAQ.* (tasks.md)
+
+| Part of the goal | Status | Evidence |
+|---|---|---|
+| Live Gradio chat UI | ✅ | `uv run python -m creditcoach.app`, [screenshot](img/task-11-ui-answer.png) |
+| Answers "why did my score drop?" with a RAG-grounded explanation | ✅ | Cites corpus passages and lists sources ([Task 10](task-10-prototype-run.md), [Task 11](task-11-gradio-ui.md)) |
+| Clickable and shareable | ✅ built, ⬜ link to post | Public link tested from outside ([Task 11](task-11-gradio-ui.md)); login required via `APP_USERNAME` / `APP_PASSWORD` |
+| 6-pager and PR/FAQ | ✅ written, ⬜ team agreement | [6-pager](../../6-pager.md), [PR/FAQ](../../pr-faq.md) |
+
 **Additional (outside the task plan):** [interview questionnaire](../../research/interview-questionnaire.md) and 12 interviews ([user_interviews/](../../../user_interviews/)), used to build the Task 6 dataset.
