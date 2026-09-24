@@ -35,7 +35,10 @@ CreditCoach/
   creditcoach/        # Python package
     config.py         #   secrets, model IDs, paths (model IDs live here, not in code)
     check.py          #   setup check for fresh clones
+    llm.py            #   OpenRouter client with fallback model
+    prompts/          #   system_prompt.md (tone + hard rules)
                       #   coming: agent/, rag/, tools/, memory/, app/
+  scripts/            # one-off task scripts, e.g. task05_prompt_tests.py
   sample_data/        # seed credit profile (USR-001) in xlsx
   docs/               # team.md, 6-pager.md, pr-faq.md, research/, evidence/
   tasks.md            # 4-week task plan with Definition of Done per task
