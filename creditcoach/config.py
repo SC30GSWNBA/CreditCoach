@@ -16,3 +16,4 @@ SMALL_MODEL = os.getenv("SMALL_MODEL", "openai/gpt-5-mini")
 FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "openai/gpt-4o")
 
 SAMPLE_DATA = ROOT / "sample_data" / "credit_profile_sample.xlsx"
+DATA_DIR = ROOT / "data"  # synthetic dataset (Indian context: INR, 300-900 scores)

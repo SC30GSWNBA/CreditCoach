@@ -34,13 +34,15 @@ def main() -> int:
     try:
         import pandas as pd
 
-        scores = pd.read_excel(config.SAMPLE_DATA, sheet_name="ScoreHistory")
-        accounts = pd.read_excel(config.SAMPLE_DATA, sheet_name="Accounts")
-        latest = scores.iloc[-1]
-        report(True, "Sample data readable", f"{scores['user_id'].nunique()} user(s), {len(scores)} score rows, {len(accounts)} accounts; "
-               f"latest {latest['user_id']} score {latest['score']} ({latest['primary_factor_change']})")
+        users = pd.read_csv(config.DATA_DIR / "users.csv", dtype=str, keep_default_na=False)
+        accounts = pd.read_csv(config.DATA_DIR / "accounts.csv")
+        scores = pd.read_csv(config.DATA_DIR / "score_history.csv")
+        consistent = set(accounts.user_id) | set(scores.user_id) <= set(users.user_id) and scores.score.between(300, 900).all()
+        latest = scores[scores.user_id == "USR-001"].iloc[-1]
+        report(consistent, "Dataset readable (data/)", f"{len(users)} users, {len(accounts)} accounts, {len(scores)} score rows; "
+               f"USR-001 latest score {latest['score']} ({latest['primary_factor_change']})")
     except Exception as exc:
-        report(False, "Sample data readable", str(exc))
+        report(False, "Dataset readable (data/)", str(exc))
 
     print("\nAll checks passed. Ready to build." if ok else "\nSome checks failed. See README > Troubleshooting.")
     return 0 if ok else 1

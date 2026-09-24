@@ -36,14 +36,28 @@ CreditCoach/
     config.py         #   secrets, model IDs, paths (model IDs live here, not in code)
     check.py          #   setup check for fresh clones
     llm.py            #   OpenRouter client with fallback model
-    prompts/          #   system_prompt.md (tone + hard rules)
+    prompts/          #   system_prompt.md (tone, India context, hard rules)
                       #   coming: agent/, rag/, tools/, memory/, app/
-  scripts/            # one-off task scripts, e.g. task05_prompt_tests.py
-  sample_data/        # seed credit profile (USR-001) in xlsx
-  docs/               # team.md, 6-pager.md, pr-faq.md, research/, evidence/
+  data/               # synthetic dataset: 13 users, accounts, score history (see data/README.md)
+  scripts/
+    synthetic/        #   step1-3: build data/ from the interviews and the sample
+    task05_prompt_tests.py   # system prompt test runs (Task 5)
+  user_interviews/    # 12 interview responses (dummy participants) used to build data/
+  sample_data/        # original seed profile (USR-001) in xlsx, in USD
+  docs/               # team.md, 6-pager.md, pr-faq.md, research/, evidence/week-1/
   tasks.md            # 4-week task plan with Definition of Done per task
   requirements.md     # product requirements, persona, sample queries, guardrails
   credit_score_factors_guide.pdf   # seed document for the RAG corpus
+```
+
+**Context:** CreditCoach is built for Indian consumers. Amounts are in ₹, and scores use the 300–900 range of Indian credit bureaus (CIBIL, Experian, Equifax, CRIF High Mark).
+
+**Rebuild the dataset** (deterministic, validated on every run):
+
+```bash
+uv run python scripts/synthetic/step1_profiles.py
+uv run python scripts/synthetic/step2_accounts_scores.py
+uv run python scripts/synthetic/step3_summary.py
 ```
 
 **Stack:** Python 3.12 · OpenAI GPT-5 / GPT-4 models via OpenRouter · sentence-transformers (local embeddings) · ChromaDB · Gradio. See [docs/team.md](docs/team.md) for the full stack and the reasons behind each choice.
@@ -94,3 +108,5 @@ git push -u origin week1/task-05-system-prompt
 - [docs/6-pager.md](docs/6-pager.md): narrative memo
 - [docs/pr-faq.md](docs/pr-faq.md): press release and FAQ
 - [docs/research/interview-questionnaire.md](docs/research/interview-questionnaire.md): 1:1 user interview questionnaire
+- [data/README.md](data/README.md): synthetic dataset, how it's built, interview findings
+- [docs/evidence/week-1/](docs/evidence/week-1/): evidence of completion for each Week 1 task

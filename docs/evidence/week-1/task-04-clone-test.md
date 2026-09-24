@@ -29,6 +29,8 @@ Output:
 All checks passed. Ready to build.
 ```
 
+> **Note (after Task 6):** the last check line now reads `[PASS] Dataset readable (data/) - 13 users, 25 accounts, 132 score rows; ...` because the check validates the synthetic dataset instead of the sample workbook.
+
 ## Teammate verification (to fill in)
 
 | Teammate | Cloned from GitHub | `uv sync` OK | Check passed | Date |

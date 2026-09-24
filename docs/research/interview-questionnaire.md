@@ -1,6 +1,6 @@
 # CreditCoach: 1:1 User Interview Questionnaire
 
-*Additional research task (outside the Week 1 plan) · Interviewer: Sudip · 4–6 participants, aged 21–42, working at multinational companies · About 12–15 minutes*
+*Additional research task (outside the Week 1 plan) · Interviewer: Sudip · 12 participants, aged 21–42 · About 12–15 minutes*
 
 ---
 
@@ -8,7 +8,7 @@
 
 > "Thanks for your time. This takes about 12–15 minutes and has 25 multiple-choice questions about credit scores, cards, loans, and how you split your salary. There are no right or wrong answers, and 'I don't know' is always a fine answer. We don't record your name or any exact amounts, only ranges. You can skip any question. Your answers help us design a tool that explains credit scores in plain language. OK to begin?"
 
-**Participant ID:** P___ (use P1–P6, never a name) **Date:** ________
+**Participant ID:** P___ (use P1–P12, never a name) **Date:** ________
 
 **Interviewer tips**
 - Read the options aloud and circle one answer, unless the question says *select all that apply*.
@@ -250,6 +250,12 @@ Grounded in `credit_score_factors_guide.pdf`. Give 1 point per correct answer; "
 | P4 | | | | | | | | | | | | | | | | | | |
 | P5 | | | | | | | | | | | | | | | | | | |
 | P6 | | | | | | | | | | | | | | | | | | |
+| P7 | | | | | | | | | | | | | | | | | | |
+| P8 | | | | | | | | | | | | | | | | | | |
+| P9 | | | | | | | | | | | | | | | | | | |
+| P10 | | | | | | | | | | | | | | | | | | |
+| P11 | | | | | | | | | | | | | | | | | | |
+| P12 | | | | | | | | | | | | | | | | | | |
 
 ### How the answers feed back into CreditCoach
 
@@ -258,7 +264,7 @@ Grounded in `credit_score_factors_guide.pdf`. Give 1 point per correct answer; "
 | Q5: where people learn about credit | Tone and myths to address. Advice learned from social media is often what the corpus needs to correct (Task #7) |
 | Which knowledge questions (Q7–Q12) people get wrong most | Topics the RAG corpus must explain most clearly (Task #7) |
 | Q13: how common an unexplained drop is | Evidence for the problem statement (6-pager §3, PR/FAQ) |
-| Q14–Q18 and Q21–Q24: real card, loan, emergency-fund and salary-split patterns | Realistic ranges for the 4–6 synthetic user profiles (Task #6) |
+| Q14–Q18 and Q21–Q24: real card, loan, emergency-fund and salary-split patterns | Realistic ranges for the 13 synthetic user profiles (Task #6) |
 | Q12 and Q19: how well people spot scams, and how exposed they are to payday loans and credit-repair offers | Priority test cases for guardrails (Tasks #19–21) |
 | Q20: investment habits | Future scope (currently a non-goal). Tells us whether users expect CreditCoach to cover investing |
 | Q25: biggest goal in the next 2 years | Goal purposes the memory schema must support (Task #16), beyond Aravind's car |
