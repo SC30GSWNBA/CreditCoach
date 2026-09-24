@@ -29,7 +29,7 @@ Output:
 All checks passed. Ready to build.
 ```
 
-> **Note (after Task 6):** the last check line now reads `[PASS] Dataset readable (data/) - 13 users, 25 accounts, 132 score rows; ...` because the check validates the synthetic dataset instead of the sample workbook.
+> **Note (after Task 6):** the last check line now reads `[PASS] Dataset readable (data/) - 13 users, 25 accounts, 132 score rows; ...` because the check validates the synthetic dataset instead of the sample workbook. Since Task 8 it also prints `[INFO] Vector store built - 45 chunks ...` (or `[INFO] Vector store not built yet ...` before you run `uv run python -m creditcoach.rag.ingest`); this line is informational and never fails the check.
 
 ## Teammate verification (to fill in)
 

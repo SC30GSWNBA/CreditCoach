@@ -44,6 +44,15 @@ def main() -> int:
     except Exception as exc:
         report(False, "Dataset readable (data/)", str(exc))
 
+    try:  # informational: the vector store is built by a separate step, so a missing store is not a failure
+        import chromadb
+
+        client = chromadb.PersistentClient(path=str(config.CHROMA_DIR))
+        count = client.get_collection(config.CORPUS_COLLECTION).count()
+        print(f"[INFO] Vector store built - {count} chunks in '{config.CORPUS_COLLECTION}'")
+    except Exception:
+        print("[INFO] Vector store not built yet - run: uv run python -m creditcoach.rag.ingest")
+
     print("\nAll checks passed. Ready to build." if ok else "\nSome checks failed. See README > Troubleshooting.")
     return 0 if ok else 1
 

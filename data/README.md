@@ -70,7 +70,7 @@ Each monthly change must fall within the range for its `primary_factor_change` l
 | On-time payments | +2 to +8 | Our assumption |
 | Account age increase | +2 to +6 | Our assumption |
 
-This keeps the data consistent with the RAG corpus. When CreditCoach quotes a typical range, the user's own history won't contradict it. The guide's point ranges come from US-style scoring models. Indian bureaus don't publish point impacts, so we use the same ranges as approximate bounds on the 300–900 scale. The Task #7 corpus should add India-specific content: the CIBIL score range, what "days past due" (DPD) means, and RBI rules on digital lending apps.
+This keeps the data consistent with the RAG corpus. When CreditCoach quotes a typical range, the user's own history won't contradict it. The guide's point ranges come from US-style scoring models. Indian bureaus don't publish point impacts, so we use the same ranges as approximate bounds on the 300–900 scale. The Task #7 corpus adds the India-specific content: the 300–900 range and the four bureaus (`corpus/01`), days past due (`corpus/02`, `corpus/14`), and RBI safeguards on digital lending apps (`corpus/15`).
 
 ## What the User Interviews Told Us
 
