@@ -1,8 +1,19 @@
-"""Task 9: test retrieval on "why did my credit score drop 20 points?" and compare strategies on hand-labelled queries.
+"""Task 9: test retrieval and compare retrieval strategies on hand-labelled questions.
 
-Relevant chunks were labelled from chunk content before any strategy was compared. Metrics:
-hit@3 (a relevant chunk in the top 3), precision@3, and MRR (1 / rank of the first relevant chunk).
+Part 1, the Definition of Done: retrieve the top 3 chunks for "why did my credit score drop 20 points?"
+and judge each one against a relevance list set in advance (``SCORE_DROP``).
 
+Part 2, strategy comparison: 10 questions (the test question, 3 rephrasings, and sample queries 2-6),
+each with the chunk ids that genuinely answer it. The labels were set from chunk content before any
+strategy was compared. Four strategies are scored (``STRATEGIES``):
+    hit@3        Share of questions with at least one relevant chunk in the top 3.
+    precision@3  Share of the top-3 chunks that are relevant.
+    MRR          Average of 1 / rank of the first relevant chunk (1.00 = always first).
+
+Writes:
+    docs/evidence/week-1/task-09-retrieval-test.md   Logged query, per-chunk judgments, and comparison.
+
+Run after building the vector store (no API key needed; results are deterministic):
     uv run python scripts/task09_retrieval_eval.py
 """
 
@@ -58,6 +69,15 @@ STRATEGIES = {
 
 
 def evaluate(options: dict) -> dict:
+    """Score one retrieval strategy on every question in ``EVAL_SET``.
+
+    Args:
+        options: Keyword arguments passed to ``retrieve()``, e.g. ``{"rerank": True, "max_per_doc": 2}``.
+
+    Returns:
+        ``{"hit@3", "precision@3", "mrr"}`` averages, plus ``"rows"``: (question, top-3 ids, rank of the first
+        relevant chunk or None) for each question.
+    """
     hits = prec = mrr = 0.0
     rows = []
     for query, relevant in EVAL_SET:
@@ -72,6 +92,7 @@ def evaluate(options: dict) -> dict:
 
 
 def main() -> None:
+    """Run the test query and the strategy comparison, print the scores, and write the evidence file."""
     results = R.retrieve(TEST_QUERY)  # production defaults: rerank + max 2 chunks per document
     judged = [(r, r.id in SCORE_DROP and r.category == "scoring_factor") for r in results]
     passed = any(ok for _, ok in judged)

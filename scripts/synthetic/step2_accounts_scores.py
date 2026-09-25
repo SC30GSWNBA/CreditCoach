@@ -1,12 +1,30 @@
-"""Task 6 redo, step 2: generate accounts.csv and score_history.csv from the 13 users in users.csv.
+"""Task 6, step 2 of 3: generate each user's accounts and 12-month score history -> ``data/accounts.csv``, ``data/score_history.csv``.
 
-Indian consumer context: amounts in INR, scores on the 300-900 scale used by Indian credit bureaus
-(CIBIL-style), Indian loan types. Each user's accounts follow their interview answers (cards held, card
-usage, loans, instant-loan-app use). Each score history is a 12-month story (Oct 2025 to Sep 2026) that
-fits their habits, and every monthly change must fall within the range for its factor (negative ranges
-from credit_score_factors_guide.pdf). USR-001 comes from sample_data with amounts scaled x50 into INR,
-so its ratios and scores are unchanged. Output is deterministic (seeded per user).
+Reads:
+    data/users.csv                            The 13 profiles from step 1.
+    sample_data/credit_profile_sample.xlsx    Aravind's (USR-001) original data, in USD.
+Writes:
+    data/accounts.csv         One row per card or loan: balance and limit in INR, and card utilization.
+    data/score_history.csv    One row per user per month (Oct 2025 to Sep 2026): score and what changed.
 
+Indian consumer context: amounts in INR, scores on the 300-900 range used by Indian credit bureaus,
+and Indian loan types (education, car, home, personal, instant loan app).
+
+How the data follows each profile:
+    Accounts  Exactly the cards and loans the person reported. Card limits scale with years worked, and
+              balances fall inside their stated card-usage band. People with no cards and no loans get no
+              accounts and no score history (no credit file).
+    Scores    A starting score from their self-reported score, then a month-by-month story that fits their
+              scenario (steady improver, hard inquiries, late payment, utilization spike, ...; see
+              ``SCENARIOS``). Every monthly change must fall within the range allowed for its factor
+              (``FACTOR_RANGES``), whose negative ranges come from credit_score_factors_guide.pdf.
+    USR-001   Scores copied unchanged from the sample; amounts scaled x50 into INR, so every ratio is
+              identical (79% on the main card, 37.4% overall).
+
+The output is deterministic (each user has a fixed random seed), and nothing is written unless every
+validation check passes (see ``validate``).
+
+Run:
     uv run python scripts/synthetic/step2_accounts_scores.py
 """
 
@@ -61,10 +79,21 @@ SCENARIOS = {
 
 
 def n_cards(value: str) -> int:
+    """Convert the "credit_cards" answer to a number of cards: "0" -> 0, "1" -> 1, "2 to 3" -> 2."""
     return {"0": 0, "1": 1, "2 to 3": 2}.get(value, 0)
 
 
 def build_accounts(u: dict, rng: random.Random, next_id) -> list[dict]:
+    """Create one user's credit cards and loans from their profile.
+
+    Args:
+        u: A row from users.csv.
+        rng: The user's seeded random generator (for limits and balances within the allowed bands).
+        next_id: Function that returns the next free account id, e.g. "ACC-06".
+
+    Returns:
+        Account rows for accounts.csv. Loans have no limit or utilization.
+    """
     rows = []
     cards = n_cards(u["credit_cards"])
     lo, hi = USAGE_RANGE.get(u["card_usage"], UNKNOWN_USAGE)
@@ -84,7 +113,16 @@ def build_accounts(u: dict, rng: random.Random, next_id) -> list[dict]:
 
 
 def story(uid: str, u: dict, rng: random.Random) -> list[str]:
-    """11 factor labels for Nov 2025..Sep 2026 (Oct 2025 is the baseline)."""
+    """Choose what changes each month for a user, based on their scenario.
+
+    Args:
+        uid: The user id, used to look up their scenario in ``SCENARIOS`` (default "Steady improver").
+        u: The user's row from users.csv (used to vary steady improvers, e.g. "Excellent" scores hold).
+        rng: The user's random generator (not used for the labels, which are fixed per scenario).
+
+    Returns:
+        11 factor labels, one for each month from Nov 2025 to Sep 2026 (Oct 2025 is the baseline).
+    """
     scenario = SCENARIOS.get(uid, "Steady improver")
     base = ["On-time payments"] * 11
     base[5] = "Account age increase"  # Apr 2026
@@ -109,6 +147,15 @@ def story(uid: str, u: dict, rng: random.Random) -> list[str]:
 
 
 def build_scores(u: dict, rng: random.Random) -> list[dict]:
+    """Create one user's 12 monthly score records: a baseline in Oct 2025, then one change per month.
+
+    Args:
+        u: A row from users.csv.
+        rng: The user's seeded random generator (for the exact change within each factor's range).
+
+    Returns:
+        Score rows for score_history.csv, or an empty list for users with no credit file.
+    """
     uid = u["user_id"]
     if SCENARIOS.get(uid) == "No credit file":
         return []
@@ -125,6 +172,11 @@ def build_scores(u: dict, rng: random.Random) -> list[dict]:
 
 
 def sample_rows() -> tuple[list[dict], list[dict]]:
+    """Load Aravind's (USR-001) data from the sample workbook, converted to INR and Indian account types.
+
+    Returns:
+        ``(score_rows, account_rows)``. Scores are unchanged; amounts are multiplied by ``SAMPLE_TO_INR``.
+    """
     s = pd.read_excel(config.SAMPLE_DATA, sheet_name="ScoreHistory")
     a = pd.read_excel(config.SAMPLE_DATA, sheet_name="Accounts")
     scores = [{"user_id": r.user_id, "date": str(r.date)[:10], "score": int(r.score),
@@ -139,6 +191,17 @@ def sample_rows() -> tuple[list[dict], list[dict]]:
 
 
 def in_range(label: str, delta: int) -> bool:
+    """Check that a monthly score change is allowed for its factor label.
+
+    Combined labels such as "Hard inquiry + utilization spike" allow the sum of their parts' ranges.
+
+    Args:
+        label: The ``primary_factor_change`` text, e.g. "Utilization spike".
+        delta: The score change from the previous month.
+
+    Returns:
+        True if the label is known and the change falls within its range.
+    """
     lo = hi = 0
     for part in label.replace("(new card)", "").split(" + "):
         key = next((k for k in FACTOR_RANGES if k.lower() == part.strip().lower()), None)
@@ -149,6 +212,16 @@ def in_range(label: str, delta: int) -> bool:
 
 
 def validate(users: list[dict], scores: list[dict], accounts: list[dict]) -> list[str]:
+    """Check the generated data for consistency before anything is written.
+
+    Checks: accounts and scores belong to known users; card counts match each interview answer; scores stay
+    within 300-900; every monthly change is within its factor's range; anyone above 30% utilization shows a
+    utilization change in their last 3 months; utilization ratios equal balance / limit; and USR-001's scores
+    and ratios match the sample.
+
+    Returns:
+        A list of problems. Empty means the data is valid.
+    """
     errors = []
     ids = {u["user_id"] for u in users}
     s, a = pd.DataFrame(scores), pd.DataFrame(accounts)
@@ -188,6 +261,7 @@ def validate(users: list[dict], scores: list[dict], accounts: list[dict]) -> lis
 
 
 def write_csv(path, rows, fields):
+    """Write ``rows`` (dicts) to a CSV file at ``path`` with the given column order."""
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
@@ -195,6 +269,11 @@ def write_csv(path, rows, fields):
 
 
 def main() -> None:
+    """Generate, validate, and write accounts.csv and score_history.csv.
+
+    Raises:
+        SystemExit: With the list of problems if validation fails (nothing is written in that case).
+    """
     users = pd.read_csv(DATA / "users.csv", dtype=str, keep_default_na=False).to_dict("records")
     scores, accounts = sample_rows()
     counter = iter(range(len(accounts) + 1, 1000))

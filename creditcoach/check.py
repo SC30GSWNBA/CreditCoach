@@ -1,4 +1,18 @@
-"""Setup check: confirms a fresh clone is ready to run. Usage: uv run python -m creditcoach.check"""
+"""Setup check: confirms that a fresh clone of the repo is ready to run.
+
+Run it after ``uv sync`` and after creating ``.env``:
+
+    uv run python -m creditcoach.check
+
+It prints one line per check and exits with code 0 if everything required passed, 1 otherwise:
+    [PASS]/[FAIL] Python version is 3.11 or newer.
+    [PASS]/[FAIL] Every required package imports.
+    [PASS]/[FAIL] OPENROUTER_API_KEY is set in .env (only the first 8 characters are shown).
+    [PASS]/[FAIL] The synthetic dataset in data/ is readable and consistent.
+    [INFO]        Whether the vector store has been built (informational; never fails the check).
+
+See README > Troubleshooting for how to fix each failure.
+"""
 
 import importlib
 import sys
@@ -9,9 +23,21 @@ REQUIRED_PACKAGES = ["openai", "dotenv", "pandas", "openpyxl", "chromadb", "sent
 
 
 def main() -> int:
+    """Run all setup checks and print a PASS/FAIL line for each.
+
+    Returns:
+        0 if every required check passed, 1 if any failed (used as the process exit code).
+    """
     ok = True
 
     def report(passed: bool, label: str, detail: str = "") -> None:
+        """Print one check result and remember whether any check has failed.
+
+        Args:
+            passed: Whether this check succeeded.
+            label: Short name of the check, e.g. "import gradio".
+            detail: Optional extra information shown after the label.
+        """
         nonlocal ok
         ok = ok and passed
         print(f"[{'PASS' if passed else 'FAIL'}] {label}{f' - {detail}' if detail else ''}")

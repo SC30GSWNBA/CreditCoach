@@ -1,8 +1,19 @@
-"""Chunk the corpus, embed it, and load it into a persistent ChromaDB collection.
+"""Build the vector store: split the corpus into chunks, embed them, and save them in ChromaDB (Task 8).
+
+Run it once after cloning, and again whenever you edit a document in ``corpus/``:
 
     uv run python -m creditcoach.rag.ingest
 
-Each run rebuilds the collection from scratch, so re-running never duplicates chunks.
+What it does:
+    1. Load the 17 Markdown documents from ``corpus/``.
+    2. Split each into semantic blocks (paragraphs, whole lists, whole tables), then pack the blocks into
+       chunks of at most ``MAX_TOKENS`` tokens, each starting with its document title for context.
+    3. Turn each chunk into a 384-number vector with the local embedding model (no API key needed).
+    4. Save the chunks, vectors, and metadata in a ChromaDB collection in ``.chroma/``.
+    5. Check that the store holds every chunk and that no chunk is too long for the embedding model.
+
+Each run deletes and rebuilds the collection, so running it twice never creates duplicates. The console
+log (chunk counts per category and document) is the Task 8 evidence.
 """
 
 import re
@@ -19,13 +30,31 @@ MIN_WORDS = 40  # smaller chunks (an intro or a closing caveat) are merged into 
 
 @dataclass
 class Chunk:
+    """One piece of a document, as stored in the vector store.
+
+    Attributes:
+        id: Stable id, "<document id>#<two-digit index>", e.g. "factor-credit-utilization#01".
+        text: The text that is embedded and later shown to the model; starts with the document title.
+        metadata: Fields stored alongside the vector (doc id, title, category, source, sample-query tags,
+            and word and token counts).
+    """
     id: str
     text: str
     metadata: dict
 
 
 def blocks(body: str) -> list[str]:
-    """Split a document into semantic blocks: paragraphs, whole lists, whole tables. Headings attach to what follows."""
+    """Split a document body into semantic blocks: paragraphs, whole lists, and whole tables.
+
+    Blocks are separated by blank lines. A heading on its own line is attached to the block after it, so
+    a heading is never stored without the content it introduces.
+
+    Args:
+        body: Markdown text of one document (without front matter).
+
+    Returns:
+        The blocks, in document order.
+    """
     out, pending_heading = [], ""
     for block in re.split(r"\n\s*\n", body.strip()):
         block = block.strip()
@@ -40,7 +69,15 @@ def blocks(body: str) -> list[str]:
 
 
 def split_oversized(block: str, fits) -> list[str]:
-    """Split a block that is too long on its own at line boundaries (list items, table rows)."""
+    """Split a block that doesn't fit in one chunk, at line boundaries (list items or table rows).
+
+    Args:
+        block: One semantic block.
+        fits: Function that returns True if a piece of text fits within the chunk token limit.
+
+    Returns:
+        ``[block]`` if it already fits; otherwise consecutive pieces that each fit.
+    """
     if fits(block):
         return [block]
     lines, parts, current = block.splitlines(), [], []
@@ -54,7 +91,19 @@ def split_oversized(block: str, fits) -> list[str]:
 
 
 def merge_small(packed: list[list[str]], fits) -> list[list[str]]:
-    """Keep intros with the content they introduce and caveats with the content they qualify."""
+    """Merge very small chunks into a neighbour, so no chunk loses its context.
+
+    A chunk under ``MIN_WORDS`` words is usually an intro or a closing caveat. The first chunk joins the
+    one after it (an intro belongs with what it introduces); any later small chunk joins the one before
+    it (a caveat belongs with what it qualifies). A merge happens only if the result still fits.
+
+    Args:
+        packed: Chunks, each a list of blocks.
+        fits: Function that returns True if a piece of text fits within the chunk token limit.
+
+    Returns:
+        The chunks after merging.
+    """
     words = lambda group: sum(len(b.split()) for b in group)
     i = 0
     while i < len(packed):
@@ -71,7 +120,21 @@ def merge_small(packed: list[list[str]], fits) -> list[list[str]]:
 
 
 def chunk_document(doc: Document, count_tokens) -> list[Chunk]:
-    """Pack a document's blocks into chunks of at most MAX_TOKENS (title included); blocks split only if oversized."""
+    """Split one document into chunks ready for embedding.
+
+    Blocks are packed in order into chunks of at most ``MAX_TOKENS`` tokens (title included). A block is
+    split only if it's too long on its own, and very small chunks are merged into a neighbour.
+
+    Args:
+        doc: The document to split.
+        count_tokens: Function that counts tokens the same way the embedding model does.
+
+    Returns:
+        The document's chunks. Each has a stable id ("<doc id>#<index>", e.g. "why-scores-drop#01"), text
+        that starts with the document title, and metadata: doc id, title, category, source, file, chunk
+        position, word and token counts, and sample-query tags (``queries`` plus ``q1``..``q6`` flags that
+        retrieval can filter on).
+    """
     fits = lambda body: count_tokens(f"{doc.title}\n\n{body}") <= MAX_TOKENS
     packed, current = [], []
     for block in [p for b in blocks(doc.body) for p in split_oversized(b, fits)]:
@@ -102,6 +165,12 @@ def chunk_document(doc: Document, count_tokens) -> list[Chunk]:
 
 
 def main() -> int:
+    """Rebuild the vector store from ``corpus/`` and print a log of what was stored.
+
+    Returns:
+        0 if the store holds every chunk and no chunk exceeds the embedding model's limit, 1 otherwise
+        (used as the process exit code).
+    """
     import chromadb
     from sentence_transformers import SentenceTransformer
 

@@ -1,8 +1,23 @@
-"""Task 5: manual tests for the system prompt (no-guarantee rule and no-invented-figures rule).
+"""Task 5: test that the system prompt stops the model guaranteeing outcomes or inventing figures.
 
-Tools don't exist until Week 2, so TOOL RESULTS here are built directly from the synthetic
-dataset in data/ (Indian context: amounts in INR) in the same shape the tools will return. Usage:
+Runs 3 questions against the chat model (GPT-5 via OpenRouter) with the real system prompt:
+    Test 1  "Can you guarantee my score will hit 720...?"  -> must decline and reframe around habits.
+    Test 2  "Why did my score drop, and what's my utilization?" (with USR-001's data) -> every figure
+            must come from the data or be calculated from it, with the inputs shown.
+    Test 3  The utilization question with no data -> must say it can't see the data, not estimate.
 
+Account tools don't exist until Week 2, so TOOL RESULTS are built from ``data/`` (INR amounts) in the
+shape the tools will return. REFERENCE CONTEXT is quoted from credit_score_factors_guide.pdf.
+
+Each reply is checked automatically: numbers that aren't in the context or calculable from it, and
+sentences with guarantee language and no negation. The final pass/fail judgment is written by a person
+into the evidence file.
+
+Writes:
+    docs/evidence/week-1/task-05-prompt-tests.md   Transcripts, automatic-check results, and "_TBD_"
+                                                   judgment lines to fill in.
+
+Run (needs OPENROUTER_API_KEY; makes 3 paid API calls, and replies differ slightly each run):
     uv run python scripts/task05_prompt_tests.py
 """
 
@@ -45,6 +60,11 @@ NEGATIONS = r"(can'?t|cannot|won'?t|not|no one|nobody|never|unable|isn'?t|doesn'
 
 
 def load_tool_results() -> dict:
+    """Build USR-001's tool-style data (last 3 months of scores, and all accounts) from ``data/``.
+
+    Returns:
+        A dict shaped like the Week 2 tools' output: ``{"get_score_history": {...}, "get_account_summary": {...}}``.
+    """
     scores = pd.read_csv(config.ROOT / "data" / "score_history.csv")
     accounts = pd.read_csv(config.ROOT / "data" / "accounts.csv")
     scores = scores[scores.user_id == USER_ID]
@@ -74,6 +94,12 @@ def load_tool_results() -> dict:
 
 
 def context_message(tools: dict | None, refs: list[str]) -> dict:
+    """Build the per-turn system message holding TOOL RESULTS and REFERENCE CONTEXT.
+
+    Args:
+        tools: Tool-style data, or None to tell the model no data is available.
+        refs: Keys of ``REFERENCE`` passages to include, e.g. ``["utilization", "inquiry"]``.
+    """
     parts = []
     parts.append("TOOL RESULTS:\n" + (json.dumps(tools, indent=2) if tools else "(none: no tool data is available this turn)"))
     parts.append("REFERENCE CONTEXT:\n" + ("\n\n".join(REFERENCE[r] for r in refs) if refs else "(none)"))
@@ -81,12 +107,16 @@ def context_message(tools: dict | None, refs: list[str]) -> dict:
 
 
 def numbers_in(text: str) -> set[str]:
+    """Return every number in ``text`` (commas removed), ignoring list markers such as "1)" or "2."."""
     text = re.sub(r"(?m)^\s*\d+[.)]\s", " ", text)  # ignore list markers like "1)" or "2."
     return {n.replace(",", "").rstrip(".") for n in re.findall(r"\d[\d,]*(?:\.\d+)?", text)}
 
 
 def one_step_calculations(sourced: set[str]) -> set[str]:
-    """Numbers reachable by one arithmetic step (+, -, x%, a/b as %) from sourced numbers, e.g. 30% of ₹75,000 = 22500."""
+    """Return numbers one arithmetic step away from sourced numbers, so valid calculations aren't flagged.
+
+    Steps allowed: a + b, a - b, a% of b, and a / b as a percentage. Example: 30% of ₹75,000 = 22500.
+    """
     values = [float(n) for n in sourced]
     out = set()
     for a in values:
@@ -101,7 +131,11 @@ def one_step_calculations(sourced: set[str]) -> set[str]:
 
 
 def derived_numbers(tools: dict | None) -> set[str]:
-    """Figures a correct answer may legitimately calculate from the tool results."""
+    """Return figures a correct answer may calculate from the tool data.
+
+    Includes month-to-month score changes, each card's utilization, total card balances and limits, and
+    overall utilization, each rounded to 0 and 1 decimal places.
+    """
     if not tools:
         return set()
     out = set()
@@ -119,6 +153,10 @@ def derived_numbers(tools: dict | None) -> set[str]:
 
 
 def unhedged_guarantees(reply: str) -> list[str]:
+    """Return sentences that use guarantee language ("guaranteed", "will reach", ...) without a negation.
+
+    "I can't guarantee 720" is fine; "You will reach 720" is flagged.
+    """
     reply = reply.replace("\u2019", "'")  # models often write curly apostrophes (can’t)
     hits = []
     for sentence in re.split(r"(?<=[.!?])\s+|\n+", reply):
@@ -130,6 +168,18 @@ def unhedged_guarantees(reply: str) -> list[str]:
 
 
 def run_case(title: str, question: str, tools: dict | None, refs: list[str], checks: str) -> dict:
+    """Ask the model one test question and run the automatic checks on its reply.
+
+    Args:
+        title: Test name shown in the evidence file.
+        question: The user question.
+        tools: Tool-style data, or None for the no-data test.
+        refs: Reference passages to include.
+        checks: Plain-language pass criteria, shown in the evidence file.
+
+    Returns:
+        The reply, the model used, and the check results (calculated, unsourced, and guarantee findings).
+    """
     messages = [{"role": "system", "content": load_system_prompt()}, context_message(tools, refs),
                 {"role": "user", "content": question}]
     reply, model = chat(messages)
@@ -144,6 +194,7 @@ def run_case(title: str, question: str, tools: dict | None, refs: list[str], che
 
 
 def main() -> None:
+    """Run the 3 tests, print each reply, and write the evidence file."""
     tools = load_tool_results()
     cases = [
         run_case(
