@@ -1,5 +1,13 @@
-"""Task 6 redo, step 3: write the dataset summary used as Task 6 evidence.
+"""Task 6, step 3 of 3: write the dataset summary used as Task 6 evidence.
 
+Reads:
+    data/users.csv, data/accounts.csv, data/score_history.csv   Output of steps 1 and 2.
+Writes:
+    docs/evidence/week-1/task-06-dataset-summary.md   One table row per user: scenario, cards, other
+        accounts, card utilization (in INR, Indian digit grouping), score at the start and end of the
+        period, and the latest factor change. Also printed to the terminal.
+
+Run (after step 2):
     uv run python scripts/synthetic/step3_summary.py
 """
 
@@ -12,7 +20,10 @@ EVIDENCE = config.ROOT / "docs" / "evidence" / "week-1" / "task-06-dataset-summa
 
 
 def inr(amount: float) -> str:
-    """Indian digit grouping: 123456 -> ₹1,23,456."""
+    """Format a rupee amount with Indian digit grouping (lakh, crore).
+
+    Example: 123456 -> "₹1,23,456"; 200000 -> "₹2,00,000".
+    """
     digits = str(int(round(amount)))
     head, tail = digits[:-3], digits[-3:]
     groups = []
@@ -23,6 +34,7 @@ def inr(amount: float) -> str:
 
 
 def main() -> None:
+    """Read the dataset, build the summary table, and write it to the Task 6 evidence file."""
     import sys
 
     sys.path.insert(0, str(config.ROOT / "scripts" / "synthetic"))

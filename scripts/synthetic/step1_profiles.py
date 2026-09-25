@@ -1,10 +1,20 @@
-"""Task 6 redo, step 1: build one synthetic user profile per interviewee.
+"""Task 6, step 1 of 3: build one synthetic user profile per interviewee -> ``data/users.csv``.
 
-Reads user_interviews/CreditCoach_User_Profiles.xlsx and writes
-data/users.csv: USR-001 (Aravind, from requirements.md) plus USR-002..USR-013, one per interview.
-Names are fictional; ages are picked inside each person's age band.
+Reads:
+    user_interviews/CreditCoach_User_Profiles.xlsx   12 interview responses (dummy participants).
+Writes:
+    data/users.csv   13 users: USR-001 (Aravind, the requirements.md persona) plus USR-002..USR-013, one
+                     per interview, in interview order (P1 -> USR-002, ..., P12 -> USR-013).
 
+For each interviewee it keeps their answers (cards held, card usage, loans, savings, goals, and so on,
+in the questionnaire's wording), scores their credit knowledge from 0 to 6 (questions 7-12), gives them a
+fictional first name matching the recorded gender, and picks an age inside their age band that is
+consistent with their years of work. For Aravind, fields the persona doesn't state are left blank.
+
+Run:
     uv run python scripts/synthetic/step1_profiles.py
+
+Next: step2_accounts_scores.py builds each user's accounts and score history from this file.
 """
 
 import csv
@@ -37,7 +47,11 @@ ARAVIND = {
 
 
 def clean(value) -> str:
-    """'b) 26 to 30' -> '26 to 30'; multi-select 'a) X;c) Y' -> 'X; Y'."""
+    """Strip the option letter from a questionnaire answer and tidy it.
+
+    Examples: "b) 26 to 30" -> "26 to 30"; multi-select "a) X;c) Y" -> "X; Y". Also fixes the "2‚Äì3"
+    character-encoding glitch in the workbook. Blank cells become "".
+    """
     if pd.isna(value):
         return ""
     text = str(value).replace("‚Äì", "–").replace("2–3", "2 to 3")  # fix mojibake "2‚Äì3"
@@ -45,11 +59,13 @@ def clean(value) -> str:
 
 
 def letter(value) -> str:
+    """Return the option letter of a questionnaire answer, e.g. "b) 26 to 30" -> "b" ("" if none)."""
     m = re.match(r"\s*([a-g])\)", str(value))
     return m.group(1) if m else ""
 
 
 def main() -> None:
+    """Read the interview workbook and write ``data/users.csv`` (Aravind first, then one row per interview)."""
     df = pd.read_excel(INTERVIEWS)
     q = {int(m.group(1)): c for c in df.columns if (m := re.match(r"(\d+)\.", c))}
     names = {g: iter(n) for g, n in FICTIONAL_NAMES.items()}

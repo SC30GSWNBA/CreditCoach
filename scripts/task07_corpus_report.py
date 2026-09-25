@@ -1,5 +1,17 @@
-"""Task 7: validate the RAG corpus and write the evidence summary (document count + sample-query coverage).
+"""Task 7: validate the RAG corpus and write the evidence summary (document count and coverage).
 
+Checks that:
+    - every document in ``corpus/`` has complete front matter (id, title, category, source, queries) with
+      a known category and a unique id;
+    - each of the 6 requirements.md sample queries has at least one tagged document containing the key
+      facts its answer needs (``KEY_FACTS``);
+    - every section (§1-§7) of credit_score_factors_guide.pdf is represented in at least one document.
+
+Writes:
+    docs/evidence/week-1/task-07-corpus-summary.md   Document table, category counts, and coverage tables.
+    Also printed to the terminal. Exit code 1 if any check fails.
+
+Run after adding or editing corpus documents (no API key needed):
     uv run python scripts/task07_corpus_report.py
 """
 
@@ -38,10 +50,16 @@ GUIDE_SECTIONS = {"§1": "Payment history", "§2": "Credit utilization", "§3": 
 
 
 def parse(path):
+    """Read one corpus file and return ``(front_matter, body)`` using the shared parser."""
     return parse_front_matter(path.read_text(encoding="utf-8"))
 
 
 def main() -> int:
+    """Validate the corpus, write the evidence summary, and print it.
+
+    Returns:
+        0 if all checks passed, 1 otherwise (used as the process exit code).
+    """
     docs, errors = [], []
     for path in sorted(CORPUS.glob("*.md")):
         if path.name == "README.md":
