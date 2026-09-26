@@ -69,7 +69,7 @@ CreditCoach/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
   docs/               # team.md, 6-pager.md, pr-faq.md, research/, evidence/week-1/
   tasks.md            # 4-week task plan with Definition of Done per task
-  requirements.md     # product requirements, persona, sample queries, guardrails
+  requirements.md     # product requirements, persona, sample and additional queries, guardrails
   credit_score_factors_guide.pdf   # seed document for the RAG corpus
 ```
 
@@ -130,7 +130,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 | 2 | **No CI.** There's no `.github/workflows/`. | One GitHub Actions workflow on every PR: `uv sync`, lint, `creditcoach.check` and the tests. Add a build badge to this README once it passes. |
 | 3 | **No lint, format or type-check config.** `.gitignore` lists `.ruff_cache/`, but ruff isn't configured. | Add `[tool.ruff]` and a type checker (mypy or pyright) to `pyproject.toml`, plus a `.pre-commit-config.yaml`. |
 | 4 | **No LICENSE.** The repo is public, but without a license nobody can legally reuse or contribute to the code. | Add a LICENSE file (the team picks the license). |
-| 5 | **Evals are one-off scripts, not a harness.** `scripts/task05…task10` write Markdown evidence, and the Task 5 and Task 10 judgments are filled in by a person (`_TBD_`). | A reusable eval suite with a golden set of questions (JSON or YAML) and automatic scoring:<br>- **Retrieval:** Hit@k and MRR.<br>- **Guardrails:** refuses guarantees and predatory products; invents no numbers.<br>- **Answer quality:** an LLM judge using `SMALL_MODEL`, already set aside for this.<br><br>This is where Week 4's harness (Tasks 27–30) begins. |
+| 5 | **Evals are one-off scripts, not a harness.** `scripts/task05…task10` write Markdown evidence, and the Task 5 and Task 10 judgments are filled in by a person (`_TBD_`). | A reusable eval suite with a golden set of questions (JSON or YAML), built from the 50 queries in requirements.md §3 and §4, and automatic scoring:<br>- **Retrieval:** Hit@k and MRR.<br>- **Guardrails:** refuses guarantees and predatory products; invents no numbers.<br>- **Answer quality:** an LLM judge using `SMALL_MODEL`, already set aside for this.<br><br>This is where Week 4's harness (Tasks 27–30) begins. |
 | 6 | **Regressions go unnoticed.** Nothing runs the evals when the prompt or model changes. | Run the retrieval evals in CI (local and free). Run the LLM evals on demand, because they cost API credits. |
 
 ### 2. Before and during Week 2: agent readiness and robustness
@@ -167,7 +167,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 ## Project Docs
 
 - [tasks.md](tasks.md): 4-week plan and Definition of Done
-- [requirements.md](requirements.md): persona, sample queries, guardrails
+- [requirements.md](requirements.md): persona, the 6 sample queries and 44 additional queries with expected behavior, constraints, guardrails
 - [docs/team.md](docs/team.md): team, roles, and tech stack
 - [docs/6-pager.md](docs/6-pager.md): narrative memo
 - [docs/pr-faq.md](docs/pr-faq.md): press release and FAQ

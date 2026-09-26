@@ -40,7 +40,7 @@ ARAVIND = {
     "years_working": "Less than 1 year", "credit_cards": "2 to 3", "checks_score": "", "learns_from": "Search engines and blogs",
     "self_reported_score": "", "knowledge_score": "", "unexplained_drop": "Yes, and I never found out why",
     "pays_card": "", "card_usage": "", "knows_apr": "", "late_payments_12m": "",
-    "loans": "Education / student loan; Car loan", "risky_product_exposure": "Considered it, but decided not to",
+    "loans": "Education / student loan; Personal loan", "risky_product_exposure": "Considered it, but decided not to",
     "invests_in": "", "emergency_fund": "", "emi_pct": "", "invest_pct": "", "goals_2yr": "Buying a car",
     "source": "requirements.md persona + sample_data (blank = not stated)",
 }

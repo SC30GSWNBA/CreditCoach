@@ -32,9 +32,9 @@ Each role owns its area end to end across all four weeks: design, build, tests, 
 | Data | **pandas** reading the synthetic dataset in `data/` (13 users, Indian context: ₹ amounts, 300–900 score range) | Built in Task #6 from the sample workbook and 12 user interviews. See `data/README.md`. |
 | Memory | **SQLite** (`memory.db`), one row per user goal: `target_score`, `target_date`, `purpose` | Persists across sessions and processes with no server. Easy to inspect for evidence. |
 | Caching | **diskcache** for embeddings and tool lookups, keyed by a hash of the normalized query | Gives a persistent cache hit or miss we can log and badge in the UI (Task #25). |
-| Guardrails | Custom rule layer: regex/keyword pre-check, a small-model classifier (GPT-5 mini / GPT-4.1 mini), and a figure-provenance check against tool output | Maps one-to-one to requirements.md §5. No black-box dependency. |
-| Observability | Structured JSON logs with a per-request `trace_id`, written to SQLite, plus a Gradio "Dashboard" tab | Meets §5 (tool-failure rate, graceful degradation) with no extra infrastructure. |
-| Evals | **pytest** with custom scorers over the 6 sample queries | One command: `uv run pytest evals/` (Task #27). |
+| Guardrails | Custom rule layer: regex/keyword pre-check, a small-model classifier (GPT-5 mini / GPT-4.1 mini), and a figure-provenance check against tool output | Maps one-to-one to requirements.md §6. No black-box dependency. |
+| Observability | Structured JSON logs with a per-request `trace_id`, written to SQLite, plus a Gradio "Dashboard" tab | Meets §6 (tool-failure rate, graceful degradation) with no extra infrastructure. |
+| Evals | **pytest** with custom scorers over the 6 sample queries (requirements.md §3) and the 44 additional queries (§4) | One command: `uv run pytest evals/` (Task #27). |
 | UI | **Gradio** `ChatInterface`, `launch(share=True)` | Gives the shareable link Task #11 requires. |
 | Secrets | `.env` (git-ignored) with `OPENROUTER_API_KEY`, loaded by `python-dotenv`. `.env.example` is committed with a placeholder value | Keys are never committed. |
 
@@ -51,19 +51,19 @@ See the README for the current layout. Code lives in the `creditcoach/` Python p
 2. **Tools** that read simulated score history and account data
 3. **Memory** of the user's goal (target score, target date, purpose) across sessions
 
-**Non-negotiable guardrails (§5):** these drive design choices from Week 1, not just Week 3.
+**Non-negotiable guardrails (§6):** these drive design choices from Week 1, not just Week 3.
 1. Never guarantee a score outcome or timeline. Frame every projection as educational.
 2. Never endorse predatory products (payday loans, guaranteed credit repair, advance-fee scams), and proactively flag them.
 3. Never fabricate figures. Every score, balance, or factor must come from a live tool call.
 4. Never silently override the user's stored goal.
 5. Track tool-call failures and degrade gracefully ("here's what I last confirmed").
 
-**Our acceptance bar:** the 6 sample queries in requirements.md §3. They become the eval suite in Task #27.
+**Our acceptance bar:** the 6 sample queries in requirements.md §3. They become the eval suite in Task #27. The 44 additional queries in requirements.md §4 test the same behaviors with other users, figures, and wording, so the suite catches answers that only pass the original 6.
 
 **What the sample data already shows (`sample_data/credit_profile_sample.xlsx`):**
 - USR-001's score went from 690 (Jul 2026) to 670 (Aug, *utilization spike*) and then to 650 (Sep, *hard inquiry + utilization spike*). The Sep drop is exactly the "20 points this month" in sample query #1.
 - Revolving accounts (amounts in ₹ after the Task #6 conversion to an Indian context): credit card ACC-01 is at ₹59,000 / ₹75,000 = **79% utilization**, credit card ACC-02 is at ₹11,000 / ₹1,00,000 = 11%, and card ACC-05 is at ₹4,750 / ₹25,000 = 19%. Overall revolving utilization is ₹74,750 / ₹2,00,000 = **37.4%**.
-- Installment loans (no limit, so not part of utilization): education loan ACC-03 has a ₹4,20,000 balance and car loan ACC-04 has a ₹3,05,000 balance.
+- Installment loans (no limit, so not part of utilization): education loan ACC-03 has a ₹4,20,000 balance and personal loan ACC-04 has a ₹3,05,000 balance.
 - `credit_score_factors_guide.pdf` explains both causes: a utilization spike above 30% typically costs 10 to 40 points, and a hard inquiry costs 2 to 10. It also covers payday loans and credit-repair red flags. This makes it the seed document for the RAG corpus (Task #7).
 
 ## 4. Working Agreements
@@ -71,7 +71,7 @@ See the README for the current layout. Code lives in the `creditcoach/` Python p
 - **Definition of Done** comes from the `tasks.md` column. A task is not done until its *Evidence of Completion* artifact is in the repo.
 - Evidence (logs, transcripts, screenshots) goes in `docs/evidence/week-N/`.
 - A task moves forward only after the team signs off on the previous task's evidence.
-- All guidance the product gives is educational. No real financial advice, loan origination, or credit repair (requirements.md §4).
+- All guidance the product gives is educational. No real financial advice, loan origination, or credit repair (requirements.md §5).
 
 ## 5. Sign-off: "I have read requirements.md"
 

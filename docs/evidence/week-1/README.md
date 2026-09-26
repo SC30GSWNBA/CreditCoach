@@ -27,4 +27,7 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 | Clickable and shareable | ✅ built, ⬜ link to post | Public link tested from outside ([Task 11](task-11-gradio-ui.md)); login required via `APP_USERNAME` / `APP_PASSWORD` |
 | 6-pager and PR/FAQ | ✅ written, ⬜ team agreement | [6-pager](../../6-pager.md), [PR/FAQ](../../pr-faq.md) |
 
-**Additional (outside the task plan):** [interview questionnaire](../../research/interview-questionnaire.md) and 12 interviews ([user_interviews/](../../../user_interviews/)), used to build the Task 6 dataset.
+**Additional (outside the task plan):**
+- [Interview questionnaire](../../research/interview-questionnaire.md) and 12 interviews ([user_interviews/](../../../user_interviews/)), used to build the Task 6 dataset.
+- [requirements.md §4](../../../requirements.md): 44 additional queries with expected behavior, built on the Task 6 dataset, so the Task 27 eval suite covers more than the 6 sample queries.
+- Dataset fix (2026-09-26): Aravind's ACC-04 is now a Personal Loan, not a Car Loan, because the persona is still saving for a car. Balances, ratios and scores are unchanged.

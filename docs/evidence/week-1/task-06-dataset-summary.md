@@ -8,7 +8,7 @@
 
 | User | Name | Source | Scenario | Cards | Other accounts | Revolving utilization | Score Oct 2025 → Sep 2026 | Latest factor change |
 |---|---|---|---|---|---|---|---|---|
-| USR-001 | Aravind | Persona | Utilization spike + hard inquiry | 3 | Education Loan, Car Loan | ₹74,750 / ₹2,00,000 = 37.4% | 662 → 650 | Hard inquiry + utilization spike |
+| USR-001 | Aravind | Persona | Utilization spike + hard inquiry | 3 | Education Loan, Personal Loan | ₹74,750 / ₹2,00,000 = 37.4% | 662 → 650 | Hard inquiry + utilization spike |
 | USR-002 | Arjun | P1 | Steady improver | 1 | Education Loan | ₹6,700 / ₹90,000 = 7.4% | 806 → 837 | On-time payments |
 | USR-003 | Vikram | P2 | Hard inquiries (car loan shopping) | 1 | Education Loan | ₹39,800 / ₹1,45,000 = 27.4% | 733 → 761 | Hard inquiry |
 | USR-004 | Ananya | P3 | No credit file | 0 | none | n/a (no cards) | no credit file | — |

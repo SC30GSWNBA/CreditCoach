@@ -145,6 +145,8 @@ Re-run after the Task #6 switch to an Indian context (₹ amounts, 300–900 sco
 
 ## Tool data used (Tests 1 and 2)
 
+> **Note (2026-09-26):** this is the tool data as it was on 2026-09-24. ACC-04 has since been relabeled from Car Loan to Personal Loan, because the persona is still saving for a car (see [data/README.md](../../../data/README.md)). The balance is unchanged, and none of the replies above refer to ACC-04, so the results still stand. A rerun of the script will show the new label.
+
 ```json
 {
   "get_score_history": {
