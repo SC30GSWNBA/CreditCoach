@@ -1,6 +1,6 @@
 # CreditCoach Synthetic Dataset
 
-All data here is **synthetic**, set in an **Indian consumer context**: amounts are in ₹ (INR), scores use the **300–900 range** of Indian credit bureaus (TransUnion CIBIL, Experian, Equifax, CRIF High Mark), and loans use Indian types (education, car, home, personal, instant loan apps). Every name is fictional. USR-001 (Aravind) is the requirements.md persona. Its scores are copied unchanged from `sample_data/credit_profile_sample.xlsx`. Its USD amounts are scaled ×50 into ₹, a fixed scale rather than an exchange rate, so every utilization ratio stays identical: 79% on the main card and 37.4% overall. Its account types are renamed to Indian terms: Student Loan → Education Loan, Auto Loan → Car Loan, Retail Card → Credit Card. USR-002 to USR-013 are **one synthetic user per interviewee** (interviews P1–P12). Their habits, cards, loans, savings and goals come from that person's answers, and the balances, limits and scores are generated to fit those answers.
+All data here is **synthetic**, set in an **Indian consumer context**: amounts are in ₹ (INR), scores use the **300–900 range** of Indian credit bureaus (TransUnion CIBIL, Experian, Equifax, CRIF High Mark), and loans use Indian types (education, car, home, personal, instant loan apps). Every name is fictional. USR-001 (Aravind) is the requirements.md persona. Its scores are copied unchanged from `sample_data/credit_profile_sample.xlsx`. Its USD amounts are scaled ×50 into ₹, a fixed scale rather than an exchange rate, so every utilization ratio stays identical: 79% on the main card and 37.4% overall. Its account types are renamed to Indian terms: Student Loan → Education Loan, Auto Loan → Personal Loan (not a car loan, because the persona is still saving for their first car), Retail Card → Credit Card. USR-002 to USR-013 are **one synthetic user per interviewee** (interviews P1–P12). Their habits, cards, loans, savings and goals come from that person's answers, and the balances, limits and scores are generated to fit those answers.
 
 The data is built in three steps:
 
@@ -44,16 +44,16 @@ Step 2 refuses to write data unless all of these hold:
 
 ## Profiles and Score Scenarios
 
-| User | Source | Scenario | What happens | Sample query it exercises |
+| User | Source | Scenario | What happens | Queries it exercises (requirements.md §3, §4) |
 |---|---|---|---|---|
-| USR-001 Aravind | Persona | Utilization spike + hard inquiry | 690 → 670 → 650; card at 79% | #1–#6 (the main demo user) |
-| USR-003 Vikram | P2 | Hard inquiries (car loan shopping) | Two inquiry dips in Aug and Sep; wants a car | #1 with a different cause; #3 car plan |
-| USR-009 Nikhil | P8 ("prefer not to say" on late payments) | Late payment recovery | Payment 30+ days past due in Apr 2026 (811 → 729), recovering since | The guide's biggest factor |
-| USR-011 Sameer | P10 | Unnoticed utilization spike | Card creeps to 48%; Aug drop of 33 points (724 → 691) he didn't notice | #1 and #2 for a user who never checks |
-| USR-012 Aditya | P11 | High utilization and debt stress | 83% card usage, personal loan, **Instant Loan App**; 746 → 684 | #2 high utilization; #4 predatory-product guardrail |
-| USR-005 Kavya | P4 | Loan-only file (no credit card) | Scored from a student loan only; small steady gains | Advice for someone with no card |
-| USR-004 Ananya, USR-007 Karthik | P3, P6 | No credit file | No accounts, no scores | Tools must say "no credit history yet", not error or invent |
-| USR-002, 006, 008, 010, 013 | P1, P5, P7, P9, P12 | Steady improver | On-time payments with small dips; "Excellent" users level off in the 830s–840s | Scores that *rose*; no false alarm |
+| USR-001 Aravind | Persona | Utilization spike + hard inquiry | 690 → 670 → 650; card at 79% | #1–#6 (the main demo user); §4: #7, #8, #15–#17, #22, #25, #30, #31, #33, #37–#41, #43, #45–#50 |
+| USR-003 Vikram | P2 | Hard inquiries (car loan shopping) | Two inquiry dips in Aug and Sep; wants a car | #1 with a different cause; #3 car plan; §4: #9, #23 |
+| USR-009 Nikhil | P8 ("prefer not to say" on late payments) | Late payment recovery | Payment 30+ days past due in Apr 2026 (811 → 729), recovering since | The guide's biggest factor; §4: #11, #34, #42 |
+| USR-011 Sameer | P10 | Unnoticed utilization spike | Card creeps to 48%; Aug drop of 33 points (724 → 691) he didn't notice | #1 and #2 for a user who never checks; §4: #10, #32 |
+| USR-012 Aditya | P11 | High utilization and debt stress | 83% card usage, personal loan, **Instant Loan App**; 746 → 684 | #2 high utilization; #4 predatory-product guardrail; §4: #12, #21, #29, #44 |
+| USR-005 Kavya | P4 | Loan-only file (no credit card) | Scored from a student loan only; small steady gains | Advice for someone with no card; §4: #19 |
+| USR-004 Ananya, USR-007 Karthik | P3, P6 | No credit file | No accounts, no scores | Tools must say "no credit history yet", not error or invent; §4: #14, #20 |
+| USR-002, 006, 008, 010, 013 | P1, P5, P7, P9, P12 | Steady improver | On-time payments with small dips; "Excellent" users level off in the 830s–840s | Scores that *rose*; no false alarm; §4: #13 (002), #27 (006), #26 (008), #28 (010), #18, #24, #35, #36 (013) |
 
 ## How Score Changes Are Bounded
 

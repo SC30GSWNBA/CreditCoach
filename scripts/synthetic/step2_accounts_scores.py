@@ -53,7 +53,8 @@ FACTOR_RANGES = {
 
 SCORE_MIN, SCORE_MAX = 300, 900  # Indian bureau (CIBIL-style) range
 SAMPLE_TO_INR = 50  # fixed scale for USR-001's USD sample amounts: keeps every ratio identical
-SAMPLE_TYPE_TO_INDIA = {"Student Loan": "Education Loan", "Auto Loan": "Car Loan", "Retail Card": "Credit Card"}
+# Auto Loan becomes a personal loan, not a car loan: the persona is still saving for their first car
+SAMPLE_TYPE_TO_INDIA = {"Student Loan": "Education Loan", "Auto Loan": "Personal Loan", "Retail Card": "Credit Card"}
 
 CARD_LIMIT_BY_YEARS = {"Less than 1 year": (30000, 75000), "1 to 3 years": (75000, 150000),
                        "4 to 8 years": (150000, 300000), "More than 8 years": (300000, 500000)}

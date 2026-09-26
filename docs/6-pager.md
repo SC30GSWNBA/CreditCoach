@@ -100,7 +100,7 @@ We will not optimize for breadth of topics. Our users are Indian consumers, so w
 
 We will measure success with the eval harness we build in Week 4. We will record a baseline before fixes and a final score after. The targets below are our commitments. The eval suite will check the first four.
 
-**Task success.** 6 of 6 sample queries pass their expected-behavior check in the final eval run. The Week 4 baseline will likely be lower. What we are measuring is the improvement from error analysis.
+**Task success.** 6 of 6 sample queries pass their expected-behavior check in the final eval run. The Week 4 baseline will likely be lower. What we are measuring is the improvement from error analysis. The eval suite also runs the 44 additional queries in requirements.md §4, which test the same behaviors with other users, figures, and wording, so a fix that only works for the original 6 shows up as a failure.
 
 **Figure provenance.** Zero fabricated figures across the eval suite. Every score, balance, limit, and utilization ratio in a response must match the tool output for that request.
 
@@ -140,7 +140,7 @@ Should the typical-impact ranges from the reference table appear in answers at a
 
 ---
 
-## Appendix A: Sample Queries and Expected Behavior (from requirements.md)
+## Appendix A: Sample Queries and Expected Behavior (from requirements.md §3)
 
 | # | Query | Expected behavior |
 |---|---|---|
@@ -166,7 +166,7 @@ Should the typical-impact ranges from the reference table appear in answers at a
 | ACC-05 (credit card) | ₹4,750 | ₹25,000 | 19% |
 | **Total revolving** | **₹74,750** | **₹2,00,000** | **37.4%** |
 | ACC-03 (education loan) | ₹4,20,000 | — | not revolving |
-| ACC-04 (car loan) | ₹3,05,000 | — | not revolving |
+| ACC-04 (personal loan) | ₹3,05,000 | — | not revolving |
 
 *Amounts converted from the USD sample by a fixed ×50 scale, so every ratio is unchanged. Scores use the 300–900 range of Indian credit bureaus.*
 

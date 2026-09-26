@@ -2,7 +2,7 @@ account_id,user_id,account_type,balance_inr,credit_limit_inr,utilization_ratio
 ACC-01,USR-001,Credit Card,59000,75000,0.79
 ACC-02,USR-001,Credit Card,11000,100000,0.11
 ACC-03,USR-001,Education Loan,420000,,
-ACC-04,USR-001,Car Loan,305000,,
+ACC-04,USR-001,Personal Loan,305000,,
 ACC-05,USR-001,Credit Card,4750,25000,0.19
 ACC-06,USR-002,Credit Card,6700,90000,0.07
 ACC-07,USR-002,Education Loan,410000,,
