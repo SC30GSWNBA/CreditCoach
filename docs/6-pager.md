@@ -166,7 +166,7 @@ Should the typical-impact ranges from the reference table appear in answers at a
 | ACC-05 (credit card) | ₹4,750 | ₹25,000 | 19% |
 | **Total revolving** | **₹74,750** | **₹2,00,000** | **37.4%** |
 | ACC-03 (education loan) | ₹4,20,000 | — | not revolving |
-| ACC-04 (personal loan) | ₹3,05,000 | — | not revolving |
+| ACC-04 (auto loan) | ₹3,05,000 | — | not revolving |
 
 *Amounts converted from the USD sample by a fixed ×50 scale, so every ratio is unchanged. Scores use the 300–900 range of Indian credit bureaus.*
 

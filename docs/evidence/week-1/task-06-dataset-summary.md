@@ -8,7 +8,7 @@
 
 | User | Name | Source | Scenario | Cards | Other accounts | Revolving utilization | Score Oct 2025 → Sep 2026 | Latest factor change |
 |---|---|---|---|---|---|---|---|---|
-| USR-001 | Aravind | Persona | Utilization spike + hard inquiry | 3 | Education Loan, Personal Loan | ₹74,750 / ₹2,00,000 = 37.4% | 662 → 650 | Hard inquiry + utilization spike |
+| USR-001 | Aravind | Persona | Utilization spike + hard inquiry | 3 | Education Loan, Auto Loan | ₹74,750 / ₹2,00,000 = 37.4% | 662 → 650 | Hard inquiry + utilization spike |
 | USR-002 | Arjun | P1 | Steady improver | 1 | Education Loan | ₹6,700 / ₹90,000 = 7.4% | 806 → 837 | On-time payments |
 | USR-003 | Vikram | P2 | Hard inquiries (car loan shopping) | 1 | Education Loan | ₹39,800 / ₹1,45,000 = 27.4% | 733 → 761 | Hard inquiry |
 | USR-004 | Ananya | P3 | No credit file | 0 | none | n/a (no cards) | no credit file | — |
@@ -16,7 +16,7 @@
 | USR-006 | Rahul | P5 | Steady improver | 1 | Education Loan | ₹66,000 / ₹2,50,000 = 26.4% | 753 → 802 | On-time payments |
 | USR-007 | Karthik | P6 | No credit file | 0 | none | n/a (no cards) | no credit file | — |
 | USR-008 | Neha | P7 | Steady improver | 1 | none | ₹8,500 / ₹1,10,000 = 7.7% | 657 → 710 | On-time payments |
-| USR-009 | Nikhil | P8 | Late payment recovery | 1 | Car Loan | ₹16,700 / ₹1,05,000 = 15.9% | 791 → 760 | On-time payments |
+| USR-009 | Nikhil | P8 | Late payment recovery | 1 | Auto Loan | ₹16,700 / ₹1,05,000 = 15.9% | 791 → 760 | On-time payments |
 | USR-010 | Shruti | P9 | Steady improver | 1 | Home Loan | ₹81,600 / ₹3,00,000 = 27.2% | 754 → 795 | On-time payments |
 | USR-011 | Sameer | P10 | Unnoticed utilization spike | 1 | Home Loan | ₹2,10,900 / ₹4,40,000 = 47.9% | 695 → 692 | Stable (no major change) |
 | USR-012 | Aditya | P11 | High utilization and debt stress | 1 | Home Loan, Personal Loan, Instant Loan App | ₹3,78,100 / ₹4,55,000 = 83.1% | 746 → 684 | Utilization spike |

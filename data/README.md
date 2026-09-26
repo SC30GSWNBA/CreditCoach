@@ -1,6 +1,6 @@
 # CreditCoach Synthetic Dataset
 
-All data here is **synthetic**, set in an **Indian consumer context**: amounts are in ₹ (INR), scores use the **300–900 range** of Indian credit bureaus (TransUnion CIBIL, Experian, Equifax, CRIF High Mark), and loans use Indian types (education, car, home, personal, instant loan apps). Every name is fictional. USR-001 (Aravind) is the requirements.md persona. Its scores are copied unchanged from `sample_data/credit_profile_sample.xlsx`. Its USD amounts are scaled ×50 into ₹, a fixed scale rather than an exchange rate, so every utilization ratio stays identical: 79% on the main card and 37.4% overall. Its account types are renamed to Indian terms: Student Loan → Education Loan, Auto Loan → Personal Loan (not a car loan, because the persona is still saving for their first car), Retail Card → Credit Card. USR-002 to USR-013 are **one synthetic user per interviewee** (interviews P1–P12). Their habits, cards, loans, savings and goals come from that person's answers, and the balances, limits and scores are generated to fit those answers.
+All data here is **synthetic**, set in an **Indian consumer context**: amounts are in ₹ (INR), scores use the **300–900 range** of Indian credit bureaus (TransUnion CIBIL, Experian, Equifax, CRIF High Mark), and loans use Indian types (education, auto, home, personal, instant loan apps). Every name is fictional. USR-001 (Aravind) is the requirements.md persona. Its scores are copied unchanged from `sample_data/credit_profile_sample.xlsx`. Its USD amounts are scaled ×50 into ₹, a fixed scale rather than an exchange rate, so every utilization ratio stays identical: 79% on the main card and 37.4% overall. Its account types are renamed to Indian terms: Student Loan → Education Loan and Retail Card → Credit Card. Auto Loan keeps the sample's label, the same type an interviewee's car loan becomes. USR-002 to USR-013 are **one synthetic user per interviewee** (interviews P1–P12). Their habits, cards, loans, savings and goals come from that person's answers, and the balances, limits and scores are generated to fit those answers.
 
 The data is built in three steps:
 
@@ -37,7 +37,7 @@ Step 2 refuses to write data unless all of these hold:
 |---|---|
 | Number of credit cards (Q3) | That many `Credit Card` accounts. The limit depends on years worked: under 1 year ₹30,000–75,000, 1–3 years ₹75,000–1.5 lakh, 4–8 years ₹1.5–3 lakh, over 8 years ₹3–5 lakh. |
 | Card usage (Q15) | Balance ÷ limit inside the stated band. A person who has a card but said "I don't know" gets 35–50%, modeling an unnoticed high balance. |
-| Loans (Q18) | Education loan ₹3–15 lakh · Car loan ₹3–8 lakh · Personal loan ₹1–5 lakh · Home loan ₹20–75 lakh |
+| Loans (Q18) | Education loan ₹3–15 lakh · Car loan → `Auto Loan` ₹3–8 lakh · Personal loan ₹1–5 lakh · Home loan ₹20–75 lakh |
 | Used a payday/instant-cash loan (Q19) | An `Instant Loan App` account (₹5,000–25,000), the Indian equivalent of a payday loan |
 | Self-reported score (Q6) | Starting score in Oct 2025 (300–900 range): Excellent 790–815, Good 730–760, Average/fair 650–690, don't know 690–715 |
 | No cards and no loans | No accounts and **no score history** (no credit file) |

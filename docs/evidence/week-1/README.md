@@ -30,4 +30,4 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 **Additional (outside the task plan):**
 - [Interview questionnaire](../../research/interview-questionnaire.md) and 12 interviews ([user_interviews/](../../../user_interviews/)), used to build the Task 6 dataset.
 - [requirements.md §4](../../../requirements.md): 44 additional queries with expected behavior, built on the Task 6 dataset, so the Task 27 eval suite covers more than the 6 sample queries.
-- Dataset fix (2026-09-26): Aravind's ACC-04 is now a Personal Loan, not a Car Loan, because the persona is still saving for a car. Balances, ratios and scores are unchanged.
+- Dataset fix (2026-09-26): loan labels now follow the sample workbook. Aravind's ACC-04 and Nikhil's ACC-15 are both `Auto Loan` (previously Personal Loan and Car Loan), and the generator emits `Auto Loan` for every car loan. Balances, ratios and scores are unchanged.

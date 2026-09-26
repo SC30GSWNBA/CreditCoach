@@ -63,7 +63,7 @@ See the README for the current layout. Code lives in the `creditcoach/` Python p
 **What the sample data already shows (`sample_data/credit_profile_sample.xlsx`):**
 - USR-001's score went from 690 (Jul 2026) to 670 (Aug, *utilization spike*) and then to 650 (Sep, *hard inquiry + utilization spike*). The Sep drop is exactly the "20 points this month" in sample query #1.
 - Revolving accounts (amounts in ₹ after the Task #6 conversion to an Indian context): credit card ACC-01 is at ₹59,000 / ₹75,000 = **79% utilization**, credit card ACC-02 is at ₹11,000 / ₹1,00,000 = 11%, and card ACC-05 is at ₹4,750 / ₹25,000 = 19%. Overall revolving utilization is ₹74,750 / ₹2,00,000 = **37.4%**.
-- Installment loans (no limit, so not part of utilization): education loan ACC-03 has a ₹4,20,000 balance and personal loan ACC-04 has a ₹3,05,000 balance.
+- Installment loans (no limit, so not part of utilization): education loan ACC-03 has a ₹4,20,000 balance and auto loan ACC-04 has a ₹3,05,000 balance.
 - `credit_score_factors_guide.pdf` explains both causes: a utilization spike above 30% typically costs 10 to 40 points, and a hard inquiry costs 2 to 10. It also covers payday loans and credit-repair red flags. This makes it the seed document for the RAG corpus (Task #7).
 
 ## 4. Working Agreements
