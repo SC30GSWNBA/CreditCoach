@@ -1,6 +1,6 @@
 # CreditCoach: Team, Roles & Tech Stack
 
-*Week 1 · Task #1 (Kickoff) · Last updated: 2026-09-23*
+*Week 1 · Task #1 (Kickoff) · Last updated: 2026-09-27*
 
 ## 1. Roles
 
@@ -8,14 +8,14 @@ Each role owns its area end to end across all four weeks: design, build, tests, 
 
 | Role | Owner | Owns (tasks in `tasks.md`) | Week it matters most |
 |---|---|---|---|
-| **Prompt / RAG** | Aman / Anik / Sudip | System prompt (#5), corpus (#7), ingestion (#8), retrieval (#9), prototype (#10) | Week 1 |
-| **Tools / MCP** | Aman / Anik / Sudip | Synthetic dataset (#6), tool specs (#12), score-history + account-summary tools (#13–14), MCP wiring (#15) | Week 2 |
-| **Memory** | Aman / Anik / Sudip | Memory schema (#16), cross-session goal recall (#17) | Week 2 |
-| **Guardrails / Caching** | Aman / Anik / Sudip | Guardrail rules + checks + tests (#19–21), caching + latency (#22–23) | Week 3 |
-| **Observability / UI** | Aman / Anik / Sudip | Gradio UI (#11, #18, #25), tracing (#26), dashboard (#31) | Weeks 1 & 4 |
+| **Prompt / RAG** | Aman / Anil / Devisri / Sudip | System prompt (#5), corpus (#7), ingestion (#8), retrieval (#9), prototype (#10) | Week 1 |
+| **Tools / MCP** | Aman / Anil / Devisri / Sudip | Synthetic dataset (#6), tool specs (#12), score-history + account-summary tools (#13–14), MCP wiring (#15) | Week 2 |
+| **Memory** | Aman / Anil / Devisri / Sudip | Memory schema (#16), cross-session goal recall (#17) | Week 2 |
+| **Guardrails / Caching** | Aman / Anil / Devisri / Sudip | Guardrail rules + checks + tests (#19–21), caching + latency (#22–23) | Week 3 |
+| **Observability / UI** | Aman / Anil / Devisri / Sudip | Gradio UI (#11, #18, #25), tracing (#26), dashboard (#31) | Weeks 1 & 4 |
 | **Shared (all)** | Everyone | 6-pager (#2), PR/FAQ (#3), repo setup (#4), E2E run (#24), evals (#27–30), edge cases (#32), demo (#33–34) | — |
 
-> All roles and tasks are shared by Aman, Anik and Sudip. There are no individual role leads.
+> All roles and tasks are shared by Aman, Anil, Devisri and Sudip. There are no individual role leads.
 
 ## 2. Tech Stack (agreed)
 
@@ -80,5 +80,6 @@ Each member checks their box and adds the date.
 | Member | Role | Read requirements.md | Agree to stack | Date |
 |---|---|---|---|---|
 | Aman | All roles (shared) | [ ] | [ ] | |
-| Anik | All roles (shared) | [ ] | [ ] | |
+| Anil | All roles (shared) | [ ] | [ ] | |
+| Devisri | All roles (shared) | [ ] | [ ] | |
 | Sudip | All roles (shared) | [ ] | [ ] | |

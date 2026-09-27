@@ -36,4 +36,5 @@ All checks passed. Ready to build.
 | Teammate | Cloned from GitHub | `uv sync` OK | Check passed | Date |
 |---|---|---|---|---|
 | Aman | [ ] | [ ] | [ ] | |
-| Anik | [ ] | [ ] | [ ] | |
+| Anil | [ ] | [ ] | [ ] | |
+| Devisri | [ ] | [ ] | [ ] | |
