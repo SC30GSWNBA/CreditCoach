@@ -9,6 +9,10 @@ strategy was compared. Four strategies are scored (``STRATEGIES``):
     hit@3        Share of questions with at least one relevant chunk in the top 3.
     precision@3  Share of the top-3 chunks that are relevant.
     MRR          Average of 1 / rank of the first relevant chunk (1.00 = always first).
+    recall@3     Share of a question's relevant chunks that are in the top 3. Questions with more than 3
+                 relevant chunks can't reach 1.00, so the evidence also reports the best score 3 slots allow.
+    nDCG@3       How close the top-3 order is to the ideal (all relevant chunks first), discounting lower
+                 ranks by 1 / log2(rank + 1). Relevance is binary.
 
 Writes:
     docs/evidence/week-1/task-09-retrieval-test.md   Logged query, per-chunk judgments, and comparison.
@@ -17,6 +21,7 @@ Run after building the vector store (no API key needed; results are deterministi
     uv run python scripts/task09_retrieval_eval.py
 """
 
+import math
 from datetime import date
 
 from creditcoach import config
@@ -68,6 +73,11 @@ STRATEGIES = {
 }
 
 
+def dcg(ids: list[str], relevant: set[str]) -> float:
+    """Discounted cumulative gain of a ranked list with binary relevance: sum of 1 / log2(rank + 1) over hits."""
+    return sum(1 / math.log2(rank + 1) for rank, cid in enumerate(ids, 1) if cid in relevant)
+
+
 def evaluate(options: dict) -> dict:
     """Score one retrieval strategy on every question in ``EVAL_SET``.
 
@@ -75,10 +85,10 @@ def evaluate(options: dict) -> dict:
         options: Keyword arguments passed to ``retrieve()``, e.g. ``{"rerank": True, "max_per_doc": 2}``.
 
     Returns:
-        ``{"hit@3", "precision@3", "mrr"}`` averages, plus ``"rows"``: (question, top-3 ids, rank of the first
+        ``{"hit@3", "precision@3", "mrr", "recall@3", "ndcg@3"}`` averages, plus ``"rows"``: (question, top-3 ids, rank of the first
         relevant chunk or None) for each question.
     """
-    hits = prec = mrr = 0.0
+    hits = prec = mrr = recall = ndcg = 0.0
     rows = []
     for query, relevant in EVAL_SET:
         ids = [r.id for r in R.retrieve(query, k=3, **options)]
@@ -86,9 +96,12 @@ def evaluate(options: dict) -> dict:
         hits += first is not None
         prec += sum(cid in relevant for cid in ids) / 3
         mrr += 1 / first if first else 0
+        recall += sum(cid in relevant for cid in ids) / len(relevant)
+        ndcg += dcg(ids, relevant) / dcg(sorted(relevant)[:3], relevant)
         rows.append((query, ids, first))
     n = len(EVAL_SET)
-    return {"hit@3": hits / n, "precision@3": prec / n, "mrr": mrr / n, "rows": rows}
+    return {"hit@3": hits / n, "precision@3": prec / n, "mrr": mrr / n, "recall@3": recall / n, "ndcg@3": ndcg / n,
+            "rows": rows}
 
 
 def main() -> None:
@@ -121,17 +134,24 @@ def main() -> None:
               f"{sum(ok for _, ok in judged)} of 3 retrieved chunks are relevant scoring-factor chunks, and the top "
               f"result is {'relevant' if judged[0][1] else 'not relevant'}.\n",
               "## Strategy comparison (10 hand-labelled queries: the test query, 3 rephrasings, and sample queries 2–6)\n",
-              "| Strategy | Hit@3 | Precision@3 | MRR |", "|---|---|---|---|"]
+              "| Strategy | Hit@3 | Precision@3 | MRR | Recall@3 | nDCG@3 |", "|---|---|---|---|---|---|"]
     misses = []
     for name, options in STRATEGIES.items():
         m = evaluate(options)
-        lines.append(f"| {name} | {m['hit@3']:.2f} | {m['precision@3']:.2f} | {m['mrr']:.2f} |")
-        print(f"{name:<38} hit@3 {m['hit@3']:.2f}  precision@3 {m['precision@3']:.2f}  MRR {m['mrr']:.2f}")
+        lines.append(f"| {name} | {m['hit@3']:.2f} | {m['precision@3']:.2f} | {m['mrr']:.2f} | {m['recall@3']:.2f} | "
+                     f"{m['ndcg@3']:.2f} |")
+        print(f"{name:<38} hit@3 {m['hit@3']:.2f}  precision@3 {m['precision@3']:.2f}  MRR {m['mrr']:.2f}  "
+              f"recall@3 {m['recall@3']:.2f}  nDCG@3 {m['ndcg@3']:.2f}")
         if name.startswith("C"):
             misses = [(q, ids, f) for q, ids, f in m["rows"] if f != 1]
+    best_recall = sum(min(3, len(rel)) / len(rel) for _, rel in EVAL_SET) / len(EVAL_SET)
     lines += ["", "Hit@3: share of queries with a relevant chunk in the top 3. Precision@3: share of the top-3 chunks "
               "that are relevant. MRR: average of 1 / rank of the first relevant chunk (1.00 = always first). "
-              "**Chosen: C**, the highest precision and MRR. Rank fusion (D) did not beat the reranker alone.\n",
+              "Recall@3: share of each query's relevant chunks that reach the top 3. Most queries have 5 to 8 "
+              f"relevant chunks, so the best Recall@3 that 3 slots allow is {best_recall:.2f}, not 1.00. "
+              "nDCG@3: how close the top-3 order is to putting every relevant chunk first (1.00 = ideal; lower "
+              "ranks count less). **Chosen: C**, the highest score on every measure. Rank fusion (D) did not beat "
+              "the reranker alone.\n",
               "Queries where the chosen strategy's first result is not relevant:\n"]
     lines += [f"- {q!r}: first relevant chunk at rank {f or 'none'} (top 3: {', '.join(ids)})" for q, ids, f in misses]
     lines += ["", "## Per-query results with the chosen strategy\n", "| Query | Top 3 |", "|---|---|"]

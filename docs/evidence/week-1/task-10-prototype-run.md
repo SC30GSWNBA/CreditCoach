@@ -2,6 +2,8 @@
 
 *2026-09-24 · Code: `creditcoach/agent/pipeline.py` · Script: `uv run python scripts/task10_prototype_run.py`*
 
+> **Note (2026-09-27):** these runs used GPT-5's default reasoning effort, hence the 13.7–21.9 s generation times. `REASONING_EFFORT` (default `low`) was added later, and the checks were re-run at `low` and still pass: see [Task 11, issues fixed](task-11-gradio-ui.md).
+
 **Definition of Done:** a full query → explanation round trip runs without crashing and reflects the corpus data.
 
 **Pipeline:** question → retrieve the top 3 corpus passages (Task 9 retriever) → build the turn context (TOOL RESULTS: none, since tools arrive in Week 2; REFERENCE CONTEXT: the numbered passages) → `openai/gpt-5` via OpenRouter with the Task 5 system prompt → explanation citing passages as [1]–[3].
