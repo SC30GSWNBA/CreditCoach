@@ -1,6 +1,6 @@
 # Task 9 Evidence: Retrieval Test
 
-*2026-09-24 · Code: `creditcoach/rag/retrieve.py` · Script: `uv run python scripts/task09_retrieval_eval.py`*
+*2026-09-27 · Code: `creditcoach/rag/retrieve.py` · Script: `uv run python scripts/task09_retrieval_eval.py`*
 
 **Definition of Done:** relevant scoring-factor chunk(s) appear in the top-3 retrieved results for "why did my credit score drop 20 points?"
 
@@ -34,14 +34,14 @@ Query: why did my credit score drop 20 points?
 
 ## Strategy comparison (10 hand-labelled queries: the test query, 3 rephrasings, and sample queries 2–6)
 
-| Strategy | Hit@3 | Precision@3 | MRR |
-|---|---|---|---|
-| A dense | 1.00 | 0.70 | 0.83 |
-| B dense + cap 2/doc | 1.00 | 0.67 | 0.83 |
-| C rerank + cap 2/doc | 1.00 | 0.77 | 0.95 |
-| D fusion (dense+rerank) + cap 2/doc | 1.00 | 0.73 | 0.85 |
+| Strategy | Hit@3 | Precision@3 | MRR | Recall@3 | nDCG@3 |
+|---|---|---|---|---|---|
+| A dense | 1.00 | 0.70 | 0.83 | 0.41 | 0.73 |
+| B dense + cap 2/doc | 1.00 | 0.67 | 0.83 | 0.39 | 0.71 |
+| C rerank + cap 2/doc | 1.00 | 0.77 | 0.95 | 0.44 | 0.83 |
+| D fusion (dense+rerank) + cap 2/doc | 1.00 | 0.73 | 0.85 | 0.43 | 0.77 |
 
-Hit@3: share of queries with a relevant chunk in the top 3. Precision@3: share of the top-3 chunks that are relevant. MRR: average of 1 / rank of the first relevant chunk (1.00 = always first). **Chosen: C**, the highest precision and MRR. Rank fusion (D) did not beat the reranker alone.
+Hit@3: share of queries with a relevant chunk in the top 3. Precision@3: share of the top-3 chunks that are relevant. MRR: average of 1 / rank of the first relevant chunk (1.00 = always first). Recall@3: share of each query's relevant chunks that reach the top 3. Most queries have 5 to 8 relevant chunks, so the best Recall@3 that 3 slots allow is 0.56, not 1.00. nDCG@3: how close the top-3 order is to putting every relevant chunk first (1.00 = ideal; lower ranks count less). **Chosen: C**, the highest score on every measure. Rank fusion (D) did not beat the reranker alone.
 
 Queries where the chosen strategy's first result is not relevant:
 
