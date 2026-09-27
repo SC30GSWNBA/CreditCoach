@@ -14,7 +14,7 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 | 8 | Ingestion pipeline | [creditcoach/rag/ingest.py](../../../creditcoach/rag/ingest.py) | [task-08-ingestion-log.md](task-08-ingestion-log.md): 45 chunks stored, 0 truncated; full text in [task-08-chunks.md](task-08-chunks.md) | ✅ | ⬜ Review log |
 | 9 | Retrieval test | [creditcoach/rag/retrieve.py](../../../creditcoach/rag/retrieve.py) | [task-09-retrieval-test.md](task-09-retrieval-test.md): 3/3 relevant in top 3; chosen strategy leads on Hit@3, Precision@3, MRR, Recall@3 and nDCG@3 | ✅ | ⬜ Review judgments |
 | 10 | Prototype round trip | [creditcoach/agent/pipeline.py](../../../creditcoach/agent/pipeline.py) | [task-10-prototype-run.md](task-10-prototype-run.md): 3 runs, all checks pass | ✅ | ⬜ Review transcripts |
-| 11 | Gradio UI + share link | [creditcoach/app/main.py](../../../creditcoach/app/main.py) | [task-11-gradio-ui.md](task-11-gradio-ui.md): screenshot + public link tested | ✅ | ⬜ Post a fresh link (with login) to the team channel |
+| 11 | Gradio UI + share link | [creditcoach/app/main.py](../../../creditcoach/app/main.py) | [task-11-gradio-ui.md](task-11-gradio-ui.md): screenshot + public link tested; [task-11-user-logins.md](task-11-user-logins.md): 13 per-user logins, each sees only its own data | ✅ | ⬜ Post a fresh link and share the 13 logins privately in the team channel |
 
 ## Week 1 demo goal
 
@@ -24,10 +24,11 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 |---|---|---|
 | Live Gradio chat UI | ✅ | `uv run python -m creditcoach.app`, [screenshot](img/task-11-ui-answer.png) |
 | Answers "why did my score drop?" with a RAG-grounded explanation | ✅ | Cites corpus passages and lists sources ([Task 10](task-10-prototype-run.md), [Task 11](task-11-gradio-ui.md)) |
-| Clickable and shareable | ✅ built, ⬜ link to post | Public link tested from outside ([Task 11](task-11-gradio-ui.md)); login required via `APP_USERNAME` / `APP_PASSWORD` |
+| Clickable and shareable | ✅ built, ⬜ link to post | Public link tested from outside ([Task 11](task-11-gradio-ui.md)); login required, one per dataset user ([user logins](task-11-user-logins.md)) |
 | 6-pager and PR/FAQ | ✅ written, ⬜ team agreement | [6-pager](../../6-pager.md), [PR/FAQ](../../pr-faq.md) |
 
 **Additional (outside the task plan):**
 - [Interview questionnaire](../../research/interview-questionnaire.md) and 12 interviews ([user_interviews/](../../../user_interviews/)), used to build the Task 6 dataset.
 - [requirements.md §4](../../../requirements.md): 44 additional queries with expected behavior, built on the Task 6 dataset, so the Task 27 eval suite covers more than the 6 sample queries.
+- Per-user logins (2026-09-27): one chat UI login for each of the 13 dataset users. Answers use that user's own score history and accounts, and a user can never see another user's data. This goes beyond the Week 1 plan, which had no user data before the Week 2 tools; `creditcoach/user_data.py` returns data in the tools' shape, so Tasks 13–15 can swap it out. Evidence: [task-11-user-logins.md](task-11-user-logins.md).
 - Dataset fix (2026-09-26): loan labels now follow the sample workbook. Aravind's ACC-04 and Nikhil's ACC-15 are both `Auto Loan` (previously Personal Loan and Car Loan), and the generator emits `Auto Loan` for every car loan. Balances, ratios and scores are unchanged.

@@ -2,6 +2,8 @@
 
 *2026-09-24 · Code: `creditcoach/app/main.py` · Run: `uv run python -m creditcoach.app --share`*
 
+> **Update (2026-09-27): per-user logins.** The single `APP_USERNAME` / `APP_PASSWORD` login has been replaced by one login per dataset user (`creditcoach_user1` → USR-001 … `creditcoach_user13` → USR-013). Answers now use the signed-in user's own profile, score history and accounts, and never another user's. The screenshot and transcript below predate this change, so that answer says it can't see account data; a signed-in user now gets their own figures. Evidence: [task-11-user-logins.md](task-11-user-logins.md).
+
 **Definition of Done:** the Gradio app launches and returns a grounded explanation for a real query. **Evidence:** a screenshot of the running UI, plus the shareable link posted to the team channel.
 
 ## Screenshot of the running UI
@@ -26,10 +28,9 @@ INFO creditcoach.app: Public share link (expires in about 1 week, stops when thi
 
 **The link worked from outside the machine.** The same question sent through the public URL returned a grounded, cited answer in **9.0 s** (model 6.7 s, retrieval 0.1 s). The app was then stopped, which closes the link (it now returns 404), so the OpenRouter key isn't exposed while nobody is using it.
 
-**To share with the team** (the second half of the evidence), relaunch with a login and post the new link:
-1. Add `APP_USERNAME=...` and `APP_PASSWORD=...` to `.env`.
-2. Run `uv run python -m creditcoach.app --share` and copy the "Public share link" line.
-3. Post the link and the login in the team channel. Keep the process running while teammates try it.
+**To share with the team** (the second half of the evidence), relaunch and post the new link:
+1. Run `uv run python -m creditcoach.app --share` and copy the "Public share link" line. Login is always on; there is nothing to set in `.env`.
+2. Post the link in the team channel. Teammates sign in as any of the 13 users with the privately shared logins (see README > Chat UI logins). Keep the process running while they try it.
 
 | Posted to team channel | Link | By | Date |
 |---|---|---|---|
@@ -43,7 +44,7 @@ INFO creditcoach.app: Public share link (expires in about 1 week, stops when thi
 - **Fast first answer:** the embedding and reranker models load at startup (about 14 s) instead of on the first question.
 - **Graceful failure:** if the model call fails, the user sees a plain apology instead of a stack trace, and the error is logged.
 - **Privacy:** Gradio's usage analytics are turned off (0 telemetry requests in the startup log).
-- **Security:** optional login via `APP_USERNAME` / `APP_PASSWORD`. Starting a share link without one logs a warning.
+- **Security:** login is always required, with one login per dataset user; each login sees only its own user's data (updated 2026-09-27, see the note at the top).
 
 ## Issues found and fixed while building
 

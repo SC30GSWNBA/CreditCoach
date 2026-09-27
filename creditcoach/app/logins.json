@@ -1,0 +1,67 @@
+{
+  "creditcoach_user1": {
+    "user_id": "USR-001",
+    "salt": "f4ca3f29d3119339059750dbfcadd415",
+    "hash": "bee54538e725a9aecd9717eaaa56d6a25086c7548b7e549fbaf93254aa08f821"
+  },
+  "creditcoach_user2": {
+    "user_id": "USR-002",
+    "salt": "d2c389272fcb06a6794820da1e8db21f",
+    "hash": "5ec717d8025ed14749b29a33a7a524804002f490c7ee5a001f50cdd6e3574f0f"
+  },
+  "creditcoach_user3": {
+    "user_id": "USR-003",
+    "salt": "5e0d168bfbf8708807f48ab60bce20ab",
+    "hash": "8108f552785b8e15bb1f6dbe338c5bfef8ae985f4a94737fd147764d3df48984"
+  },
+  "creditcoach_user4": {
+    "user_id": "USR-004",
+    "salt": "79ac7eb33fdde80745246d23d884704f",
+    "hash": "181d5ade56bce0fb0e929a54ea903b7048884c98ac5a056821f9e5805c992086"
+  },
+  "creditcoach_user5": {
+    "user_id": "USR-005",
+    "salt": "166a15bea8927394da4f09a51573f3e9",
+    "hash": "c04c19ba33ec5cd9ff41b3fed29c171fc49090ab0d0d1ace0c57d18b1dc2653d"
+  },
+  "creditcoach_user6": {
+    "user_id": "USR-006",
+    "salt": "8fca4b915bb28c38007f739022eb777e",
+    "hash": "0f9f305e69079043e94eb2f70535f1340200ad05a2f881161012b648b3f722cb"
+  },
+  "creditcoach_user7": {
+    "user_id": "USR-007",
+    "salt": "da42d18d67136a6bc6471616646694ed",
+    "hash": "cf4b379efdd82a96f0ce601a3aae930eb31371710f357a78c15fc16fd1f4cbfd"
+  },
+  "creditcoach_user8": {
+    "user_id": "USR-008",
+    "salt": "4643c313a708efe2af87df9e4bd5a412",
+    "hash": "397907715c1da4fca6b3b5b7ee805c6bae8113a0a83fb3a475fc0b2d278d55ad"
+  },
+  "creditcoach_user9": {
+    "user_id": "USR-009",
+    "salt": "d08853e8c5ae512e84bff721637bbada",
+    "hash": "96ca8c03f896758aa844bd2bc42da05985ba6d2e0e6d458ae75cde9648d112e6"
+  },
+  "creditcoach_user10": {
+    "user_id": "USR-010",
+    "salt": "fcf44021313c6a68f36a2b060a69ddc1",
+    "hash": "983b1769427fdb5ea770932400b91be706e3e1496db3ddcacdd18ea96d043b0a"
+  },
+  "creditcoach_user11": {
+    "user_id": "USR-011",
+    "salt": "5d92d705fdd0981afc0381d7105db88f",
+    "hash": "daa484c2d079c6bf7c39f1402fa02ceaefb8e06732cd633aa5840cedf78717bc"
+  },
+  "creditcoach_user12": {
+    "user_id": "USR-012",
+    "salt": "cd073898a5340cbfd389acec48cb99d4",
+    "hash": "bf91d25be25e559ba3a3949d0ed22c75855c7f35048913337b93658827d3c0ae"
+  },
+  "creditcoach_user13": {
+    "user_id": "USR-013",
+    "salt": "2528babdbf08051f5422d1aacc45af41",
+    "hash": "76fafc35385d28fbbdb2dd4fa096ea4bd272083e0533e7fffdceb42cb99d8102"
+  }
+}

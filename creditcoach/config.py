@@ -19,6 +19,7 @@ Paths (fixed, relative to the repo root):
     CORPUS_DIR   corpus/      Markdown credit-education documents used for RAG.
     CHROMA_DIR   .chroma/     Local vector store, rebuilt by ``python -m creditcoach.rag.ingest``.
     SAMPLE_DATA  sample_data/credit_profile_sample.xlsx  Original seed profile (USD).
+    LOGINS_FILE  creditcoach/app/logins.json  Chat UI logins: username -> user id + password hash.
 
 Example:
     >>> from creditcoach import config
@@ -52,3 +53,5 @@ CHROMA_DIR = ROOT / ".chroma"  # git-ignored; rebuilt by `python -m creditcoach.
 CORPUS_COLLECTION = "creditcoach_corpus"
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 RERANKER_MODEL = os.getenv("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+LOGINS_FILE = ROOT / "creditcoach" / "app" / "logins.json"  # committed; holds password hashes, never passwords

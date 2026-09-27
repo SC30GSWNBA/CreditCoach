@@ -35,8 +35,8 @@ Each role owns its area end to end across all four weeks: design, build, tests, 
 | Guardrails | Custom rule layer: regex/keyword pre-check, a small-model classifier (GPT-5 mini / GPT-4.1 mini), and a figure-provenance check against tool output | Maps one-to-one to requirements.md §6. No black-box dependency. |
 | Observability | Structured JSON logs with a per-request `trace_id`, written to SQLite, plus a Gradio "Dashboard" tab | Meets §6 (tool-failure rate, graceful degradation) with no extra infrastructure. |
 | Evals | **pytest** with custom scorers over the 6 sample queries (requirements.md §3) and the 44 additional queries (§4) | One command: `uv run pytest evals/` (Task #27). |
-| UI | **Gradio** `ChatInterface`, `launch(share=True)` | Gives the shareable link Task #11 requires. |
-| Secrets | `.env` (git-ignored) with `OPENROUTER_API_KEY`, loaded by `python-dotenv`. `.env.example` is committed with a placeholder value | Keys are never committed. |
+| UI | **Gradio** `ChatInterface`, `launch(share=True)`, with one login per dataset user (`creditcoach/auth.py`) | Gives the shareable link Task #11 requires. Each login sees only its own user's data, so any teammate can demo any of the 13 users. |
+| Secrets | `.env` (git-ignored) with `OPENROUTER_API_KEY`, loaded by `python-dotenv`. `.env.example` is committed with a placeholder value. Chat UI passwords are committed only as salted PBKDF2 hashes (`creditcoach/app/logins.json`) and shared privately | Keys and passwords are never committed. |
 
 ### Repo layout
 
@@ -83,3 +83,9 @@ Each member checks their box and adds the date.
 | Anil | All roles (shared) | [ ] | [ ] | |
 | Devisri | All roles (shared) | [ ] | [ ] | |
 | Sudip | All roles (shared) | [ ] | [ ] | |
+
+## 6. Action Items
+
+| # | Action | Owner | Due | Status |
+|---|---|---|---|---|
+| 1 | Replace the 13 chat UI passwords with strong, random ones before sharing a link outside the team. Today's passwords follow a guessable pattern, and Gradio doesn't limit login attempts, so anyone with a share link could guess them. Decide how the new passwords are created (`scripts/set_login.py`) and shared privately. For now the link is shared only within the team. | Aman, Anil, Devisri, Sudip | Before the final demo (Task 34) | ⬜ Open |

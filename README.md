@@ -4,7 +4,7 @@ A chat assistant that helps first-time borrowers understand why their credit sco
 
 All guidance is educational, not financial advice. All user data in this repo is synthetic.
 
-**Status:** Week 1 (foundations, RAG and chat UI) is built. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 adds account tools (MCP) and goal memory. Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
+**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 13 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 adds account tools (MCP) and goal memory. Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
 ## Quickstart (fresh clone)
 
@@ -34,11 +34,11 @@ uv run python -m creditcoach.rag.retrieve "why did my credit score drop 20 point
 # 7. Ask CreditCoach (retrieval + GPT-5; needs your OpenRouter key)
 uv run python -m creditcoach.agent.pipeline "why did my credit score drop 20 points?"
 
-# 8. Open the chat UI at http://127.0.0.1:7860 (add --share for a public link)
+# 8. Open the chat UI at http://127.0.0.1:7860 (add --share for a public link) and sign in as one of the 13 users
 uv run python -m creditcoach.app
 ```
 
-> **Share links are public.** Anyone with the link can chat, and every answer uses your OpenRouter key. Set `APP_USERNAME` and `APP_PASSWORD` in `.env` before using `--share`, and stop the app (Ctrl+C) when you're done; the link closes with it.
+> **Share links are public.** Anyone with the link reaches the login page, and every answer uses your OpenRouter key. Stop the app (Ctrl+C) when you're done; the link closes with it. See [Chat UI logins](#chat-ui-logins).
 
 You should see every line marked `[PASS]`, ending with `All checks passed. Ready to build.`
 
@@ -52,10 +52,12 @@ CreditCoach/
     config.py         #   secrets, model IDs, paths (model IDs live here, not in code)
     check.py          #   setup check for fresh clones
     llm.py            #   OpenRouter client with fallback model
+    auth.py           #   per-user chat UI logins (password hashes in app/logins.json)
+    user_data.py      #   one signed-in user's profile, scores and accounts from data/, nobody else's
     prompts/          #   system_prompt.md (tone, India context, hard rules)
     rag/              #   corpus loader, ingestion (chunk, embed, store in .chroma/), retrieval (search + rerank)
     agent/            #   pipeline.py: question -> retrieval -> grounded answer (Task 10 prototype)
-    app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share]
+    app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share]; logins.json
                       #   coming: tools/, memory/
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
   data/               # synthetic dataset: 13 users, accounts, score history (see data/README.md)
@@ -65,6 +67,8 @@ CreditCoach/
     task07_corpus_report.py  # corpus validation and coverage report (Task 7)
     task09_retrieval_eval.py # retrieval test and strategy comparison (Task 9)
     task10_prototype_run.py  # prototype round trip with grounding checks (Task 10)
+    task11_login_isolation.py # per-user logins and data-isolation checks (Task 11 follow-up)
+    set_login.py             # add or change a chat UI login
   user_interviews/    # 12 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
   docs/               # team.md, 6-pager.md, pr-faq.md, research/, evidence/week-1/
@@ -98,15 +102,28 @@ All settings are read from `.env` (git-ignored). See [.env.example](.env.example
 | `REASONING_EFFORT` | No | `low` | How long GPT-5 reasons before answering (`minimal`, `low`, `medium`, `high`). `low` keeps UI answers to about 8 s. |
 | `EMBEDDING_MODEL` | No | `sentence-transformers/all-MiniLM-L6-v2` | Local embedding model for the vector store. Rebuild the store after changing it. |
 | `RERANKER_MODEL` | No | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Local cross-encoder that reorders retrieved chunks |
-| `APP_USERNAME`, `APP_PASSWORD` | Recommended with `--share` | — | Login for the chat UI. Without both, the UI is open to anyone with the link. |
+
+## Chat UI logins
+
+The chat UI always asks for a login, locally and on a share link. There is one login per dataset user, and each answer uses **only that user's** profile, score history and accounts from `data/`:
+
+| Username | Signs in as |
+|---|---|
+| `creditcoach_user1` | USR-001 (Aravind, the requirements.md persona) |
+| `creditcoach_user2` … `creditcoach_user13` | USR-002 … USR-013, in order (see `data/users.csv`) |
+
+- **Passwords** follow the pattern the team agreed and are shared privately, never in the repo. `creditcoach/app/logins.json` holds only a salted PBKDF2-SHA256 hash of each, so every clone accepts the same logins with no setup.
+- **One user can't see another's data.** The user comes from the signed-in session, never from the message. Only that user's rows are loaded, and the system prompt tells the model to decline questions about anyone else. Checked in [task-11-user-logins.md](docs/evidence/week-1/task-11-user-logins.md).
+- **Change a password or add a user:** `uv run python scripts/set_login.py USR-005 creditcoach_user5`, which asks for the password at a hidden prompt. Commit `logins.json` afterwards.
+- **Sign out** with the **Log out** button at the top of the chat.
 
 ## Branch Strategy
 
 We use **main + short-lived feature branches**, one branch per task.
 
-- **`main`** always works. Nobody pushes to it directly. Changes arrive only through pull requests.
+- **`main`** always works and is protected on GitHub. Only the repo owner (Sudip, `@SC30GSWNBA`) can commit to it directly. Everyone else can pull from `main` but pushes only to a feature branch; GitHub rejects a direct push to `main`.
 - **Feature branches** are named `week<N>/task-<NN>-<short-name>`, for example `week1/task-05-system-prompt` or `week2/task-13-score-history-tool`.
-- **Pull requests:** open one per task. Another teammate reviews it, and the PR description links the task's *Evidence of Completion*. Merge with **squash merge** to keep `main` history to one commit per task.
+- **Pull requests:** open one per task, with the PR description linking the task's *Evidence of Completion*. A PR can merge only after Sudip approves it ([CODEOWNERS](.github/CODEOWNERS)); teammates' reviews are welcome but don't count as the approval. A new push to the branch dismisses an earlier approval. Merge with **squash merge** to keep `main` history to one commit per task.
 - **Keep branches short:** merge within a day or two, and delete the branch after merging.
 - **Commit messages** start with the task number: `Task 5: Add system prompt with no-guarantee rule`.
 
@@ -162,6 +179,8 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 | `[FAIL] Python >= 3.11` | Run `uv python install 3.12`, then `uv sync` again. Always run code with `uv run ...`, not a system `python`. |
 | `[FAIL] import ...` | Run `uv sync` again from the repo root. |
 | `[INFO] Vector store not built yet` | Run `uv run python -m creditcoach.rag.ingest`. |
+| `[FAIL] Chat UI logins` or "No logins found" | Run `git pull`: `creditcoach/app/logins.json` must be present, with one login per user. |
+| Login page says the credentials are wrong | Usernames are `creditcoach_user1` to `creditcoach_user13`, and passwords are case-sensitive. Ask the team for the current passwords. |
 | Ingest or retrieve prints "unauthenticated requests to the HF Hub" | Harmless. The first ingest downloads the embedding model and the first retrieval downloads the reranker (each about 90 MB) from Hugging Face; later runs use the local copies. |
 
 ## Project Docs

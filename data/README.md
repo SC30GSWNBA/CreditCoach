@@ -29,7 +29,7 @@ Step 2 refuses to write data unless all of these hold:
 | `accounts.csv` | account (25) | `account_id`, `user_id`, `account_type`, `balance_inr`, `credit_limit_inr` (blank for installment loans), `utilization_ratio` (blank for installment loans) |
 | `score_history.csv` | user × month (132) | `user_id`, `date` (1st of month, Oct 2025 to Sep 2026), `score`, `primary_factor_change` |
 
-`accounts.csv` and `score_history.csv` follow the sample workbook's columns, with amounts in ₹ (`_inr` instead of `_usd`). The Week 2 tools (`get_score_history`, `get_account_summary`) will serve them. The `users.csv` answers use the questionnaire's wording. For USR-001, fields the persona doesn't state are left blank.
+`accounts.csv` and `score_history.csv` follow the sample workbook's columns, with amounts in ₹ (`_inr` instead of `_usd`). The Week 2 tools (`get_score_history`, `get_account_summary`) will serve them. Until then, `creditcoach/user_data.py` gives the chat UI the signed-in user's own rows from all three files, in the same shape, and never another user's. The `users.csv` answers use the questionnaire's wording. For USR-001, fields the persona doesn't state are left blank.
 
 ## How Interview Answers Become Accounts and Scores
 

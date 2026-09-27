@@ -9,6 +9,7 @@ It prints one line per check and exits with code 0 if everything required passed
     [PASS]/[FAIL] Every required package imports.
     [PASS]/[FAIL] OPENROUTER_API_KEY is set in .env (only the first 8 characters are shown).
     [PASS]/[FAIL] The synthetic dataset in data/ is readable and consistent.
+    [PASS]/[FAIL] Chat UI logins: one per dataset user, each mapped to a different user.
     [INFO]        Whether the vector store has been built (informational; never fails the check).
 
 See README > Troubleshooting for how to fix each failure.
@@ -69,6 +70,17 @@ def main() -> int:
                f"USR-001 latest score {latest['score']} ({latest['primary_factor_change']})")
     except Exception as exc:
         report(False, "Dataset readable (data/)", str(exc))
+
+    try:
+        from creditcoach import auth
+
+        mapped = [e["user_id"] for e in auth.logins().values()]
+        one_each = sorted(mapped) == sorted(users.user_id)
+        report(one_each, "Chat UI logins (creditcoach/app/logins.json)",
+               f"{len(mapped)} logins for {len(set(mapped))} of {len(users)} users" + ("" if one_each else
+               "; every user needs exactly one login (scripts/set_login.py)"))
+    except Exception as exc:
+        report(False, "Chat UI logins (creditcoach/app/logins.json)", str(exc))
 
     try:  # informational: the vector store is built by a separate step, so a missing store is not a failure
         import chromadb
