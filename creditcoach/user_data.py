@@ -5,8 +5,10 @@ that user's profile, score history and accounts into TOOL RESULTS, built by ``lo
 is the only place the app reads ``data/``, and it returns rows for the requested ``user_id`` only, so
 another user's data never reaches the model.
 
-The output keeps the shape the Week 2 tools will return (``get_score_history``, ``get_account_summary``),
-so Task 13-15 can swap this module for real tool calls without changing the prompt.
+The output uses the field names of the Week 2 tools (``get_score_history``, ``get_account_summary``), specified
+in ``docs/tools.md``, so Tasks 13-15 can swap this module for real tool calls without changing the prompt. The
+tools return more than this module: each month's score change, a period summary, account totals, and utilization
+computed from balance / limit to 3 places (this module passes on the CSV's 2-place ratio).
 
 Example:
     >>> from creditcoach.user_data import load_user_data
@@ -46,7 +48,7 @@ def user_ids() -> list[str]:
 
 
 def load_user_data(user_id: str) -> dict:
-    """Return one user's profile, full score history and accounts, in the Week 2 tools' shape.
+    """Return one user's profile, full score history and accounts, using the Week 2 tools' field names.
 
     Every row is filtered by ``user_id`` and checked again before it is returned, so the result can't
     contain another user's data even if a filter is later changed by mistake.
