@@ -1,11 +1,11 @@
 # CreditCoach Synthetic Dataset
 
-All data here is **synthetic**, set in an **Indian consumer context**: amounts are in ₹ (INR), scores use the **300–900 range** of Indian credit bureaus (TransUnion CIBIL, Experian, Equifax, CRIF High Mark), and loans use Indian types (education, auto, home, personal, instant loan apps). Every name is fictional. USR-001 (Aravind) is the requirements.md persona. Its scores are copied unchanged from `sample_data/credit_profile_sample.xlsx`. Its USD amounts are scaled ×50 into ₹, a fixed scale rather than an exchange rate, so every utilization ratio stays identical: 79% on the main card and 37.4% overall. Its account types are renamed to Indian terms: Student Loan → Education Loan and Retail Card → Credit Card. Auto Loan keeps the sample's label, the same type an interviewee's car loan becomes. USR-002 to USR-013 are **one synthetic user per interviewee** (interviews P1–P12). Their habits, cards, loans, savings and goals come from that person's answers, and the balances, limits and scores are generated to fit those answers.
+All data here is **synthetic**, set in an **Indian consumer context**: amounts are in ₹ (INR), scores use the **300–900 range** of Indian credit bureaus (TransUnion CIBIL, Experian, Equifax, CRIF High Mark), and loans use Indian types (education, auto, home, personal, instant loan apps). Every name is fictional. USR-001 (Aravind) is the requirements.md persona. Its scores are copied unchanged from `sample_data/credit_profile_sample.xlsx`. Its USD amounts are scaled ×50 into ₹, a fixed scale rather than an exchange rate, so every utilization ratio stays identical: 79% on the main card and 37.4% overall. Its account types are renamed to Indian terms: Student Loan → Education Loan and Retail Card → Credit Card. Auto Loan keeps the sample's label, the same type an interviewee's car loan becomes. USR-002 to USR-015 are **one synthetic user per interviewee** (interviews P1–P14). Their habits, cards, loans, savings and goals come from that person's answers, and the balances, limits and scores are generated to fit those answers.
 
 The data is built in three steps:
 
 ```bash
-uv run python scripts/synthetic/step1_profiles.py         # users.csv from user_interviews/CreditCoach_User_Profiles.xlsx
+uv run python scripts/synthetic/step1_profiles.py         # users.csv from user_interviews/CreditCoach_User_Profiles_Updated.xlsx
 uv run python scripts/synthetic/step2_accounts_scores.py  # accounts.csv + score_history.csv from users.csv, validated
 uv run python scripts/synthetic/step3_summary.py          # evidence summary
 ```
@@ -25,9 +25,9 @@ Step 2 refuses to write data unless all of these hold:
 
 | File | One row per | Columns |
 |---|---|---|
-| `users.csv` | user (13) | `user_id`, `first_name`, `gender`, `age`, `age_band`, `years_working`, `credit_cards`, `checks_score`, `learns_from`, `self_reported_score`, `knowledge_score` (0–6, Q7–Q12), `unexplained_drop`, `pays_card`, `card_usage`, `knows_apr`, `late_payments_12m`, `loans`, `risky_product_exposure`, `invests_in`, `emergency_fund`, `emi_pct`, `invest_pct`, `goals_2yr`, `source` |
-| `accounts.csv` | account (25) | `account_id`, `user_id`, `account_type`, `balance_inr`, `credit_limit_inr` (blank for installment loans), `utilization_ratio` (blank for installment loans) |
-| `score_history.csv` | user × month (132) | `user_id`, `date` (1st of month, Oct 2025 to Sep 2026), `score`, `primary_factor_change` |
+| `users.csv` | user (15) | `user_id`, `first_name`, `gender`, `age`, `age_band`, `years_working`, `credit_cards`, `checks_score`, `learns_from`, `self_reported_score`, `knowledge_score` (0–6, Q7–Q12), `unexplained_drop`, `pays_card`, `card_usage`, `knows_apr`, `late_payments_12m`, `loans`, `risky_product_exposure`, `invests_in`, `emergency_fund`, `emi_pct`, `invest_pct`, `goals_2yr`, `source` |
+| `accounts.csv` | account (28) | `account_id`, `user_id`, `account_type`, `balance_inr`, `credit_limit_inr` (blank for installment loans), `utilization_ratio` (blank for installment loans) |
+| `score_history.csv` | user × month (156) | `user_id`, `date` (1st of month, Oct 2025 to Sep 2026), `score`, `primary_factor_change` |
 
 `accounts.csv` and `score_history.csv` follow the sample workbook's columns, with amounts in ₹ (`_inr` instead of `_usd`). The Week 2 tools (`get_score_history`, `get_account_summary`), specified in [docs/tools.md](../docs/tools.md), will serve them. Until then, `creditcoach/user_data.py` gives the chat UI the signed-in user's own rows from all three files, using the tools' field names, and never another user's. The tools add fields that module doesn't have yet, such as each month's score change, account totals, and utilization computed from balance ÷ limit to 3 places. The `users.csv` answers use the questionnaire's wording. For USR-001, fields the persona doesn't state are left blank.
 
@@ -53,7 +53,7 @@ Step 2 refuses to write data unless all of these hold:
 | USR-012 Aditya | P11 | High utilization and debt stress | 83% card usage, personal loan, **Instant Loan App**; 746 → 684 | #2 high utilization; #4 predatory-product guardrail; §4: #12, #21, #29, #44 |
 | USR-005 Kavya | P4 | Loan-only file (no credit card) | Scored from a student loan only; small steady gains | Advice for someone with no card; §4: #19 |
 | USR-004 Ananya, USR-007 Karthik | P3, P6 | No credit file | No accounts, no scores | Tools must say "no credit history yet", not error or invent; §4: #14, #20 |
-| USR-002, 006, 008, 010, 013 | P1, P5, P7, P9, P12 | Steady improver | On-time payments with small dips; "Excellent" users level off in the 830s–840s | Scores that *rose*; no false alarm; §4: #13 (002), #27 (006), #26 (008), #28 (010), #18, #24, #35, #36 (013) |
+| USR-002, 006, 008, 010, 013, 014, 015 | P1, P5, P7, P9, P12, P13, P14 | Steady improver | On-time payments with small dips; "Excellent" users level off in the 830s–840s | Scores that *rose*; no false alarm; §4: #13 (002), #27 (006), #26 (008), #28 (010), #18, #24, #35, #36 (013); no §4 query yet for 014 and 015 |
 
 ## How Score Changes Are Bounded
 
@@ -74,26 +74,26 @@ This keeps the data consistent with the RAG corpus. When CreditCoach quotes a ty
 
 ## What the User Interviews Told Us
 
-We interviewed **12 people** (8 men, 4 women), aged mostly 26–30 (7), with 3 aged 31–35 and 2 over 35, working in different industries. The responses (dummy participants) are in `user_interviews/CreditCoach_User_Profiles.xlsx`, and the counts below summarize them. Questions follow [docs/research/interview-questionnaire.md](../docs/research/interview-questionnaire.md). The raw file doesn't include Q23 (% of pay on card bills).
+We interviewed **14 people** (10 men, 4 women), aged mostly 26–30 (8), with 4 aged 31–35 and 2 over 35, working in different industries. The responses (dummy participants) are in `user_interviews/CreditCoach_User_Profiles_Updated.xlsx`, and the counts below summarize them. That file holds the first 12 interviews (P1–P12, also in the original `CreditCoach_User_Profiles.xlsx`) plus P13 and P14, added on 2026-09-30. Questions follow [docs/research/interview-questionnaire.md](../docs/research/interview-questionnaire.md). The raw file doesn't include Q23 (% of pay on card bills).
 
 **Credit habits: these shaped the profiles**
-- **Cards:** 8 have one card, 3 have none, 1 has two or three.
-- **Paying the bill:** 6 pay in full, 2 pay more than the minimum, 3 have no card, and 1 left it blank.
-- **Card usage:** 3 use under 10% of their limit, 4 use 10–30%, 1 uses over 70%, and 4 don't know or have no card.
-- **Late payments:** 11 have never paid late, and 1 preferred not to say.
-- **Loans:** 4 have an education loan, 3 a home loan, 1 a car loan and 1 a personal loan. 4 have no loans.
-- **Loan repayments:** 5 put 0% of pay toward them, 4 put 1–10%, and 1 each is in the 11–20%, 21–35% and over-35% bands.
-- **Investing:** 8 invest in mutual funds or SIPs and 6 use savings or fixed deposits. 2 don't invest regularly.
-- **Emergency fund:** 5 have more than 6 months of expenses saved, 3 have 4–6 months, 3 have 1–3 months, and 1 has less than a month.
+- **Cards:** 10 have one card, 3 have none, 1 has two or three.
+- **Paying the bill:** 8 pay in full, 2 pay more than the minimum, 3 have no card, and 1 left it blank.
+- **Card usage:** 3 use under 10% of their limit, 6 use 10–30%, 1 uses over 70%, and 4 don't know or have no card.
+- **Late payments:** 13 have never paid late, and 1 preferred not to say.
+- **Loans:** 4 have an education loan, 4 a home loan, 1 a car loan and 1 a personal loan. 5 have no loans.
+- **Loan repayments:** 5 put 0% of pay toward them, 4 put 1–10%, 2 put 11–20%, 1 puts 21–35%, and 2 put over 35%. One of the 11–20% answers (P14) comes from someone who reported no loans; the data keeps the answer as given.
+- **Investing:** 10 invest in mutual funds or SIPs and 7 use savings or fixed deposits. 2 don't invest regularly.
+- **Emergency fund:** 5 have more than 6 months of expenses saved, 4 have 4–6 months, 3 have 1–3 months, 1 has less than a month, and 1 isn't sure.
 
 **Credit knowledge (Q7–Q12): these shape the RAG corpus (Task #7)**
-- **Only 1 of 12 knew that scores commonly drop above roughly 30% utilization.** 2 said 10%, 3 said 70%, 2 said 100%, and 4 didn't know. This is the biggest gap, and it bears directly on sample query #1.
-- 5 of 12 didn't know what closing their oldest card does, and 3 gave a wrong answer.
-- 6 of 12 knew a new application causes a small, temporary dip. 2 thought nothing happens, 1 thought it raises the score, and 3 didn't know.
-- 8 of 12 correctly said payment history has the biggest effect. 2 thought it was salary.
-- 11 of 12 recognized the "+100 points for an upfront fee" offer as a scam.
+- **Only 2 of 14 knew that scores commonly drop above roughly 30% utilization.** 2 said 10%, 3 said 70%, 2 said 100%, and 5 didn't know. This is the biggest gap, and it bears directly on sample query #1.
+- 7 of 14 didn't know what closing their oldest card does, and 3 gave a wrong answer.
+- 7 of 14 knew a new application causes a small, temporary dip. 2 thought nothing happens, 1 thought it raises the score, and 4 didn't know.
+- 10 of 14 correctly said payment history has the biggest effect. 2 thought it was salary.
+- 12 of 14 recognized the "+100 points for an upfront fee" offer as a scam. 1 didn't know, and 1 left it blank.
 
 **Risk and goals: these shape the guardrails and memory**
-- 4 of 12 weren't sure what payday loans, instant cash apps or credit-repair services are. 1 had used one.
-- 5 of 12 had never checked their score closely enough to notice a drop, and 3 never check it at all.
-- Top 2-year goals (more than one allowed): paying off debt (7), a wedding, travel or other big expense (7), a car (2), a home (2). Goal memory (Task #16) needs to support more than a car.
+- 4 of 14 weren't sure what payday loans, instant cash apps or credit-repair services are. 1 had used one.
+- 6 of 14 had never checked their score closely enough to notice a drop, and 3 never check it at all.
+- Top 2-year goals (more than one allowed): paying off debt (8), a wedding, travel or other big expense (7), a car (4), a home (2). Goal memory (Task #16) needs to support more than a car.

@@ -4,7 +4,7 @@ A chat assistant that helps first-time borrowers understand why their credit sco
 
 All guidance is educational, not financial advice. All user data in this repo is synthetic.
 
-**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 13 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, and goal memory) is in progress: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), and the [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
+**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 adds account tools (MCP) and goal memory. Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
 ## Quickstart (fresh clone)
 
@@ -34,7 +34,7 @@ uv run python -m creditcoach.rag.retrieve "why did my credit score drop 20 point
 # 7. Ask CreditCoach (retrieval + GPT-5; needs your OpenRouter key)
 uv run python -m creditcoach.agent.pipeline "why did my credit score drop 20 points?"
 
-# 8. Open the chat UI at http://127.0.0.1:7860 (add --share for a public link) and sign in as one of the 13 users
+# 8. Open the chat UI at http://127.0.0.1:7860 (add --share for a public link) and sign in as one of the 15 users
 uv run python -m creditcoach.app
 ```
 
@@ -60,7 +60,7 @@ CreditCoach/
     app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share]; logins.json
                       #   coming: tools/, memory/
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
-  data/               # synthetic dataset: 13 users, accounts, score history (see data/README.md)
+  data/               # synthetic dataset: 15 users, accounts, score history (see data/README.md)
   scripts/
     synthetic/        #   step1-3: build data/ from the interviews and the sample
     task05_prompt_tests.py   # system prompt test runs (Task 5)
@@ -69,7 +69,7 @@ CreditCoach/
     task10_prototype_run.py  # prototype round trip with grounding checks (Task 10)
     task11_login_isolation.py # per-user logins and data-isolation checks (Task 11 follow-up)
     set_login.py             # add or change a chat UI login
-  user_interviews/    # 12 interview responses (dummy participants) used to build data/
+  user_interviews/    # 14 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
   docs/               # team.md, 6-pager.md, pr-faq.md, tools.md, research/, evidence/week-1/ and week-2/
   tasks.md            # 4-week task plan with Definition of Done per task
@@ -110,7 +110,7 @@ The chat UI always asks for a login, locally and on a share link. There is one l
 | Username | Signs in as |
 |---|---|
 | `creditcoach_user1` | USR-001 (Aravind, the requirements.md persona) |
-| `creditcoach_user2` … `creditcoach_user13` | USR-002 … USR-013, in order (see `data/users.csv`) |
+| `creditcoach_user2` … `creditcoach_user15` | USR-002 … USR-015, in order (see `data/users.csv`) |
 
 - **Passwords** follow the pattern the team agreed and are shared privately, never in the repo. `creditcoach/app/logins.json` holds only a salted PBKDF2-SHA256 hash of each, so every clone accepts the same logins with no setup.
 - **One user can't see another's data.** The user comes from the signed-in session, never from the message. Only that user's rows are loaded, and the system prompt tells the model to decline questions about anyone else. Checked in [task-11-user-logins.md](docs/evidence/week-1/task-11-user-logins.md).
@@ -180,7 +180,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 | `[FAIL] import ...` | Run `uv sync` again from the repo root. |
 | `[INFO] Vector store not built yet` | Run `uv run python -m creditcoach.rag.ingest`. |
 | `[FAIL] Chat UI logins` or "No logins found" | Run `git pull`: `creditcoach/app/logins.json` must be present, with one login per user. |
-| Login page says the credentials are wrong | Usernames are `creditcoach_user1` to `creditcoach_user13`, and passwords are case-sensitive. Ask the team for the current passwords. |
+| Login page says the credentials are wrong | Usernames are `creditcoach_user1` to `creditcoach_user15`, and passwords are case-sensitive. Ask the team for the current passwords. |
 | Ingest or retrieve prints "unauthenticated requests to the HF Hub" | Harmless. The first ingest downloads the embedding model and the first retrieval downloads the reranker (each about 90 MB) from Hugging Face; later runs use the local copies. |
 
 ## Project Docs

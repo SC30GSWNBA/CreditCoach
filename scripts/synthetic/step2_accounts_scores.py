@@ -1,7 +1,7 @@
 """Task 6, step 2 of 3: generate each user's accounts and 12-month score history -> ``data/accounts.csv``, ``data/score_history.csv``.
 
 Reads:
-    data/users.csv                            The 13 profiles from step 1.
+    data/users.csv                            The 15 profiles from step 1.
     sample_data/credit_profile_sample.xlsx    Aravind's (USR-001) original data, in USD.
 Writes:
     data/accounts.csv         One row per card or loan: balance and limit in INR, and card utilization.

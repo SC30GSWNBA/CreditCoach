@@ -63,5 +63,15 @@
     "user_id": "USR-013",
     "salt": "2528babdbf08051f5422d1aacc45af41",
     "hash": "76fafc35385d28fbbdb2dd4fa096ea4bd272083e0533e7fffdceb42cb99d8102"
+  },
+  "creditcoach_user14": {
+    "user_id": "USR-014",
+    "salt": "a8cd448cd7beddfedcbe291edd5a4eb5",
+    "hash": "43f94ee8c9dd174737536556ad2c2514d6989e3b00a1a34fc6143aae940fb976"
+  },
+  "creditcoach_user15": {
+    "user_id": "USR-015",
+    "salt": "2b3e776e41c83344f6f8f904058a7742",
+    "hash": "b65876acf5373f7d409e99db0e2c4ffc895243f97d9fb1f51e0614e7c6a79397"
   }
 }

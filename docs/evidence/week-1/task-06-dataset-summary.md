@@ -4,7 +4,7 @@
 
 *Indian consumer context: amounts in ₹, scores on the 300–900 range used by Indian credit bureaus.*
 
-**13 user profiles** (USR-001 from requirements.md + 12 from user interviews) · **25 accounts** · **132 monthly score records** · **11 users with 12 months of history (Oct 2025 to Sep 2026)**, 2 with no credit file
+**15 user profiles** (USR-001 from requirements.md + 14 from user interviews) · **28 accounts** · **156 monthly score records** · **13 users with 12 months of history (Oct 2025 to Sep 2026)**, 2 with no credit file
 
 | User | Name | Source | Scenario | Cards | Other accounts | Revolving utilization | Score Oct 2025 → Sep 2026 | Latest factor change |
 |---|---|---|---|---|---|---|---|---|
@@ -21,5 +21,7 @@
 | USR-011 | Sameer | P10 | Unnoticed utilization spike | 1 | Home Loan | ₹2,10,900 / ₹4,40,000 = 47.9% | 695 → 692 | Stable (no major change) |
 | USR-012 | Aditya | P11 | High utilization and debt stress | 1 | Home Loan, Personal Loan, Instant Loan App | ₹3,78,100 / ₹4,55,000 = 83.1% | 746 → 684 | Utilization spike |
 | USR-013 | Manish | P12 | Steady improver | 2 | none | ₹59,200 / ₹6,65,000 = 8.9% | 809 → 841 | On-time payments |
+| USR-014 | Rohan | P13 | Steady improver | 1 | Home Loan | ₹57,600 / ₹4,35,000 = 13.2% | 815 → 839 | On-time payments |
+| USR-015 | Siddharth | P14 | Steady improver | 1 | none | ₹42,300 / ₹2,65,000 = 16.0% | 733 → 780 | On-time payments |
 
 **Validation (run on every generation):** accounts and scores reference existing users; card counts match each interview answer; scores stay within 300–900; every monthly change falls within its factor's range; any user above 30% utilization has a utilization change in the last 3 months; utilization ratios equal balance ÷ limit; USR-001's scores and utilization ratios are identical to `sample_data` (amounts scaled ×50 into ₹). **Result: all checks passed.**

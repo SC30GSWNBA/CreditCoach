@@ -4,8 +4,8 @@ A chat window where users ask credit questions and get grounded, cited answers. 
 Task 10 pipeline (``agent.pipeline.answer``), and the reply lists the library passages it used. This is the
 Week 1 prototype: memory isn't connected yet, so each question is answered on its own.
 
-Per-user logins: every visitor signs in as one of the 13 dataset users (``creditcoach.auth``; usernames
-``creditcoach_user1`` to ``creditcoach_user13`` map to USR-001 to USR-013). Answers use that user's own
+Per-user logins: every visitor signs in as one of the 15 dataset users (``creditcoach.auth``; usernames
+``creditcoach_user1`` to ``creditcoach_user15`` map to USR-001 to USR-015). Answers use that user's own
 profile, score history and accounts from ``data/``, and nobody else's: the user id comes from the signed-in
 session, never from the message, and only that user's rows are loaded.
 

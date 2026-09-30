@@ -9,7 +9,7 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 | 3 | PR/FAQ | [docs/pr-faq.md](../../pr-faq.md) | Team review and agreement | ✅ | ⬜ Same as Task 2 |
 | 4 | Git repo, README | [README.md](../../../README.md), [GitHub](https://github.com/SC30GSWNBA/CreditCoach) | [task-04-clone-test.md](task-04-clone-test.md) | ✅ | ⬜ Aman, Anil and Devisri each clone, run, and tick their row |
 | 5 | System prompt | [system_prompt.md](../../../creditcoach/prompts/system_prompt.md) | [task-05-prompt-tests.md](task-05-prompt-tests.md): 3/3 pass | ✅ | ⬜ Review transcripts |
-| 6 | Synthetic dataset | [data/](../../../data/) (13 users) | [task-06-dataset-summary.md](task-06-dataset-summary.md) | ✅ | ⬜ Review summary |
+| 6 | Synthetic dataset | [data/](../../../data/) (15 users) | [task-06-dataset-summary.md](task-06-dataset-summary.md) | ✅ | ⬜ Review summary |
 | 7 | RAG corpus | [corpus/](../../../corpus/) (17 documents) | [task-07-corpus-summary.md](task-07-corpus-summary.md): all 6 sample queries covered | ✅ | ⬜ Review documents |
 | 8 | Ingestion pipeline | [creditcoach/rag/ingest.py](../../../creditcoach/rag/ingest.py) | [task-08-ingestion-log.md](task-08-ingestion-log.md): 45 chunks stored, 0 truncated; full text in [task-08-chunks.md](task-08-chunks.md) | ✅ | ⬜ Review log |
 | 9 | Retrieval test | [creditcoach/rag/retrieve.py](../../../creditcoach/rag/retrieve.py) | [task-09-retrieval-test.md](task-09-retrieval-test.md): 3/3 relevant in top 3; chosen strategy leads on Hit@3, Precision@3, MRR, Recall@3 and nDCG@3 | ✅ | ⬜ Review judgments |
@@ -28,7 +28,8 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 | 6-pager and PR/FAQ | ✅ written, ⬜ team agreement | [6-pager](../../6-pager.md), [PR/FAQ](../../pr-faq.md) |
 
 **Additional (outside the task plan):**
-- [Interview questionnaire](../../research/interview-questionnaire.md) and 12 interviews ([user_interviews/](../../../user_interviews/)), used to build the Task 6 dataset.
+- [Interview questionnaire](../../research/interview-questionnaire.md) and 14 interviews ([user_interviews/](../../../user_interviews/)), used to build the Task 6 dataset.
 - [requirements.md §4](../../../requirements.md): 44 additional queries with expected behavior, built on the Task 6 dataset, so the Task 27 eval suite covers more than the 6 sample queries.
-- Per-user logins (2026-09-27): one chat UI login for each of the 13 dataset users. Answers use that user's own score history and accounts, and a user can never see another user's data. This goes beyond the Week 1 plan, which had no user data before the Week 2 tools; `creditcoach/user_data.py` returns data in the tools' shape, so Tasks 13–15 can swap it out. Evidence: [task-11-user-logins.md](task-11-user-logins.md).
+- Per-user logins (2026-09-27): one chat UI login for each of the dataset users (15 since 2026-09-30). Answers use that user's own score history and accounts, and a user can never see another user's data. This goes beyond the Week 1 plan, which had no user data before the Week 2 tools; `creditcoach/user_data.py` returns data using the tools' field names, so Tasks 13–15 can swap it out. Evidence: [task-11-user-logins.md](task-11-user-logins.md).
+- Dataset update (2026-09-30): two more interviews (P13, P14) became USR-014 Rohan and USR-015 Siddharth, both steady improvers, each with a chat login. Step 1 now reads `CreditCoach_User_Profiles_Updated.xlsx`. The first 13 users' rows are byte-identical to before, so every figure in requirements.md §4 still holds. Evidence: [task-06-dataset-summary.md](task-06-dataset-summary.md), [task-11-user-logins.md](task-11-user-logins.md).
 - Dataset fix (2026-09-26): loan labels now follow the sample workbook. Aravind's ACC-04 and Nikhil's ACC-15 are both `Auto Loan` (previously Personal Loan and Car Loan), and the generator emits `Auto Loan` for every car loan. Balances, ratios and scores are unchanged.
