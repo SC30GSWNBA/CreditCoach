@@ -6,7 +6,7 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 |---|---|---|---|---|---|
 | 12 | Tool specs | [docs/tools.md](../../tools.md) | Both signatures with inputs, outputs, error cases, example input/output, and 15 test cases for Tasks 13–14 | ✅ | ⬜ Each member ticks their row in tools.md §7 and answers the §6 open questions |
 | 13 | Score-history tool | [creditcoach/tools/score_history.py](../../../creditcoach/tools/score_history.py) | [task-13-score-history-test.md](task-13-score-history-test.md): known periods and invalid periods logged, 6/6 correct; 42 pytest tests pass | ✅ | ⬜ Review the test log |
-| 14 | Account-summary tool | | | ⬜ | ⬜ |
+| 14 | Account-summary tool | [creditcoach/tools/account_summary.py](../../../creditcoach/tools/account_summary.py) | [task-14-account-summary-test.md](task-14-account-summary-test.md): known users and an unknown user logged, 6/6 correct; 28 pytest tests pass | ✅ | ⬜ Review the test log |
 | 15 | MCP round trip | | | ⬜ | ⬜ |
 | 16 | Memory schema | | | ⬜ | ⬜ |
 | 17 | Goal recall across 2 sessions | | | ⬜ | ⬜ |

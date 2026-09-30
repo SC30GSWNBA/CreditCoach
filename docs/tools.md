@@ -368,7 +368,7 @@ Both tools share one error shape:
 
 ## 5. Test Cases for Tasks #13 and #14
 
-Each task's Definition of Done asks for a known case and an error case. These are the minimum; the implementing task may add more. T1–T8 and T15 for `get_score_history` are automated in `tests/test_score_history.py` (Task 13).
+Each task's Definition of Done asks for a known case and an error case. These are the minimum; the implementing task may add more. T1–T8 and T15 for `get_score_history` are automated in `tests/test_score_history.py` (Task 13), and T9–T15 for `get_account_summary` in `tests/test_account_summary.py` (Task 14). The latter also checks that every complete JSON example in §3 is exactly what the tool returns, so this spec and the code can't drift apart.
 
 | # | Tool | Input | Expected |
 |---|---|---|---|
