@@ -82,7 +82,7 @@ Each member checks their box and adds the date.
 | Aman | All roles (shared) | [ ] | [ ] | |
 | Anil | All roles (shared) | ✅ | ✅ | 2026-09-30 |
 | Devisri | All roles (shared) | [ ] | [ ] | |
-| Sudip | All roles (shared) | [ ] | [ ] | |
+| Sudip | All roles (shared) | ✅ | ✅ | 2026-09-30 |
 
 ## 6. Action Items
 
