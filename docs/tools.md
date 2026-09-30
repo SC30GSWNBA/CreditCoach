@@ -368,7 +368,7 @@ Both tools share one error shape:
 
 ## 5. Test Cases for Tasks #13 and #14
 
-Each task's Definition of Done asks for a known case and an error case. These are the minimum; the implementing task may add more.
+Each task's Definition of Done asks for a known case and an error case. These are the minimum; the implementing task may add more. T1–T8 and T15 for `get_score_history` are automated in `tests/test_score_history.py` (Task 13).
 
 | # | Tool | Input | Expected |
 |---|---|---|---|

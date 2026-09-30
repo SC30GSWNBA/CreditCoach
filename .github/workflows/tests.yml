@@ -1,0 +1,22 @@
+# Runs the test suite on every pull request and every push to main.
+# The tests read only data/ and need no API key or vector store.
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install dependencies from uv.lock
+        run: uv sync --frozen
+      - name: Run tests
+        run: uv run pytest -v
