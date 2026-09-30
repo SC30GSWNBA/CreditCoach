@@ -1,12 +1,12 @@
-"""One user's own data from the synthetic dataset, and nothing else (Week 1 stand-in for the Week 2 tools).
+"""One user's own data from the synthetic dataset, and nothing else.
 
-The chat UI signs each person in as one user (``creditcoach.auth``). For every question, the pipeline puts
-that user's profile, score history and accounts into TOOL RESULTS, built by ``load_user_data``. This module
-is the only place the app reads ``data/``, and it returns rows for the requested ``user_id`` only, so
-another user's data never reaches the model.
+The chat UI signs each person in as one user (``creditcoach.auth``). Since Task 15 the pipeline uses this
+module only for the user's interview profile (USER PROFILE in the model's context); scores and accounts reach
+the model through the MCP tools in ``creditcoach.tools``. The app also uses it for the "Signed in as" name.
+It returns rows for the requested ``user_id`` only, so another user's data never reaches the model.
 
 The output uses the field names of the Week 2 tools (``get_score_history``, ``get_account_summary``), specified
-in ``docs/tools.md``, so Tasks 13-15 can swap this module for real tool calls without changing the prompt. The
+in ``docs/tools.md``, which let Tasks 13-15 replace its score and account data with real tool calls. The
 tools return more than this module: each month's score change, a period summary, account totals, and utilization
 computed from balance / limit to 3 places (this module passes on the CSV's 2-place ratio).
 

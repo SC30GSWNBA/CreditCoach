@@ -28,7 +28,7 @@ Each role owns its area end to end across all four weeks: design, build, tests, 
 | Reranker | **cross-encoder** `ms-marco-MiniLM-L-6-v2` (local), reorders the 12 nearest chunks | Chosen in Task #9: it put the most relevant chunk first far more often than embedding search alone (MRR 0.95 vs 0.83 on 10 labelled queries). |
 | Vector store | **ChromaDB** (persistent, local `./.chroma/`) | Zero-ops, runs embedded in Python, and supports metadata filters (e.g., `category=product_risk`). |
 | RAG orchestration | **Plain Python** (no LangChain/LlamaIndex) | The pipeline is small. Fewer abstractions make it easier to debug retrieval misses in Week 4 error analysis. |
-| Tools / MCP | **`mcp` Python SDK (FastMCP)** server exposing `get_score_history` and `get_account_summary` | Required by Week 2. FastMCP keeps each tool to about 10 lines. |
+| Tools / MCP | **`mcp` Python SDK v2 (`MCPServer`, called FastMCP in v1)** server exposing `get_score_history` and `get_account_summary` over stdio; the agent connects as an MCP client (Task 15) | Required by Week 2. Each MCP tool is a few lines wrapping the Task 13–14 functions. We use v2 (2.2 at the time of Task 15) rather than pinning v1. |
 | Data | **pandas** reading the synthetic dataset in `data/` (15 users, Indian context: ₹ amounts, 300–900 score range) | Built in Task #6 from the sample workbook and 14 user interviews. See `data/README.md`. |
 | Memory | **SQLite** (`memory.db`), one row per user goal: `target_score`, `target_date`, `purpose` | Persists across sessions and processes with no server. Easy to inspect for evidence. |
 | Caching | **diskcache** for embeddings and tool lookups, keyed by a hash of the normalized query | Gives a persistent cache hit or miss we can log and badge in the UI (Task #25). |

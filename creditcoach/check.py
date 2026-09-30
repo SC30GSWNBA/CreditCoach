@@ -20,7 +20,7 @@ import sys
 
 from creditcoach import config
 
-REQUIRED_PACKAGES = ["openai", "dotenv", "pandas", "openpyxl", "chromadb", "sentence_transformers", "gradio"]
+REQUIRED_PACKAGES = ["openai", "dotenv", "pandas", "openpyxl", "chromadb", "sentence_transformers", "gradio", "mcp"]
 
 
 def main() -> int:

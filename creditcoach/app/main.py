@@ -1,13 +1,14 @@
 """CreditCoach chat UI, built with Gradio (Task 11).
 
 A chat window where users ask credit questions and get grounded, cited answers. Each message runs the
-Task 10 pipeline (``agent.pipeline.answer``), and the reply lists the library passages it used. This is the
-Week 1 prototype: memory isn't connected yet, so each question is answered on its own.
+pipeline (``agent.pipeline.answer``): retrieval, then an agent loop in which the model reads the user's score
+history and accounts through the MCP tools (Task 15). The reply lists the library passages and the tools it
+used. Memory isn't connected yet (Tasks 16-17), so each question is answered on its own.
 
 Per-user logins: every visitor signs in as one of the 15 dataset users (``creditcoach.auth``; usernames
 ``creditcoach_user1`` to ``creditcoach_user15`` map to USR-001 to USR-015). Answers use that user's own
 profile, score history and accounts from ``data/``, and nobody else's: the user id comes from the signed-in
-session, never from the message, and only that user's rows are loaded.
+session, never from the message, and the MCP host runs every tool call for that user only.
 
 How to run:
     uv run python -m creditcoach.app                 # local only: http://127.0.0.1:7860
@@ -43,8 +44,8 @@ log = logging.getLogger("creditcoach.app")
 TITLE = "CreditCoach"
 DESCRIPTION = (
     "Plain-language answers about your credit score, grounded in your own score history and accounts and in "
-    "CreditCoach's credit-education library. **Week 1 prototype:** memory isn't connected yet, so each question is "
-    "answered on its own. Not financial advice."
+    "CreditCoach's credit-education library. Your score history and accounts are read live through CreditCoach's "
+    "data tools. Memory isn't connected yet, so each question is answered on its own. Not financial advice."
 )
 EXAMPLES = [
     "Why did my credit score change recently?",
@@ -62,11 +63,13 @@ def format_reply(a) -> str:
 
     Returns:
         The answer text, followed by a "Sources from the CreditCoach library" list (passage titles and ids)
-        and a small line with the model name and timings.
+        and a small line with the tools called, the model name and timings.
     """
     sources = "\n".join(f"{i}. {p.title} (`{p.id}`)" for i, p in enumerate(a.passages, 1))
+    tools = ", ".join(f"{c.tool}" + ("" if c.ok else f" ({c.code})") for c in a.tool_calls) or "none"
     return (f"{a.text}\n\n---\n**Sources from the CreditCoach library**\n{sources}\n\n"
-            f"<sub>{a.model} · retrieval {a.retrieval_seconds:.1f}s · answer {a.generation_seconds:.1f}s</sub>")
+            f"<sub>data tools: {tools} · {a.model} · retrieval {a.retrieval_seconds:.1f}s · "
+            f"answer {a.generation_seconds:.1f}s</sub>")
 
 
 def respond(message: str, history: list, request: gr.Request) -> str:
@@ -78,8 +81,8 @@ def respond(message: str, history: list, request: gr.Request) -> str:
 
     Args:
         message: What the user typed.
-        history: Earlier messages in the chat. Unused in Week 1, because each question is answered on its
-            own; goal memory arrives in Week 2.
+        history: Earlier messages in the chat. Unused for now, because each question is answered on its
+            own; goal memory arrives in Tasks 16-17.
         request: Injected by Gradio; carries the signed-in username.
 
     Returns:

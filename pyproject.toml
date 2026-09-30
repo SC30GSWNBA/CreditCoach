@@ -12,6 +12,7 @@ dependencies = [
     "chromadb>=0.5",
     "sentence-transformers>=3.0",
     "gradio>=4.40",
+    "mcp>=2.2,<3",
 ]
 
 [dependency-groups]
