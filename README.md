@@ -4,7 +4,7 @@ A chat assistant that helps first-time borrowers understand why their credit sco
 
 All guidance is educational, not financial advice. All user data in this repo is synthetic.
 
-**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, and goal memory) is in progress: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history tool (Task 13) is built and tested, and the [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
+**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, and goal memory) is in progress: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history and account-summary tools (Tasks 13–14) are built and tested, and the [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
 ## Quickstart (fresh clone)
 
@@ -60,7 +60,7 @@ CreditCoach/
     prompts/          #   system_prompt.md (tone, India context, hard rules)
     rag/              #   corpus loader, ingestion (chunk, embed, store in .chroma/), retrieval (search + rerank)
     agent/            #   pipeline.py: question -> retrieval -> grounded answer (Task 10 prototype)
-    tools/            #   data tools from docs/tools.md: score_history.py (Task 13); common.py (errors, data)
+    tools/            #   data tools from docs/tools.md: score_history.py (Task 13), account_summary.py (Task 14); common.py (errors, data)
     app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share]; logins.json
                       #   coming: memory/
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
@@ -74,6 +74,7 @@ CreditCoach/
     task10_prototype_run.py  # prototype round trip with grounding checks (Task 10)
     task11_login_isolation.py # per-user logins and data-isolation checks (Task 11 follow-up)
     task13_score_history_test.py # score-history tool test log (Task 13)
+    task14_account_summary_test.py # account-summary tool test log (Task 14)
     set_login.py             # add or change a chat UI login
   user_interviews/    # 14 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
@@ -149,7 +150,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 
 | # | Gap today | Plan |
 |---|---|---|
-| 1 | **No automated tests.** `pytest` is a dev dependency, but there's no `tests/` folder. | Unit tests for code that doesn't call the LLM: chunking (`rag/ingest.py`), `normalize_query`, front-matter parsing, `build_context`, and dataset consistency (every account and score row belongs to a known user). Mock `llm.chat` to test the pipeline's logic without API calls.<br><br>**Started (Task 13):** `tests/test_score_history.py` covers the score-history tool. Still to do: the other modules listed here. |
+| 1 | **No automated tests.** `pytest` is a dev dependency, but there's no `tests/` folder. | Unit tests for code that doesn't call the LLM: chunking (`rag/ingest.py`), `normalize_query`, front-matter parsing, `build_context`, and dataset consistency (every account and score row belongs to a known user). Mock `llm.chat` to test the pipeline's logic without API calls.<br><br>**Started (Tasks 13–14):** `tests/test_score_history.py` and `tests/test_account_summary.py` cover both data tools. Still to do: the other modules listed here. |
 | 2 | **No CI.** There's no `.github/workflows/`. | One GitHub Actions workflow on every PR: `uv sync`, lint, `creditcoach.check` and the tests. Add a build badge to this README once it passes.<br><br>**Started (Task 13):** `.github/workflows/tests.yml` runs `uv sync --frozen` and `pytest` on every PR and push to `main`. Still to do: lint, `creditcoach.check` (it needs an API key, so it would need a CI secret or a skip) and the badge. |
 | 3 | **No lint, format or type-check config.** `.gitignore` lists `.ruff_cache/`, but ruff isn't configured. | Add `[tool.ruff]` and a type checker (mypy or pyright) to `pyproject.toml`, plus a `.pre-commit-config.yaml`. |
 | 4 | **No LICENSE.** The repo is public, but without a license nobody can legally reuse or contribute to the code. | Add a LICENSE file (the team picks the license). |
