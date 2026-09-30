@@ -4,7 +4,7 @@ A chat assistant that helps first-time borrowers understand why their credit sco
 
 All guidance is educational, not financial advice. All user data in this repo is synthetic.
 
-**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, and goal memory) is in progress: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), and the [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
+**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, and goal memory) is in progress: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history tool (Task 13) is built and tested, and the [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
 ## Quickstart (fresh clone)
 
@@ -36,6 +36,9 @@ uv run python -m creditcoach.agent.pipeline "why did my credit score drop 20 poi
 
 # 8. Open the chat UI at http://127.0.0.1:7860 (add --share for a public link) and sign in as one of the 15 users
 uv run python -m creditcoach.app
+
+# 9. Run the tests (no API key needed; CI runs them on every pull request)
+uv run pytest
 ```
 
 > **Share links are public.** Anyone with the link reaches the login page, and every answer uses your OpenRouter key. Stop the app (Ctrl+C) when you're done; the link closes with it. See [Chat UI logins](#chat-ui-logins).
@@ -57,10 +60,12 @@ CreditCoach/
     prompts/          #   system_prompt.md (tone, India context, hard rules)
     rag/              #   corpus loader, ingestion (chunk, embed, store in .chroma/), retrieval (search + rerank)
     agent/            #   pipeline.py: question -> retrieval -> grounded answer (Task 10 prototype)
+    tools/            #   data tools from docs/tools.md: score_history.py (Task 13); common.py (errors, data)
     app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share]; logins.json
-                      #   coming: tools/, memory/
+                      #   coming: memory/
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
   data/               # synthetic dataset: 15 users, accounts, score history (see data/README.md)
+  tests/              # pytest tests (uv run pytest), run by CI (.github/workflows/tests.yml)
   scripts/
     synthetic/        #   step1-3: build data/ from the interviews and the sample
     task05_prompt_tests.py   # system prompt test runs (Task 5)
@@ -68,6 +73,7 @@ CreditCoach/
     task09_retrieval_eval.py # retrieval test and strategy comparison (Task 9)
     task10_prototype_run.py  # prototype round trip with grounding checks (Task 10)
     task11_login_isolation.py # per-user logins and data-isolation checks (Task 11 follow-up)
+    task13_score_history_test.py # score-history tool test log (Task 13)
     set_login.py             # add or change a chat UI login
   user_interviews/    # 14 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
@@ -137,14 +143,14 @@ git push -u origin week1/task-05-system-prompt
 
 ## Engineering Roadmap
 
-A technical review after Week 1 found gaps in testing, tooling and robustness. This section tracks them alongside the [4-week plan](tasks.md). Items tied to a later task are built as part of that task. **None of these is done yet.**
+A technical review after Week 1 found gaps in testing, tooling and robustness. This section tracks them alongside the [4-week plan](tasks.md). Items tied to a later task are built as part of that task. **Items 1 and 2 are started (Task 13); the rest aren't started yet.**
 
 ### 1. Before Week 2: what technical reviewers check first
 
 | # | Gap today | Plan |
 |---|---|---|
-| 1 | **No automated tests.** `pytest` is a dev dependency, but there's no `tests/` folder. | Unit tests for code that doesn't call the LLM: chunking (`rag/ingest.py`), `normalize_query`, front-matter parsing, `build_context`, and dataset consistency (every account and score row belongs to a known user). Mock `llm.chat` to test the pipeline's logic without API calls. |
-| 2 | **No CI.** There's no `.github/workflows/`. | One GitHub Actions workflow on every PR: `uv sync`, lint, `creditcoach.check` and the tests. Add a build badge to this README once it passes. |
+| 1 | **No automated tests.** `pytest` is a dev dependency, but there's no `tests/` folder. | Unit tests for code that doesn't call the LLM: chunking (`rag/ingest.py`), `normalize_query`, front-matter parsing, `build_context`, and dataset consistency (every account and score row belongs to a known user). Mock `llm.chat` to test the pipeline's logic without API calls.<br><br>**Started (Task 13):** `tests/test_score_history.py` covers the score-history tool. Still to do: the other modules listed here. |
+| 2 | **No CI.** There's no `.github/workflows/`. | One GitHub Actions workflow on every PR: `uv sync`, lint, `creditcoach.check` and the tests. Add a build badge to this README once it passes.<br><br>**Started (Task 13):** `.github/workflows/tests.yml` runs `uv sync --frozen` and `pytest` on every PR and push to `main`. Still to do: lint, `creditcoach.check` (it needs an API key, so it would need a CI secret or a skip) and the badge. |
 | 3 | **No lint, format or type-check config.** `.gitignore` lists `.ruff_cache/`, but ruff isn't configured. | Add `[tool.ruff]` and a type checker (mypy or pyright) to `pyproject.toml`, plus a `.pre-commit-config.yaml`. |
 | 4 | **No LICENSE.** The repo is public, but without a license nobody can legally reuse or contribute to the code. | Add a LICENSE file (the team picks the license). |
 | 5 | **Evals are one-off scripts, not a harness.** `scripts/task05…task10` write Markdown evidence, and the Task 5 and Task 10 judgments are filled in by a person (`_TBD_`). | A reusable eval suite with a golden set of questions (JSON or YAML), built from the 50 queries in requirements.md §3 and §4, and automatic scoring:<br>- **Retrieval:** Hit@k and MRR.<br>- **Guardrails:** refuses guarantees and predatory products; invents no numbers.<br>- **Answer quality:** an LLM judge using `SMALL_MODEL`, already set aside for this.<br><br>This is where Week 4's harness (Tasks 27–30) begins. |
