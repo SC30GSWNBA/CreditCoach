@@ -3,7 +3,7 @@
 Offline checks (free, no API calls):
     1. Logins     One login per dataset user; creditcoach_userN maps to USR-00N; wrong or empty passwords
                   and unknown usernames are refused. With --passwords, every real password is accepted for
-                  its own username and refused for every other username (13 x 13 pairs).
+                  its own username and refused for every other username (N x N pairs for N users).
     2. Data       For each user, the TOOL RESULTS the model would see contain that user's rows only: the
                   right number of accounts and score months, and no other user's id, account id or name.
     3. Session    The chat handler takes the user from the signed-in session only: a message claiming to be
@@ -86,7 +86,7 @@ def check_logins(passwords: dict[str, str] | None) -> list[tuple[str, bool, str]
     rows.append(("One login per dataset user", sorted(mapped.values()) == sorted(user_ids()),
                  f"{len(mapped)} logins, {len(set(mapped.values()))} distinct users, {len(user_ids())} in data/"))
     pattern = all(mapped.get(f"creditcoach_user{i}") == uid for i, uid in enumerate(user_ids(), 1))
-    rows.append(("creditcoach_userN signs in as USR-00N", pattern, "all 13" if pattern else "mismatch"))
+    rows.append(("creditcoach_userN signs in as USR-00N", pattern, f"all {len(user_ids())}" if pattern else "mismatch"))
     no_plain = all(set(e) == {"user_id", "salt", "hash"} and len(e["hash"]) == 64 for e in table.values())
     rows.append(("No plain-text password in logins.json", no_plain, "only salt + PBKDF2-SHA256 hash per login"))
     refused = [not auth.check_login(u, p) for u in mapped for p in ("", "wrong-password")]
@@ -197,8 +197,8 @@ def main() -> None:
         f"*{date.today().isoformat()} · Code: `creditcoach/auth.py`, `creditcoach/user_data.py`, `creditcoach/app/main.py` · "
         "Script: `uv run python scripts/task11_login_isolation.py`" + (" --passwords <file> --live" if args.live else "") + "*",
         "",
-        "**What changed:** every visitor signs in as one of the 13 dataset users (`creditcoach_user1` → USR-001 … "
-        "`creditcoach_user13` → USR-013), and answers use that user's own profile, score history and accounts from "
+        f"**What changed:** every visitor signs in as one of the {len(user_ids())} dataset users (`creditcoach_user1` → "
+        f"USR-001 … `creditcoach_user{len(user_ids())}` → {user_ids()[-1]}), and answers use that user's own profile, score history and accounts from "
         "`data/`. Passwords are stored only as salted PBKDF2-SHA256 hashes in `creditcoach/app/logins.json`, so every "
         "clone can check logins but no password is in git.",
         "",

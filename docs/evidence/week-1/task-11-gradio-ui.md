@@ -30,7 +30,7 @@ INFO creditcoach.app: Public share link (expires in about 1 week, stops when thi
 
 **To share with the team** (the second half of the evidence), relaunch and post the new link:
 1. Run `uv run python -m creditcoach.app --share` and copy the "Public share link" line. Login is always on; there is nothing to set in `.env`.
-2. Post the link in the team channel. Teammates sign in as any of the 13 users with the privately shared logins (see README > Chat UI logins). Keep the process running while they try it.
+2. Post the link in the team channel. Teammates sign in as any of the 15 users with the privately shared logins (see README > Chat UI logins). Keep the process running while they try it.
 
 | Posted to team channel | Link | By | Date |
 |---|---|---|---|

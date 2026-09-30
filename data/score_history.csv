@@ -131,3 +131,27 @@ USR-013,2026-06-01,828,Stable (no major change)
 USR-013,2026-07-01,831,On-time payments
 USR-013,2026-08-01,833,Stable (no major change)
 USR-013,2026-09-01,841,On-time payments
+USR-014,2025-10-01,815,Baseline
+USR-014,2025-11-01,818,On-time payments
+USR-014,2025-12-01,817,Stable (no major change)
+USR-014,2026-01-01,811,Utilization increase
+USR-014,2026-02-01,819,Utilization decreased
+USR-014,2026-03-01,825,On-time payments
+USR-014,2026-04-01,824,Stable (no major change)
+USR-014,2026-05-01,826,On-time payments
+USR-014,2026-06-01,827,Stable (no major change)
+USR-014,2026-07-01,833,On-time payments
+USR-014,2026-08-01,834,Stable (no major change)
+USR-014,2026-09-01,839,On-time payments
+USR-015,2025-10-01,733,Baseline
+USR-015,2025-11-01,739,On-time payments
+USR-015,2025-12-01,742,On-time payments
+USR-015,2026-01-01,740,Utilization increase
+USR-015,2026-02-01,746,Utilization decreased
+USR-015,2026-03-01,749,On-time payments
+USR-015,2026-04-01,752,Account age increase
+USR-015,2026-05-01,755,On-time payments
+USR-015,2026-06-01,763,On-time payments
+USR-015,2026-07-01,768,On-time payments
+USR-015,2026-08-01,772,On-time payments
+USR-015,2026-09-01,780,On-time payments

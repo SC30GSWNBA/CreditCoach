@@ -1,10 +1,11 @@
 """Task 6, step 1 of 3: build one synthetic user profile per interviewee -> ``data/users.csv``.
 
 Reads:
-    user_interviews/CreditCoach_User_Profiles.xlsx   12 interview responses (dummy participants).
+    user_interviews/CreditCoach_User_Profiles_Updated.xlsx   14 interview responses (dummy participants):
+        the original 12 (P1-P12, also in CreditCoach_User_Profiles.xlsx) plus P13 and P14.
 Writes:
-    data/users.csv   13 users: USR-001 (Aravind, the requirements.md persona) plus USR-002..USR-013, one
-                     per interview, in interview order (P1 -> USR-002, ..., P12 -> USR-013).
+    data/users.csv   15 users: USR-001 (Aravind, the requirements.md persona) plus USR-002..USR-015, one
+                     per interview, in interview order (P1 -> USR-002, ..., P14 -> USR-015).
 
 For each interviewee it keeps their answers (cards held, card usage, loans, savings, goals, and so on,
 in the questionnaire's wording), scores their credit knowledge from 0 to 6 (questions 7-12), gives them a
@@ -24,15 +25,17 @@ import pandas as pd
 
 from creditcoach import config
 
-INTERVIEWS = config.ROOT / "user_interviews" / "CreditCoach_User_Profiles.xlsx"
+INTERVIEWS = config.ROOT / "user_interviews" / "CreditCoach_User_Profiles_Updated.xlsx"
 OUT = config.ROOT / "data" / "users.csv"
 
 # Correct options for the knowledge questions (see docs/research/interview-questionnaire.md answer key).
 KNOWLEDGE_KEY = {7: "b", 8: "b", 9: "b", 10: "b", 11: "c", 12: "c"}
 
-FICTIONAL_NAMES = {"Male": ["Arjun", "Vikram", "Rahul", "Karthik", "Nikhil", "Sameer", "Aditya", "Manish"],
+# Names and ages are handed out in interview order, so new entries go at the end: earlier users keep theirs.
+FICTIONAL_NAMES = {"Male": ["Arjun", "Vikram", "Rahul", "Karthik", "Nikhil", "Sameer", "Aditya", "Manish",
+                            "Rohan", "Siddharth"],
                    "Female": ["Ananya", "Kavya", "Neha", "Shruti"]}
-AGES_IN_BAND = {"26 to 30": [27, 29, 26, 28, 30, 27, 29], "31 to 35": [32, 34, 33], "Above 35": [38, 41]}
+AGES_IN_BAND = {"26 to 30": [27, 29, 26, 28, 30, 27, 29, 28], "31 to 35": [32, 34, 33, 34], "Above 35": [38, 41]}
 MIN_YEARS = {"Less than 1 year": 0, "1 to 3 years": 1, "4 to 8 years": 4, "More than 8 years": 9}
 
 ARAVIND = {

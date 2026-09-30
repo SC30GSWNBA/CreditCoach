@@ -1,8 +1,8 @@
 # Task 11 Follow-up: Per-User Logins and Data Isolation
 
-*2026-09-27 · Code: `creditcoach/auth.py`, `creditcoach/user_data.py`, `creditcoach/app/main.py` · Script: `uv run python scripts/task11_login_isolation.py`*
+*2026-09-30 · Code: `creditcoach/auth.py`, `creditcoach/user_data.py`, `creditcoach/app/main.py` · Script: `uv run python scripts/task11_login_isolation.py`*
 
-**What changed:** every visitor signs in as one of the 13 dataset users (`creditcoach_user1` → USR-001 … `creditcoach_user13` → USR-013), and answers use that user's own profile, score history and accounts from `data/`. Passwords are stored only as salted PBKDF2-SHA256 hashes in `creditcoach/app/logins.json`, so every clone can check logins but no password is in git.
+**What changed:** every visitor signs in as one of the 15 dataset users (`creditcoach_user1` → USR-001 … `creditcoach_user15` → USR-015), and answers use that user's own profile, score history and accounts from `data/`. Passwords are stored only as salted PBKDF2-SHA256 hashes in `creditcoach/app/logins.json`, so every clone can check logins but no password is in git.
 
 **How one user is kept out of another's data:**
 1. The user id comes only from the signed-in Gradio session (`request.username` → `auth.user_id_for`), never from the message text.
@@ -16,10 +16,10 @@
 
 | Check | Result | Detail |
 |---|---|---|
-| One login per dataset user | ✅ | 13 logins, 13 distinct users, 13 in data/ |
-| creditcoach_userN signs in as USR-00N | ✅ | all 13 |
+| One login per dataset user | ✅ | 15 logins, 15 distinct users, 15 in data/ |
+| creditcoach_userN signs in as USR-00N | ✅ | all 15 |
 | No plain-text password in logins.json | ✅ | only salt + PBKDF2-SHA256 hash per login |
-| Empty, wrong and unknown logins refused | ✅ | 27 attempts, all refused |
+| Empty, wrong and unknown logins refused | ✅ | 31 attempts, all refused |
 
 ## 2. Each user's TOOL RESULTS hold only their own data
 
@@ -40,6 +40,8 @@ Built with `pipeline.build_context`, exactly as sent to the model. *Other users'
 | USR-011 | 2 | 12 | none | ✅ |
 | USR-012 | 4 | 12 | none | ✅ |
 | USR-013 | 2 | 12 | none | ✅ |
+| USR-014 | 2 | 12 | none | ✅ |
+| USR-015 | 1 | 12 | none | ✅ |
 
 USR-004 and USR-007 have no credit file, so their TOOL RESULTS say so and the model is told not to state or estimate a score.
 
