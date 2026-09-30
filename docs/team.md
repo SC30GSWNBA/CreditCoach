@@ -80,7 +80,7 @@ Each member checks their box and adds the date.
 | Member | Role | Read requirements.md | Agree to stack | Date |
 |---|---|---|---|---|
 | Aman | All roles (shared) | [ ] | [ ] | |
-| Anil | All roles (shared) | [x] | [x] | 2026-09-30 |
+| Anil | All roles (shared) | ✅ | ✅ | 2026-09-30 |
 | Devisri | All roles (shared) | [ ] | [ ] | |
 | Sudip | All roles (shared) | [ ] | [ ] | |
 
