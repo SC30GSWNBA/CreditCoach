@@ -1,6 +1,6 @@
 # CreditCoach: Team, Roles & Tech Stack
 
-*Week 1 · Task #1 (Kickoff) · Last updated: 2026-09-27*
+*Week 1 · Task #1 (Kickoff) · Last updated: 2026-09-30*
 
 ## 1. Roles
 
@@ -80,7 +80,7 @@ Each member checks their box and adds the date.
 | Member | Role | Read requirements.md | Agree to stack | Date |
 |---|---|---|---|---|
 | Aman | All roles (shared) | [ ] | [ ] | |
-| Anil | All roles (shared) | [ ] | [ ] | |
+| Anil | All roles (shared) | ✅ | ✅ | 2026-09-30 |
 | Devisri | All roles (shared) | [ ] | [ ] | |
 | Sudip | All roles (shared) | [ ] | [ ] | |
 
