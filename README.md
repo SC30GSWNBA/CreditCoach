@@ -4,7 +4,7 @@ A chat assistant that helps first-time borrowers understand why their credit sco
 
 All guidance is educational, not financial advice. All user data in this repo is synthetic.
 
-**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, and goal memory) is in progress: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history and account-summary tools (Tasks 13–14) are built and tested, and the [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
+**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, and goal memory) is in progress: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history and account-summary tools (Tasks 13–14) are built and tested, and since Task 15 the chat reads each user's scores and accounts live through them over MCP. The [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
 ## Quickstart (fresh clone)
 
@@ -59,8 +59,10 @@ CreditCoach/
     user_data.py      #   one signed-in user's profile, scores and accounts from data/, nobody else's
     prompts/          #   system_prompt.md (tone, India context, hard rules)
     rag/              #   corpus loader, ingestion (chunk, embed, store in .chroma/), retrieval (search + rerank)
-    agent/            #   pipeline.py: question -> retrieval -> grounded answer (Task 10 prototype)
-    tools/            #   data tools from docs/tools.md: score_history.py (Task 13), account_summary.py (Task 14); common.py (errors, data)
+    agent/            #   pipeline.py: question -> retrieval -> agent loop with MCP tool calls -> grounded answer;
+                      #   mcp_host.py: MCP client that runs tool calls for the signed-in user only (Task 15)
+    tools/            #   data tools from docs/tools.md: score_history.py (Task 13), account_summary.py (Task 14); common.py (errors, data);
+                      #   server.py: MCP server exposing both (Task 15): python -m creditcoach.tools.server
     app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share]; logins.json
                       #   coming: memory/
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
@@ -75,6 +77,7 @@ CreditCoach/
     task11_login_isolation.py # per-user logins and data-isolation checks (Task 11 follow-up)
     task13_score_history_test.py # score-history tool test log (Task 13)
     task14_account_summary_test.py # account-summary tool test log (Task 14)
+    task15_mcp_round_trip.py # live MCP round trip trace (Task 15; paid model calls)
     set_login.py             # add or change a chat UI login
   user_interviews/    # 14 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
@@ -163,7 +166,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 |---|---|---|
 | 7 | **No observability.** `llm.chat()` ignores `response.usage`, so tokens, cost and latency per call aren't recorded. | Log usage and latency for every call. Add tracing (Langfuse, LangSmith or OpenTelemetry) before the Week 2 tools arrive, because debugging tool calls without traces is painful. Task 26's trace IDs build on this. |
 | 8 | **Fragile LLM client.** It catches a broad `except Exception` and tries the fallback model once. It has no retries, and it creates a new client on every call. | Catch specific exceptions, retry rate limits (429) and server errors (5xx) with backoff (for example `tenacity`), and reuse one client. Task 32 covers wider timeout handling. |
-| 9 | **No architecture or design doc for Week 2.** `pipeline.py` is single-turn: the chat history is passed in but unused. | Add a diagram of today's pipeline and the planned agent loop. The tool contracts are now in [docs/tools.md](docs/tools.md) (Task 12). Still to write: how the MCP tools (Tasks 13–15) and goal memory (Tasks 16–17) plug into `pipeline.py`, so reviewers can see it will grow into a real agent loop. |
+| 9 | **No architecture or design doc for Week 2.** The chat history is passed in but unused. | Add a diagram of the pipeline and agent loop. The tool contracts are in [docs/tools.md](docs/tools.md) (Task 12), and the agent loop over MCP is described in `pipeline.py` and `mcp_host.py` (Task 15). Still to write: how the MCP tools (Tasks 13–15) and goal memory (Tasks 16–17) plug into `pipeline.py`, so reviewers can see it will grow into a real agent loop. |
 | 10 | **Prompts aren't versioned.** `system_prompt.md` has no version, and answers don't record which prompt produced them. | Add a prompt version or hash to each `Answer` and to eval results, so a change in behaviour can be traced to a prompt change. |
 | 11 | **No streaming.** The UI shows the whole answer at once, after about 8 s. | Stream tokens into the chat window so answers start appearing right away. |
 

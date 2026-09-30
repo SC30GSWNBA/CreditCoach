@@ -366,6 +366,8 @@ Both tools share one error shape:
 - The host retries a `retryable` error once. If the retry fails, the agent degrades as described in the tables above.
 - Every call, success or error, is logged with the tool name, `user_id`, arguments, `ok`, error `code` and latency. Task #26 adds the trace id.
 
+**As built (Task 15):** the server is `creditcoach/tools/server.py` and the host is `creditcoach/agent/mcp_host.py`. The host adds two codes of its own: `UNKNOWN_TOOL` (the model named a tool that doesn't exist) and `INVALID_ARGUMENTS` (the model's arguments weren't valid JSON or failed the server's validation). Neither is retryable. `USER_MISMATCH` and the 5-second timeout are enforced there, as §1 and the error tables describe.
+
 ## 5. Test Cases for Tasks #13 and #14
 
 Each task's Definition of Done asks for a known case and an error case. These are the minimum; the implementing task may add more. T1–T8 and T15 for `get_score_history` are automated in `tests/test_score_history.py` (Task 13), and T9–T15 for `get_account_summary` in `tests/test_account_summary.py` (Task 14). The latter also checks that every complete JSON example in §3 is exactly what the tool returns, so this spec and the code can't drift apart.

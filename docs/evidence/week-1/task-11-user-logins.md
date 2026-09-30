@@ -6,7 +6,7 @@
 
 **How one user is kept out of another's data:**
 1. The user id comes only from the signed-in Gradio session (`request.username` → `auth.user_id_for`), never from the message text.
-2. `user_data.load_user_data` filters all three CSVs by that id and checks every row again before returning it, so another user's rows never reach the model.
+2. Since Task 15 the model gets the user's profile from `user_data.load_user_data` and their scores and accounts only through MCP tool calls. The MCP host fills `user_id` from the session and refuses any call for another user (`USER_MISMATCH`), and both the profile loader and the tools filter by that id and check every row again before returning it, so another user's rows never reach the model.
 3. The system prompt's rule 6 tells the model it has only the signed-in user's data and to decline requests about anyone else or to switch users.
 4. Each question is answered on its own, and nothing is shared between sessions.
 
@@ -21,9 +21,9 @@
 | No plain-text password in logins.json | ✅ | only salt + PBKDF2-SHA256 hash per login |
 | Empty, wrong and unknown logins refused | ✅ | 31 attempts, all refused |
 
-## 2. Each user's TOOL RESULTS hold only their own data
+## 2. Everything the model receives holds only the user's own data
 
-Built with `pipeline.build_context`, exactly as sent to the model. *Other users' data found* searches for every other user's id, account ids, first name and balance/limit amounts.
+The context from `pipeline.build_context`, exactly as sent to the model, plus the output of both tools for that user (`get_score_history(..., "all")` and `get_account_summary`). *Other users' data found* searches for every other user's id, account ids, first name and balance/limit amounts.
 
 | User | Accounts | Score months | Other users' data found | Result |
 |---|---|---|---|---|
@@ -43,7 +43,7 @@ Built with `pipeline.build_context`, exactly as sent to the model. *Other users'
 | USR-014 | 2 | 12 | none | ✅ |
 | USR-015 | 1 | 12 | none | ✅ |
 
-USR-004 and USR-007 have no credit file, so their TOOL RESULTS say so and the model is told not to state or estimate a score.
+USR-004 and USR-007 have no credit file, so both tools say so and the model is told not to state or estimate a score.
 
 ## 3. The session, not the message, decides the user
 
