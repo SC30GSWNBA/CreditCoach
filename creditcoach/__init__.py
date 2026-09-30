@@ -1,7 +1,8 @@
 """CreditCoach: a grounded, guardrailed credit coach for first-time borrowers in India.
 
 CreditCoach explains why a user's credit score changed and how to improve it steadily. Answers are grounded
-in a curated credit-education library (RAG) and, from Week 2, in the user's own simulated account data. It
+in a curated credit-education library (RAG) and in the signed-in user's own simulated account data (read
+from ``data/`` by ``user_data.py`` today, and through the MCP tools specified in ``docs/tools.md`` from Week 2). It
 never guarantees a score, never recommends predatory products, and never invents a figure.
 
 Subpackages:

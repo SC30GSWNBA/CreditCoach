@@ -4,7 +4,7 @@ A chat assistant that helps first-time borrowers understand why their credit sco
 
 All guidance is educational, not financial advice. All user data in this repo is synthetic.
 
-**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 13 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 adds account tools (MCP) and goal memory. Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
+**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 13 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, and goal memory) is in progress: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), and the [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
 ## Quickstart (fresh clone)
 
@@ -71,7 +71,7 @@ CreditCoach/
     set_login.py             # add or change a chat UI login
   user_interviews/    # 12 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
-  docs/               # team.md, 6-pager.md, pr-faq.md, research/, evidence/week-1/
+  docs/               # team.md, 6-pager.md, pr-faq.md, tools.md, research/, evidence/week-1/ and week-2/
   tasks.md            # 4-week task plan with Definition of Done per task
   requirements.md     # product requirements, persona, sample and additional queries, guardrails
   credit_score_factors_guide.pdf   # seed document for the RAG corpus
@@ -156,7 +156,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 |---|---|---|
 | 7 | **No observability.** `llm.chat()` ignores `response.usage`, so tokens, cost and latency per call aren't recorded. | Log usage and latency for every call. Add tracing (Langfuse, LangSmith or OpenTelemetry) before the Week 2 tools arrive, because debugging tool calls without traces is painful. Task 26's trace IDs build on this. |
 | 8 | **Fragile LLM client.** It catches a broad `except Exception` and tries the fallback model once. It has no retries, and it creates a new client on every call. | Catch specific exceptions, retry rate limits (429) and server errors (5xx) with backoff (for example `tenacity`), and reuse one client. Task 32 covers wider timeout handling. |
-| 9 | **No architecture or design doc for Week 2.** `pipeline.py` is single-turn: the chat history is passed in but unused. | Add a diagram of today's pipeline and the planned agent loop. Write down how the MCP tools (Tasks 12–15) and goal memory (Tasks 16–17) plug into `pipeline.py`, so reviewers can see it will grow into a real agent loop. |
+| 9 | **No architecture or design doc for Week 2.** `pipeline.py` is single-turn: the chat history is passed in but unused. | Add a diagram of today's pipeline and the planned agent loop. The tool contracts are now in [docs/tools.md](docs/tools.md) (Task 12). Still to write: how the MCP tools (Tasks 13–15) and goal memory (Tasks 16–17) plug into `pipeline.py`, so reviewers can see it will grow into a real agent loop. |
 | 10 | **Prompts aren't versioned.** `system_prompt.md` has no version, and answers don't record which prompt produced them. | Add a prompt version or hash to each `Answer` and to eval results, so a change in behaviour can be traced to a prompt change. |
 | 11 | **No streaming.** The UI shows the whole answer at once, after about 8 s. | Stream tokens into the chat window so answers start appearing right away. |
 
@@ -168,7 +168,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 | 13 | **Long commands.** | Add a Makefile or justfile with `setup`, `ingest`, `test`, `eval`, `app` and `lint`. |
 | 14 | **No contributor files.** | Add:<br>- `CONTRIBUTING.md`, with the branch strategy moved there;<br>- `SECURITY.md`, covering how to report problems such as a leaked API key, and how data is handled;<br>- PR and issue templates;<br>- `CHANGELOG.md`. |
 
-**Order:** do items 1–4 first. They're quick, they're what reviewers check first, and CI protects everything built after them. Do items 5–7 before Task 12: evals and tracing are much harder to add once tools and memory make the agent's behaviour complex. Items 8–11 harden the agent, and 12–14 are polish for collaborators.
+**Order:** do items 1–4 first. They're quick, they're what reviewers check first, and CI protects everything built after them. Do items 5–7 before Task 13, the first tool code (Task 12 is a written spec only): evals and tracing are much harder to add once tools and memory make the agent's behaviour complex. Items 8–11 harden the agent, and 12–14 are polish for collaborators.
 
 ## Troubleshooting
 
@@ -191,5 +191,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 - [docs/6-pager.md](docs/6-pager.md): narrative memo
 - [docs/pr-faq.md](docs/pr-faq.md): press release and FAQ
 - [docs/research/interview-questionnaire.md](docs/research/interview-questionnaire.md): 1:1 user interview questionnaire
+- [docs/tools.md](docs/tools.md): specs for the `get_score_history` and `get_account_summary` tools (Task 12)
 - [data/README.md](data/README.md): synthetic dataset, how it's built, interview findings
 - [docs/evidence/week-1/](docs/evidence/week-1/): evidence of completion for each Week 1 task
+- [docs/evidence/week-2/](docs/evidence/week-2/): evidence of completion for each Week 2 task
