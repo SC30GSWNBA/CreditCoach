@@ -37,4 +37,3 @@ All checks passed. Ready to build.
 |---|---|---|---|---|
 | Aman | [ ] | [ ] | [ ] | |
 | Anil | [ ] | [ ] | [ ] | |
-| Devisri | [ ] | [ ] | [ ] | |
