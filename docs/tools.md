@@ -402,5 +402,4 @@ Each task's Definition of Done asks for a known case and an error case. These ar
 |---|---|---|
 | Aman | [ ] | |
 | Anil | [ ] | |
-| Devisri | [ ] | |
 | Sudip | [ ] | |

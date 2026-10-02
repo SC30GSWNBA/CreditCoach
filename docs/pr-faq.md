@@ -1,6 +1,6 @@
 # CreditCoach PR/FAQ
 
-*Authors: Aman, Anil, Devisri, Sudip · Draft for team review · 2026-09-23*
+*Authors: Aman, Anil, Sudip · Draft for team review · 2026-09-23*
 
 *This is a mock press release written as if CreditCoach has already launched. We use it to test whether the product is worth building and whether we can explain it simply. The launch date is our planned demo date at the end of Week 4.*
 
