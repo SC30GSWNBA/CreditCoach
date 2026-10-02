@@ -87,4 +87,4 @@ Each member checks their box and adds the date.
 
 | # | Action | Owner | Due | Status |
 |---|---|---|---|---|
-| 1 | Replace the 13 chat UI passwords with strong, random ones before sharing a link outside the team. Today's passwords follow a guessable pattern, and Gradio doesn't limit login attempts, so anyone with a share link could guess them. Decide how the new passwords are created (`scripts/set_login.py`) and shared privately. For now the link is shared only within the team. | Aman, Anil, Sudip | Before the final demo (Task 34) | ⬜ Open |
+| 1 | Replace the 15 chat UI passwords with strong, random ones before sharing a link outside the team. Today's passwords follow a guessable pattern, and Gradio doesn't limit login attempts, so anyone with a share link could guess them. Decide how the new passwords are created (`scripts/set_login.py`) and shared privately. For now the link is shared only within the team. | Aman, Anil, Sudip | Before the final demo (Task 34) | ⬜ Open |
