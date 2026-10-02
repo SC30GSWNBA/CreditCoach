@@ -1,6 +1,6 @@
 # CreditCoach: Team, Roles & Tech Stack
 
-*Week 1 · Task #1 (Kickoff) · Last updated: 2026-09-30*
+*Week 1 · Task #1 (Kickoff) · Last updated: 2026-10-02*
 
 ## 1. Roles
 
@@ -8,14 +8,14 @@ Each role owns its area end to end across all four weeks: design, build, tests, 
 
 | Role | Owner | Owns (tasks in `tasks.md`) | Week it matters most |
 |---|---|---|---|
-| **Prompt / RAG** | Aman / Anil / Devisri / Sudip | System prompt (#5), corpus (#7), ingestion (#8), retrieval (#9), prototype (#10) | Week 1 |
-| **Tools / MCP** | Aman / Anil / Devisri / Sudip | Synthetic dataset (#6), tool specs (#12), score-history + account-summary tools (#13–14), MCP wiring (#15) | Week 2 |
-| **Memory** | Aman / Anil / Devisri / Sudip | Memory schema (#16), cross-session goal recall (#17) | Week 2 |
-| **Guardrails / Caching** | Aman / Anil / Devisri / Sudip | Guardrail rules + checks + tests (#19–21), caching + latency (#22–23) | Week 3 |
-| **Observability / UI** | Aman / Anil / Devisri / Sudip | Gradio UI (#11, #18, #25), tracing (#26), dashboard (#31) | Weeks 1 & 4 |
+| **Prompt / RAG** | Aman / Anil / Sudip | System prompt (#5), corpus (#7), ingestion (#8), retrieval (#9), prototype (#10) | Week 1 |
+| **Tools / MCP** | Aman / Anil / Sudip | Synthetic dataset (#6), tool specs (#12), score-history + account-summary tools (#13–14), MCP wiring (#15) | Week 2 |
+| **Memory** | Aman / Anil / Sudip | Memory schema (#16), cross-session goal recall (#17) | Week 2 |
+| **Guardrails / Caching** | Aman / Anil / Sudip | Guardrail rules + checks + tests (#19–21), caching + latency (#22–23) | Week 3 |
+| **Observability / UI** | Aman / Anil / Sudip | Gradio UI (#11, #18, #25), tracing (#26), dashboard (#31) | Weeks 1 & 4 |
 | **Shared (all)** | Everyone | 6-pager (#2), PR/FAQ (#3), repo setup (#4), E2E run (#24), evals (#27–30), edge cases (#32), demo (#33–34) | — |
 
-> All roles and tasks are shared by Aman, Anil, Devisri and Sudip. There are no individual role leads.
+> All roles and tasks are shared by Aman, Anil and Sudip. There are no individual role leads.
 
 ## 2. Tech Stack (agreed)
 
@@ -81,11 +81,10 @@ Each member checks their box and adds the date.
 |---|---|---|---|---|
 | Aman | All roles (shared) | [ ] | [ ] | |
 | Anil | All roles (shared) | ✅ | ✅ | 2026-09-30 |
-| Devisri | All roles (shared) | [ ] | [ ] | |
 | Sudip | All roles (shared) | ✅ | ✅ | 2026-09-30 |
 
 ## 6. Action Items
 
 | # | Action | Owner | Due | Status |
 |---|---|---|---|---|
-| 1 | Replace the 13 chat UI passwords with strong, random ones before sharing a link outside the team. Today's passwords follow a guessable pattern, and Gradio doesn't limit login attempts, so anyone with a share link could guess them. Decide how the new passwords are created (`scripts/set_login.py`) and shared privately. For now the link is shared only within the team. | Aman, Anil, Devisri, Sudip | Before the final demo (Task 34) | ⬜ Open |
+| 1 | Replace the 13 chat UI passwords with strong, random ones before sharing a link outside the team. Today's passwords follow a guessable pattern, and Gradio doesn't limit login attempts, so anyone with a share link could guess them. Decide how the new passwords are created (`scripts/set_login.py`) and shared privately. For now the link is shared only within the team. | Aman, Anil, Sudip | Before the final demo (Task 34) | ⬜ Open |

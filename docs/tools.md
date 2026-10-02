@@ -404,5 +404,4 @@ Beyond T1–T15, every figure that an expected answer in requirements.md §3 and
 |---|---|---|
 | Aman | [ ] | |
 | Anil | [ ] | |
-| Devisri | [ ] | |
 | Sudip | [ ] | |
