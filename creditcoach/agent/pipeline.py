@@ -9,6 +9,14 @@ Built in Task 10; since Task 15 the user's credit data comes from MCP tool calls
        for the signed-in user only, and the results go back to the model as TOOL RESULTS until it answers.
     4. Returns the answer with its passages, every tool call, and timings.
 
+Since Task 17, when the chat UI passes the user's open memory ``session``, the context also has a MEMORY section
+(``memory.recall.context``: the stored goal, consolidated facts and preferences, where the last conversation left
+off), this session's earlier turns go in before the question, and the model gets two more tools, ``save_goal`` and
+``clear_goal``, run by ``memory.recall.MemoryTools`` for that session only.
+
+Since Task 18, ``answer`` can report its progress as it goes (``progress``): retrieval, memory recall, each model
+turn and each tool call. The chat UI turns these into live status lines and the agent-trace panel.
+
 Scores, balances, limits and utilization reach the model only through tool calls, so every figure it states
 comes from a live tool result. With no ``user_id`` (the Task 10 runs), no tools are offered and the model is
 told to say it can't see account data. The Gradio UI (``creditcoach.app``) calls ``answer()`` for every chat
@@ -28,11 +36,14 @@ Example:
 import argparse
 import asyncio
 import json
+import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from creditcoach.agent.mcp_host import McpHost, ToolCall
 from creditcoach.llm import chat, chat_with_tools
+from creditcoach.memory import recall, store
 from creditcoach.prompts import load_system_prompt
 from creditcoach.rag.retrieve import Result, retrieve
 from creditcoach.user_data import load_user_data
@@ -44,6 +55,25 @@ USER_SCOPE = ("The profile below belongs to the signed-in user ({user_id}). It h
               "get those with the tools, which return only this user's data. You have no access to any other "
               "user's data.")
 MAX_TOOL_ROUNDS = 4  # model turns that may call tools; the next turn must answer in text
+
+Progress = Callable[[str, dict], None]
+"""Called as ``progress(step, details)`` while an answer is built (Task 18). Steps, in order:
+    ("retrieval", {"status": "start"}) then ("retrieval", {"status": "done", "passages": [...], "seconds": s})
+    ("memory", {"goal": Goal | None, "sessions": n})                          only with a memory session
+    ("model", {"round": n})                                                   before each model turn
+    ("tool", {"status": "start", "name": ..., "arguments": {...}}) then ("tool", {"status": "done", "call": ToolCall})
+    ("answer", {"status": "done", "model": ...})
+A callback that raises is logged and ignored, so progress reporting can never break an answer."""
+
+
+def _report(progress: Progress | None, step: str, **details) -> None:
+    """Send one progress event, never letting a failing callback stop the answer."""
+    if progress is None:
+        return
+    try:
+        progress(step, details)
+    except Exception:  # the UI's problem, not the answer's
+        logging.getLogger(__name__).exception("progress callback failed on %s", step)
 
 
 @dataclass
@@ -70,13 +100,14 @@ class Answer:
     generation_seconds: float = 0.0
 
 
-def build_context(passages: list[Result], user_id: str | None = None) -> str:
+def build_context(passages: list[Result], user_id: str | None = None, memory: str | None = None) -> str:
     """Build the per-turn context message that the model reads before the question.
 
     Args:
         passages: Retrieved corpus passages, numbered [1], [2], ... in this order.
         user_id: The signed-in user. Only this user's profile goes into USER PROFILE; their scores and accounts
             come from tool calls. None means no user data at all, with instructions not to invent figures.
+        memory: The MEMORY section (``recall.context``), placed after USER PROFILE, or None without memory.
 
     Returns:
         Text with a USER PROFILE section (or an empty TOOL RESULTS section when there is no user) and a
@@ -87,12 +118,15 @@ def build_context(passages: list[Result], user_id: str | None = None) -> str:
     if user_id:
         profile = json.dumps(load_user_data(user_id)["user_profile"], indent=1, ensure_ascii=False)
         user = f"USER PROFILE:\n{USER_SCOPE.format(user_id=user_id)}\n{profile}"
+        if memory:
+            user += f"\n\n{memory}"
     else:
         user = f"TOOL RESULTS:\n{NO_TOOLS}"
     return f"{user}\n\nREFERENCE CONTEXT (cite the passages you use as [1], [2], ...):\n{refs or '(none)'}"
 
 
-async def run_agent(messages: list[dict], user_id: str) -> tuple[str, str, list[ToolCall]]:
+async def run_agent(messages: list[dict], user_id: str, memory: recall.MemoryTools | None = None,
+                    progress: Progress | None = None) -> tuple[str, str, list[ToolCall]]:
     """Run the tool-calling loop for one question over MCP.
 
     The model gets the two tools (without ``user_id``). Each round, any tool calls it makes are run by the MCP
@@ -102,28 +136,46 @@ async def run_agent(messages: list[dict], user_id: str) -> tuple[str, str, list[
     Args:
         messages: System prompt, context and question; extended in place with tool calls and results.
         user_id: The signed-in user, from the login session.
+        memory: The memory tools for this session (Task 17), or None to offer only the data tools.
+        progress: Optional callback for live progress (Task 18): each model turn and each tool call.
 
     Returns:
         ``(answer_text, model_used, tool_calls)``.
     """
     async with McpHost(user_id) as host:
+        offered = host.openai_tools + (memory.specs if memory else [])
+        calls: list[ToolCall] = []
         for round_ in range(MAX_TOOL_ROUNDS + 1):
-            tools = host.openai_tools if round_ < MAX_TOOL_ROUNDS else None
+            tools = offered if round_ < MAX_TOOL_ROUNDS else None
+            _report(progress, "model", round=round_ + 1)
             message, model = await asyncio.to_thread(chat_with_tools, messages, tools)
             if not message.tool_calls:
-                return message.content or "", model, host.calls
+                return message.content or "", model, calls
             messages.append({"role": "assistant", "content": message.content or "",
                              "tool_calls": [{"id": c.id, "type": "function",
                                              "function": {"name": c.function.name, "arguments": c.function.arguments}}
                                             for c in message.tool_calls]})
             for c in message.tool_calls:
-                result = await host.call(c.function.name, c.function.arguments)
+                try:
+                    shown = json.loads(c.function.arguments or "{}")
+                except json.JSONDecodeError:
+                    shown = {"raw": c.function.arguments}
+                _report(progress, "tool", status="start", name=c.function.name, arguments=shown)
+                if memory and c.function.name in recall.NAMES:
+                    call = memory.call(c.function.name, c.function.arguments)
+                    result = call.result
+                else:
+                    result = await host.call(c.function.name, c.function.arguments)
+                    call = host.calls[-1]
+                calls.append(call)
+                _report(progress, "tool", status="done", call=call)
                 messages.append({"role": "tool", "tool_call_id": c.id,
                                  "content": json.dumps(result, ensure_ascii=False)})
     raise AssertionError("unreachable: the last round offers no tools")
 
 
-def answer(question: str, k: int = 3, user_id: str | None = None) -> Answer:
+def answer(question: str, k: int = 3, user_id: str | None = None, session: store.Session | None = None,
+           history: list | None = None, progress: Progress | None = None) -> Answer:
     """Answer a credit question using the corpus and, through MCP tools, the signed-in user's own data.
 
     Args:
@@ -131,6 +183,9 @@ def answer(question: str, k: int = 3, user_id: str | None = None) -> Answer:
         k: How many corpus passages to retrieve and give the model (default 3).
         user_id: The signed-in user, from the login session (never from the question text). None answers
             without any user data or tools, as in Task 10.
+        session: The user's open memory episode (Task 17). Adds MEMORY to the context and the goal tools.
+        history: This session's earlier chat turns (Gradio's message list), so follow-ups have context.
+        progress: Optional callback for live progress (Task 18; see ``Progress``).
 
     Returns:
         An ``Answer`` with the explanation, the passages used, every tool call, the model name, and timings.
@@ -138,17 +193,31 @@ def answer(question: str, k: int = 3, user_id: str | None = None) -> Answer:
     Raises:
         RuntimeError: If the vector store hasn't been built or no API key is configured.
         UnknownUserError: If ``user_id`` is not in the dataset.
+        ValueError: If ``session`` belongs to a different user than ``user_id``.
     """
+    if session is not None and session.user_id != user_id:
+        raise ValueError("the memory session belongs to a different user")
     t0 = time.perf_counter()
+    _report(progress, "retrieval", status="start")
     passages = retrieve(question, k=k)
     t1 = time.perf_counter()
+    _report(progress, "retrieval", status="done", passages=passages, seconds=t1 - t0)
+    memory = recall.context(user_id, session.session) if session is not None else None
+    if session is not None:
+        remembered = store.load(user_id)
+        _report(progress, "memory", goal=remembered.goal,
+                sessions=sum(1 for e in remembered.episodes if e.session != session.session and e.turns()))
     messages = [{"role": "system", "content": load_system_prompt()},
-                {"role": "system", "content": build_context(passages, user_id)},
+                {"role": "system", "content": build_context(passages, user_id, memory)},
+                *recall.history_messages(history),
                 {"role": "user", "content": question}]
     if user_id:
-        text, model, calls = asyncio.run(run_agent(messages, user_id))
+        tools = recall.MemoryTools(session, question) if session is not None else None
+        text, model, calls = asyncio.run(run_agent(messages, user_id, tools, progress))
     else:
+        _report(progress, "model", round=1)
         (text, model), calls = chat(messages), []
+    _report(progress, "answer", status="done", model=model)
     return Answer(question=question, user_id=user_id, text=text, model=model, passages=passages, tool_calls=calls,
                   retrieval_seconds=t1 - t0, generation_seconds=time.perf_counter() - t1)
 

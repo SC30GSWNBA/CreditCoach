@@ -3,7 +3,24 @@
 A chat window where users ask credit questions and get grounded, cited answers. Each message runs the
 pipeline (``agent.pipeline.answer``): retrieval, then an agent loop in which the model reads the user's score
 history and accounts through the MCP tools (Task 15). The reply lists the library passages and the tools it
-used. Memory isn't connected yet (Tasks 16-17), so each question is answered on its own.
+used.
+
+Memory (Task 16): every session is recorded as an episode in ``memory/<user_id>/episodes/`` (``creditcoach.memory``):
+the login, each question and reply (with the tools and passages used), errors, and the logout or closed tab. On
+sign-in, the user's earlier sessions are consolidated in the background ("dreaming", ``creditcoach.memory.dream``),
+and a "Your memory and past conversations" panel shows the stored goal, what has been consolidated, and every
+earlier session, including sessions other teammates recorded and committed.
+
+Recall (Task 17): every answer gets the user's memory (stored goal, consolidated facts and preferences, where the
+last conversation left off) and this session's earlier turns, so CreditCoach connects its advice to the user's goal
+unprompted and picks up where they left off. When the user states or changes a goal, the model saves it with the
+``save_goal`` tool, in the user's own words (``creditcoach.memory.recall``).
+
+Agent trace (Task 18): while an answer is being built, the chat shows live progress above it: each step as it
+starts (searching the library, recalling memory, checking score history or accounts, writing the answer) with a
+spinner and timer, and a rotating credit tip during the slowest step. When the answer arrives, that block collapses
+into an expandable "Agent trace" listing every tool call with a one-line result and the recalled goal
+(``creditcoach.app.trace``).
 
 Per-user logins: every visitor signs in as one of the 15 dataset users (``creditcoach.auth``; usernames
 ``creditcoach_user1`` to ``creditcoach_user15`` map to USR-001 to USR-015). Answers use that user's own
@@ -27,8 +44,11 @@ turned off.
 import argparse
 import logging
 import os
+import queue
 import sys
+import threading
 import time
+from collections.abc import Iterator
 
 os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")  # before importing gradio, so startup pings are off too
 
@@ -36,6 +56,8 @@ import gradio as gr  # noqa: E402
 
 from creditcoach import auth, config  # noqa: E402
 from creditcoach.agent.pipeline import answer  # noqa: E402
+from creditcoach.app.trace import Trace  # noqa: E402
+from creditcoach.memory import dream, store  # noqa: E402
 from creditcoach.rag.retrieve import retrieve  # noqa: E402
 from creditcoach.user_data import load_user_data  # noqa: E402
 
@@ -45,7 +67,8 @@ TITLE = "CreditCoach"
 DESCRIPTION = (
     "Plain-language answers about your credit score, grounded in your own score history and accounts and in "
     "CreditCoach's credit-education library. Your score history and accounts are read live through CreditCoach's "
-    "data tools. Memory isn't connected yet, so each question is answered on its own. Not financial advice."
+    "data tools. CreditCoach remembers your goal and earlier conversations (see the panel above): tell it your goal "
+    "and it will plan around it next time. Not financial advice."
 )
 EXAMPLES = [
     "Why did my credit score change recently?",
@@ -72,8 +95,43 @@ def format_reply(a) -> str:
             f"answer {a.generation_seconds:.1f}s</sub>")
 
 
-def respond(message: str, history: list, request: gr.Request) -> str:
+_sessions: dict[str, store.Session] = {}  # Gradio session hash -> open memory episode
+
+
+def session_for(request: gr.Request, user_id: str) -> store.Session:
+    """The open memory episode for this browser session, starting one (with a login event) if needed."""
+    key = getattr(request, "session_hash", None) or f"no-session-{user_id}"
+    s = _sessions.get(key)
+    if s is None or s.user_id != user_id:
+        s = _sessions[key] = store.start_session(user_id, meta={"gradio_session": key})
+    return s
+
+
+def remember(request: gr.Request, user_id: str, type_: str, text: str = "", meta: dict | None = None) -> None:
+    """Record one event in the user's episode. Memory problems are logged and never stop the chat."""
+    try:
+        store.record(session_for(request, user_id), type_, text, meta)
+    except Exception:
+        log.exception("Couldn't record %s for %s in memory", type_, user_id)
+
+
+def answer_meta(a) -> dict:
+    """What an episode keeps about a reply: model, tools (no tool output: figures always come live), passages."""
+    return {"model": a.model, "passages": [p.id for p in a.passages],
+            "tools": [{"tool": c.tool, "arguments": c.arguments, "ok": c.ok, "code": c.code} for c in a.tool_calls],
+            "seconds": round(a.retrieval_seconds + a.generation_seconds, 1)}
+
+
+REFRESH_SECONDS = 1.0  # how often the trace redraws while waiting (timers and tips move even with no new event)
+APOLOGY = ("Sorry, I couldn't reach the answer service just now. Please try again in a moment. "
+           "Nothing about your credit has changed because of this.")
+
+
+def respond(message: str, history: list, request: gr.Request) -> Iterator[str | list[gr.ChatMessage]]:
     """Answer one chat message for the signed-in user; this is the function Gradio calls for every message.
+
+    It is a generator: while the answer is built on a worker thread, it yields the live agent trace about once a
+    second (Task 18), and finally the collapsed trace followed by the answer.
 
     The user whose data is used comes only from the login session (``request.username``), so nothing typed
     in the chat can switch to another user's data. Errors never reach the user as a stack trace: they are
@@ -81,25 +139,133 @@ def respond(message: str, history: list, request: gr.Request) -> str:
 
     Args:
         message: What the user typed.
-        history: Earlier messages in the chat. Unused for now, because each question is answered on its
-            own; goal memory arrives in Tasks 16-17.
+        history: Earlier messages in this chat session, passed to the model so follow-ups have context.
         request: Injected by Gradio; carries the signed-in username.
 
-    Returns:
-        The formatted reply, a prompt to type a question if the message was empty, a request to sign in
-        again if the session has no known user, or an apology if the answer service failed.
+    Yields:
+        The live trace (a list of chat messages), then the trace and the formatted reply. Instead: a prompt to type
+        a question if the message was empty, a request to sign in again if the session has no known user, or the
+        trace and an apology if the answer service failed.
     """
     user_id = auth.user_id_for(getattr(request, "username", None))
     if user_id is None:
-        return "Please sign in again to continue."
+        yield "Please sign in again to continue."
+        return
     if not message or not message.strip():
-        return "Please type a question about your credit."
+        yield "Please type a question about your credit."
+        return
+    question = message.strip()
+    remember(request, user_id, "user_message", question)
+    session = session_for(request, user_id)
+    events: queue.Queue = queue.Queue()
+    outcome: dict = {}
+
+    def work():
+        try:
+            outcome["answer"] = answer(question, user_id=user_id, session=session, history=history,
+                                       progress=lambda step, details: events.put((step, details)))
+        except Exception as exc:  # reported below, on the request's own thread
+            outcome["error"] = exc
+        finally:
+            events.put(None)
+
+    trace = Trace(question=question)
+    threading.Thread(target=work, name=f"answer-{user_id}", daemon=True).start()
+    yield trace.messages()
+    while True:
+        try:
+            event = events.get(timeout=REFRESH_SECONDS)
+        except queue.Empty:
+            yield trace.messages()  # nothing new: redraw so timers and tips keep moving
+            continue
+        if event is None:
+            break
+        trace.update(*event)
+        yield trace.messages()
+
+    if "error" in outcome:
+        exc = outcome["error"]
+        log.error("Failed to answer for %s", user_id, exc_info=exc)
+        remember(request, user_id, "error", f"{type(exc).__name__}: answer service failed")
+        trace.finish(failed=True)
+        yield trace.messages() + [gr.ChatMessage(role="assistant", content=APOLOGY)]
+        return
+    a = outcome["answer"]
+    remember(request, user_id, "assistant_message", a.text, answer_meta(a))
+    trace.finish()
+    yield trace.messages() + [gr.ChatMessage(role="assistant", content=format_reply(a))]
+
+
+def final_reply(message: str, history: list, request) -> str:
+    """Run ``respond`` to the end and return the text of its last message (for scripts and tests)."""
+    last = None
+    for last in respond(message, history, request):
+        pass
+    return last if isinstance(last, str) else last[-1].content
+
+
+def memory_panel(user_id: str, current: str | None = None, shown: int = 5) -> str:
+    """Markdown for the memory panel: the goal, the consolidated memory, and earlier sessions."""
+    m = store.load(user_id)
+    g = m.goal
+    lines = ["*This panel shows memory as of when you signed in; reload the page to see this session's changes.*", "",
+             "**Goal:** " + (f"{g.purpose or 'no purpose stated'}; target score {g.target_score or 'not set'}; "
+                             f"by {g.target_date or 'no date set'} (set {g.set_at[:10]}: \"{g.quote}\")"
+                             if g else "none saved yet. Tell CreditCoach your goal (for example \"Remember I want "
+                             "720 by next year to buy a car\") and it will save it.")]
+    d = m.dream or {}
+    facts = d.get("semantic", {}).get("facts", [])
+    prefs = d.get("procedural", {}).get("preferences", [])
+    when = f"consolidated {d['created'][:16].replace('T', ' ')} UTC" if d else "not consolidated yet"
+    lines += ["", f"**What CreditCoach remembers** ({when}):"]
+    lines += [f"- {f['text']}" for f in facts] or ["- nothing yet"]
+    if prefs:
+        lines += ["", "**How you like to be helped:**", *[f"- {p['text']}" for p in prefs]]
+    summaries = {s["session"]: s["summary"] for s in d.get("episodic", {}).get("sessions", [])}
+    past = [e for e in m.episodes if e.session != current and e.turns()]
+    lines += ["", f"**Past conversations:** {len(past)}" + (f" (latest {shown} below)" if len(past) > shown else "")]
+    for e in past[-shown:][::-1]:
+        who = e.events[0].meta.get("recorded_by", "unknown") if e.events else "unknown"
+        lines += ["", f"<details><summary>{e.started[:16].replace('T', ' ')} UTC · {len(e.turns()) // 2 or len(e.turns())} "
+                  f"question(s) · recorded by {who}</summary>", "",
+                  f"*{summaries.get(e.session, 'Not consolidated yet.')}*", ""]
+        lines += [f"**{'You' if role == 'user' else 'CreditCoach'}:** {text[:500]}{'…' if len(text) > 500 else ''}  "
+                  for role, text in e.turns()]
+        lines += ["", "</details>"]
+    return "\n".join(lines)
+
+
+def start(request: gr.Request) -> tuple[str, str]:
+    """On page load: start the memory episode (login), consolidate earlier sessions, and fill the header and panel."""
+    user_id = auth.user_id_for(getattr(request, "username", None))
+    if user_id is None:
+        return "Not signed in.", ""
     try:
-        return format_reply(answer(message.strip(), user_id=user_id))
+        s = session_for(request, user_id)
+        dream.dream_in_background(user_id, exclude_session=s.session)
+        panel = memory_panel(user_id, current=s.session)
     except Exception:
-        log.exception("Failed to answer for %s", user_id)
-        return ("Sorry, I couldn't reach the answer service just now. Please try again in a moment. "
-                "Nothing about your credit has changed because of this.")
+        log.exception("Couldn't open memory for %s", user_id)
+        panel = "Memory is unavailable right now; this chat still works."
+    return signed_in_as(request), panel
+
+
+def log_out(request: gr.Request) -> None:
+    """Record the logout before the browser goes to Gradio's /logout route."""
+    user_id = auth.user_id_for(getattr(request, "username", None))
+    if user_id:
+        remember(request, user_id, "logout")
+        _sessions.pop(getattr(request, "session_hash", None), None)
+
+
+def closed(request: gr.Request) -> None:
+    """Record that the tab was closed or reloaded (Gradio's unload event), unless the user already logged out."""
+    s = _sessions.pop(getattr(request, "session_hash", None), None)
+    if s:
+        try:
+            store.record(s, "session_end")
+        except Exception:
+            log.exception("Couldn't record session_end for %s", s.user_id)
 
 
 def signed_in_as(request: gr.Request) -> str:
@@ -112,7 +278,7 @@ def signed_in_as(request: gr.Request) -> str:
 
 
 def build() -> gr.Blocks:
-    """Create the page: a "Signed in as" line with a Log out button, then the chat interface.
+    """Create the page: a "Signed in as" line with a Log out button, the memory panel, then the chat interface.
 
     Returns:
         A configured ``gr.Blocks`` (not yet launched). Analytics are off, flagging is disabled, and at most 2
@@ -121,9 +287,13 @@ def build() -> gr.Blocks:
     with gr.Blocks(title=TITLE, analytics_enabled=False) as demo:  # don't send usage telemetry from a finance app
         with gr.Row():
             who = gr.Markdown()
-            gr.Button("Log out", link="/logout", size="sm", scale=0)
+            logout = gr.Button("Log out", size="sm", scale=0)
+        with gr.Accordion("Your memory and past conversations", open=False):
+            panel = gr.Markdown()
+        logout.click(log_out).then(None, js="() => { window.location.href = '/logout'; }")
         gr.ChatInterface(
             fn=respond,
+            chatbot=gr.Chatbot(height=680, show_label=False),  # room for the agent trace above each answer
             title=TITLE,
             description=DESCRIPTION,
             examples=EXAMPLES,
@@ -133,7 +303,8 @@ def build() -> gr.Blocks:
             autofocus=True,
             analytics_enabled=False,
         )
-        demo.load(signed_in_as, outputs=who)
+        demo.load(start, outputs=[who, panel])
+        demo.unload(closed)
     return demo
 
 

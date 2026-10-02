@@ -4,7 +4,7 @@ A chat assistant that helps first-time borrowers understand why their credit sco
 
 All guidance is educational, not financial advice. All user data in this repo is synthetic.
 
-**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, and goal memory) is in progress: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history and account-summary tools (Tasks 13–14) are built and tested, and since Task 15 the chat reads each user's scores and accounts live through them over MCP. The [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Every Week 1–2 evaluation runs all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
+**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, and goal memory) is in progress: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history and account-summary tools (Tasks 13–14) are built and tested, and since Task 15 the chat reads each user's scores and accounts live through them over MCP. Since Tasks 16–17 every conversation is saved to that user's memory, which is shared through git, and answers recall the user's goal and earlier conversations (see [Memory](#memory)). Since Task 18 the chat shows live progress while an answer is being built, then an expandable agent trace of every tool call and the recalled goal. The [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Every Week 1–2 evaluation runs all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
 ## Quickstart (fresh clone)
 
@@ -63,11 +63,14 @@ CreditCoach/
                       #   mcp_host.py: MCP client that runs tool calls for the signed-in user only (Task 15)
     tools/            #   data tools from docs/tools.md: score_history.py (Task 13), account_summary.py (Task 14); common.py (errors, data);
                       #   server.py: MCP server exposing both (Task 15): python -m creditcoach.tools.server
-    app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share]; logins.json
+    app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share]; logins.json;
+                      #   trace.py: live progress and the expandable agent trace (Task 18)
     evals/            #   golden.py + golden_queries.json: the 50 requirements.md queries with their checks;
                       #   live.py: runs them through the agent and saves every answer (Tasks 5, 10, 15; Week 4)
-                      #   coming: memory/
+    memory/           #   per-user memory: store.py (episodes, goal), dream.py (consolidation) (Task 16);
+                      #   recall.py: MEMORY in each answer and the save_goal / clear_goal tools (Task 17)
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
+  memory/             # each user's conversations and consolidated memory, committed (see memory/README.md)
   data/               # synthetic dataset: 15 users, accounts, score history (see data/README.md)
   tests/              # pytest tests (uv run pytest), run by CI (.github/workflows/tests.yml); includes
                       #   test_golden_queries.py: every requirements.md figure checked against the tools
@@ -82,6 +85,9 @@ CreditCoach/
     task13_score_history_test.py # score-history tool test log (Task 13)
     task14_account_summary_test.py # account-summary tool test log (Task 14)
     task15_mcp_round_trip.py # live MCP round trip trace (Task 15; --all: 50 queries; paid model calls)
+    task16_memory_record.py  # memory record written and read back, plus a live dream (Task 16)
+    task17_goal_recall.py    # goal stated in session 1, recalled unprompted in session 2 (Task 17; paid calls)
+    memory_sync.py           # share your chat memory as a PR (push), or pull everyone's (pull)
     set_login.py             # add or change a chat UI login
   user_interviews/    # 14 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
@@ -102,6 +108,25 @@ uv run python scripts/synthetic/step3_summary.py
 ```
 
 **Stack:** Python 3.12 · OpenAI GPT-5 / GPT-4 models via OpenRouter · sentence-transformers (local embeddings) · ChromaDB · Gradio. See [docs/team.md](docs/team.md) for the full stack and the reasons behind each choice.
+
+## Memory
+
+CreditCoach remembers each user across sessions, machines and teammates (Task 16; schema in [docs/memory.md](docs/memory.md)):
+
+- **Episodic:** every chat session is saved as it happens to `memory/<user_id>/episodes/`. Each one records the sign-in, every question and reply (with the tools and passages used, but never tool output), errors, and the sign-out or closed tab.
+- **Semantic:** the user's goal (target score, target date, purpose), saved only by an explicit `goal_set` event in the user's own words, plus facts they've shared.
+- **Procedural:** how the user likes to be helped, for example "keep answers short".
+- **Dreaming:** when a user signs in, their earlier sessions are consolidated in the background into a new file in `memory/<user_id>/dreams/`. Duplicates are merged, stale or contradicted items dropped, and each session summarised. Dreaming never changes the goal and never stores a credit figure.
+
+The chat's **Your memory and past conversations** panel shows the goal, the consolidated memory and earlier sessions, including teammates'. Since Task 17, every answer uses that memory. CreditCoach connects its advice to the stored goal without being asked, picks up where the last conversation ended, and saves a goal you state with its `save_goal` tool, in your own words. It changes a goal only when you explicitly ask.
+
+**Sharing memory.** Every user is synthetic, so memory is committed to the repo. Files are append-only with unique names, so they never conflict. **Don't type real personal information in the chat.**
+
+```bash
+uv run python scripts/memory_sync.py              # share your new sessions: commits only memory/ and opens a PR
+uv run python scripts/memory_sync.py pull         # after it merges: pull everyone's sessions (use this instead of git pull)
+uv run python -m creditcoach.memory.dream --all   # consolidate by hand (normally runs at sign-in)
+```
 
 ## Evaluation queries
 
@@ -189,7 +214,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 |---|---|---|
 | 7 | **No observability.** `llm.chat()` ignores `response.usage`, so tokens, cost and latency per call aren't recorded. | Log usage and latency for every call. Add tracing (Langfuse, LangSmith or OpenTelemetry) before the Week 2 tools arrive, because debugging tool calls without traces is painful. Task 26's trace IDs build on this. |
 | 8 | **Fragile LLM client.** It catches a broad `except Exception` and tries the fallback model once. It has no retries, and it creates a new client on every call. | Catch specific exceptions, retry rate limits (429) and server errors (5xx) with backoff (for example `tenacity`), and reuse one client. Task 32 covers wider timeout handling. |
-| 9 | **No architecture or design doc for Week 2.** The chat history is passed in but unused. | Add a diagram of the pipeline and agent loop. The tool contracts are in [docs/tools.md](docs/tools.md) (Task 12), and the agent loop over MCP is described in `pipeline.py` and `mcp_host.py` (Task 15). Still to write: how the MCP tools (Tasks 13–15) and goal memory (Tasks 16–17) plug into `pipeline.py`, so reviewers can see it will grow into a real agent loop. |
+| 9 | **No architecture or design doc for Week 2.** The chat history was passed in but unused (used since Task 17). | Add a diagram of the pipeline and agent loop. The tool contracts are in [docs/tools.md](docs/tools.md) (Task 12), and the agent loop over MCP is described in `pipeline.py` and `mcp_host.py` (Task 15). Memory and recall are specified in [docs/memory.md](docs/memory.md) (Tasks 16–17). Still to write: one diagram of how retrieval, the MCP tools and memory meet in `pipeline.py`. |
 | 10 | **Prompts aren't versioned.** `system_prompt.md` has no version, and answers don't record which prompt produced them. | Add a prompt version or hash to each `Answer` and to eval results, so a change in behaviour can be traced to a prompt change. |
 | 11 | **No streaming.** The UI shows the whole answer at once, after about 8 s. | Stream tokens into the chat window so answers start appearing right away. |
 
@@ -214,6 +239,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 | `[INFO] Vector store not built yet` | Run `uv run python -m creditcoach.rag.ingest`. |
 | `[FAIL] Chat UI logins` or "No logins found" | Run `git pull`: `creditcoach/app/logins.json` must be present, with one login per user. |
 | Login page says the credentials are wrong | Usernames are `creditcoach_user1` to `creditcoach_user15`, and passwords are case-sensitive. Ask the team for the current passwords. |
+| `git pull` says "untracked working tree files would be overwritten" for files in `memory/` | Your shared sessions came back from GitHub. Run `uv run python scripts/memory_sync.py pull`, which removes only the identical local copies and then pulls. |
 | Ingest or retrieve prints "unauthenticated requests to the HF Hub" | Harmless. The first ingest downloads the embedding model and the first retrieval downloads the reranker (each about 90 MB) from Hugging Face; later runs use the local copies. |
 
 ## Project Docs
@@ -225,6 +251,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 - [docs/pr-faq.md](docs/pr-faq.md): press release and FAQ
 - [docs/research/interview-questionnaire.md](docs/research/interview-questionnaire.md): 1:1 user interview questionnaire
 - [docs/tools.md](docs/tools.md): specs for the `get_score_history` and `get_account_summary` tools (Task 12)
+- [docs/memory.md](docs/memory.md): memory schema: episodes, the goal record, dreaming (Task 16)
 - [data/README.md](data/README.md): synthetic dataset, how it's built, interview findings
 - [docs/evidence/week-1/](docs/evidence/week-1/): evidence of completion for each Week 1 task
 - [docs/evidence/week-2/](docs/evidence/week-2/): evidence of completion for each Week 2 task

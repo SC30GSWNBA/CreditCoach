@@ -20,6 +20,8 @@ Paths (fixed, relative to the repo root):
     CHROMA_DIR   .chroma/     Local vector store, rebuilt by ``python -m creditcoach.rag.ingest``.
     SAMPLE_DATA  sample_data/credit_profile_sample.xlsx  Original seed profile (USD).
     LOGINS_FILE  creditcoach/app/logins.json  Chat UI logins: username -> user id + password hash.
+    MEMORY_DIR   memory/      Per-user memory (Task 16): conversation episodes and dreams. Committed to git, since
+                              every user is synthetic. ``CREDITCOACH_MEMORY_DIR`` moves it (tests use a temp dir).
 
 Example:
     >>> from creditcoach import config
@@ -55,3 +57,5 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM
 RERANKER_MODEL = os.getenv("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 LOGINS_FILE = ROOT / "creditcoach" / "app" / "logins.json"  # committed; holds password hashes, never passwords
+
+MEMORY_DIR = Path(os.getenv("CREDITCOACH_MEMORY_DIR", ROOT / "memory"))  # committed: synthetic users only

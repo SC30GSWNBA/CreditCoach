@@ -6,8 +6,9 @@ Two modes, matching how the pipeline has grown:
               so the graceful-degradation answer is exercised.
     no-tools  As the Task 10 prototype: no user and no tools, so answers rest on the corpus alone.
 
-Each query is a single turn in a fresh session. Goal memory (Tasks 16-17) and chat history don't exist yet, so
-queries that depend on them are run as asked and their records carry the golden ``needs`` list.
+Each query is a single turn in a fresh session with no memory. Memory exists since Tasks 16-17, but this runner
+doesn't seed a stored goal or an earlier session yet (Task 27, docs/memory.md §9), so queries that depend on them are
+run as asked and their records carry the golden ``needs`` list. ``scripts/task17_goal_recall.py`` covers them live.
 
 A run is saved as JSON (one record per query: the answer, model, passages, every tool call with its result, timings,
 and any exception), so later scripts can re-score it without paying for new model calls: the Task 5 prompt-rule

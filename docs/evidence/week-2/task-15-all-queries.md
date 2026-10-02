@@ -6,7 +6,7 @@ Task 15's Definition of Done was shown on one query ([task-15-mcp-round-trip.md]
 
 **How each answer is checked (automatically, from `creditcoach/evals/golden_queries.json`):** the tools the query needs were called and succeeded; the answer states the figures the tools returned (for example 37.4% or ₹14,750, in any common format); it contains the expected behavior (for example a high-risk warning and a safer alternative); it matches no forbidden pattern (such as another user's score); and it has no guarantee language without a negation. The checks are keyword-based and lenient. Tone, completeness and refusal quality are judged in Task 27.
 
-**Not built yet, so not checked:** goal memory and recall across sessions (Tasks 16–17; queries #3, #5, #23, #25, #35–#40), multi-turn follow-ups (#47), and the guardrail layer (Tasks 19–21: today the system prompt alone enforces the rules). These queries ran as single turns; their status is "pass, partly deferred" when the parts that can be checked today pass.
+**Not checked in this run:** goal memory and recall across sessions (queries #3, #5, #23, #25, #35–#40). Memory is built since Tasks 16–17, but this run starts every query with empty memory; those queries are checked live with a stored goal and an earlier session in [task-17-goal-recall.md](task-17-goal-recall.md). Also not checked: multi-turn follow-ups (#47) and the guardrail layer (Tasks 19–21: today the system prompt alone enforces the rules). These queries ran as single turns; their status is "pass, partly deferred" when the parts that can be checked today pass.
 
 ## Result
 
