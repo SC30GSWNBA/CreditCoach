@@ -11,11 +11,13 @@ It prints one line per check and exits with code 0 if everything required passed
     [PASS]/[FAIL] The synthetic dataset in data/ is readable and consistent.
     [PASS]/[FAIL] Chat UI logins: one per dataset user, each mapped to a different user.
     [INFO]        Whether the vector store has been built (informational; never fails the check).
+    [INFO]        How much chat memory is in memory/, and how much isn't shared yet (informational).
 
 See README > Troubleshooting for how to fix each failure.
 """
 
 import importlib
+import subprocess
 import sys
 
 from creditcoach import config
@@ -90,6 +92,18 @@ def main() -> int:
         print(f"[INFO] Vector store built - {count} chunks in '{config.CORPUS_COLLECTION}'")
     except Exception:
         print("[INFO] Vector store not built yet - run: uv run python -m creditcoach.rag.ingest")
+
+    try:  # informational: memory grows as people chat, and an empty memory/ is normal on a fresh clone
+        from creditcoach.memory import store
+
+        users = store.users()
+        sessions = sum(len(list((store.user_dir(u) / "episodes").glob("*.jsonl"))) for u in users)
+        unshared = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", "memory"],
+                                  cwd=config.ROOT, capture_output=True, text=True).stdout.split()
+        print(f"[INFO] Memory - {sessions} sessions for {len(users)} users in memory/"
+              + (f"; {len(unshared)} new files not shared yet (uv run python scripts/memory_sync.py)" if unshared else ""))
+    except Exception as exc:
+        print(f"[INFO] Memory not readable - {type(exc).__name__}")
 
     print("\nAll checks passed. Ready to build." if ok else "\nSome checks failed. See README > Troubleshooting.")
     return 0 if ok else 1

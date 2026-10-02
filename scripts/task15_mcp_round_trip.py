@@ -269,8 +269,10 @@ def main_all(rescore: bool = False) -> None:
         "guarantee language without a negation. The checks are keyword-based and lenient. Tone, completeness and "
         "refusal quality are judged in Task 27.",
         "",
-        "**Not built yet, so not checked:** goal memory and recall across sessions (Tasks 16–17; queries #3, #5, "
-        "#23, #25, #35–#40), multi-turn follow-ups (#47), and the guardrail layer (Tasks 19–21: today the system "
+        "**Not checked in this run:** goal memory and recall across sessions (queries #3, #5, #23, #25, #35–#40). "
+        "Memory is built since Tasks 16–17, but this run starts every query with empty memory; those queries are "
+        "checked live with a stored goal and an earlier session in [task-17-goal-recall.md](task-17-goal-recall.md). "
+        "Also not checked: multi-turn follow-ups (#47) and the guardrail layer (Tasks 19–21: today the system "
         "prompt alone enforces the rules). These queries ran as single turns; their status is \"pass, partly "
         "deferred\" when the parts that can be checked today pass.",
         "",

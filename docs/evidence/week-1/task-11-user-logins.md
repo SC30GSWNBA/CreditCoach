@@ -1,6 +1,6 @@
 # Task 11 Follow-up: Per-User Logins and Data Isolation
 
-*2026-09-30 · Code: `creditcoach/auth.py`, `creditcoach/user_data.py`, `creditcoach/app/main.py` · Script: `uv run python scripts/task11_login_isolation.py`*
+*2026-10-02 · Code: `creditcoach/auth.py`, `creditcoach/user_data.py`, `creditcoach/app/main.py` · Script: `uv run python scripts/task11_login_isolation.py`*
 
 **What changed:** every visitor signs in as one of the 15 dataset users (`creditcoach_user1` → USR-001 … `creditcoach_user15` → USR-015), and answers use that user's own profile, score history and accounts from `data/`. Passwords are stored only as salted PBKDF2-SHA256 hashes in `creditcoach/app/logins.json`, so every clone can check logins but no password is in git.
 

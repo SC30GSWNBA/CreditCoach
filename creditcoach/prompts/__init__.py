@@ -2,7 +2,8 @@
 
 The system prompt lives in ``system_prompt.md`` next to this file, as plain Markdown, so the team can
 review and edit its wording without touching Python code. It defines CreditCoach's tone, tells the model
-where facts may come from (TOOL RESULTS and REFERENCE CONTEXT), and states the hard rules: never invent a
+where facts may come from (TOOL RESULTS, USER PROFILE, MEMORY and REFERENCE CONTEXT), how to use memory, and
+states the hard rules: never invent a
 figure, never guarantee an outcome, never recommend predatory products, respect the user's goal, and stay
 educational.
 """
