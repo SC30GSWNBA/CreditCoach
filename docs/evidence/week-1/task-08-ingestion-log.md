@@ -1,8 +1,8 @@
 # Task 8 Evidence: Ingestion Pipeline Log
 
-*2026-09-24 · Command: `uv run python -m creditcoach.rag.ingest` · Code: `creditcoach/rag/ingest.py`*
+*2026-10-02 · Command: `uv run python -m creditcoach.rag.ingest` (evidence: `uv run python scripts/task08_ingestion_report.py`) · Code: `creditcoach/rag/ingest.py`*
 
-**Pipeline:** load 17 Markdown documents from `corpus/` → split into semantic blocks (paragraphs, whole lists, whole tables) → pack into chunks of at most 240 tokens, each prefixed with its document title → embed locally with `all-MiniLM-L6-v2` (384 dimensions, normalized, cosine) → store in a persistent ChromaDB collection with metadata (document id, title, category, source, sample-query tags). Each run rebuilds the collection, so re-running never duplicates chunks.
+**Pipeline:** load 17 Markdown documents from `corpus/` → split into semantic blocks (paragraphs, whole lists, whole tables) → pack into chunks of at most 240 tokens, each prefixed with its document title → embed locally with `all-MiniLM-L6-v2` (384 dimensions, normalized, cosine) → store in a persistent ChromaDB collection with metadata (document id, title, category, source, tags for the requirements.md queries #1–50). Each run rebuilds the collection, so re-running never duplicates chunks.
 
 **Checks built into the run:** the store's chunk count must equal the number of chunks and embeddings produced, and no chunk may exceed the embedding model's 256-token input limit (anything longer would be silently truncated and its end never embedded).
 
@@ -34,7 +34,7 @@
 [ingest]   credit-repair-scams                2 chunks
 [ingest]   safer-alternatives                 4 chunks
 [ingest] Check: expected 45 chunks, store has 45; chunks truncated by the model: 0 -> OK
-[ingest] Done in 5.2s
+[ingest] Done in 5.8s
 ```
 
 ## Result

@@ -55,6 +55,8 @@ Step 2 refuses to write data unless all of these hold:
 | USR-004 Ananya, USR-007 Karthik | P3, P6 | No credit file | No accounts, no scores | Tools must say "no credit history yet", not error or invent; §4: #14, #20 |
 | USR-002, 006, 008, 010, 013, 014, 015 | P1, P5, P7, P9, P12, P13, P14 | Steady improver | On-time payments with small dips; "Excellent" users level off in the 830s–840s | Scores that *rose*; no false alarm; §4: #13 (002), #27 (006), #26 (008), #28 (010), #18, #24, #35, #36 (013); no §4 query yet for 014 and 015 |
 
+Every figure requirements.md §3 and §4 state about these users (146 values: scores, changes, factors, balances, limits, ratios) is read from the tools and compared on every pull request by `tests/test_golden_queries.py`, which also recomputes the derived figures (paydowns, total debt, gaps to a target). If you regenerate the dataset and a figure changes, that test fails and names the query to update.
+
 ## How Score Changes Are Bounded
 
 Each monthly change must fall within the range for its `primary_factor_change` label. Combined labels like `Hard inquiry + utilization spike` add their ranges together.

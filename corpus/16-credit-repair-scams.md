@@ -3,7 +3,7 @@ id: credit-repair-scams
 title: Credit repair services and score-guarantee scams
 category: product_risk
 source: credit_score_factors_guide.pdf §6; CreditCoach team
-queries: [4, 6]
+queries: [4, 6, 12, 30, 34, 44]
 ---
 
 # "Credit repair" services and score-guarantee scams

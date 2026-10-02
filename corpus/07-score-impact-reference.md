@@ -3,7 +3,7 @@ id: score-impact-reference
 title: Score impact reference table
 category: scoring_factor
 source: credit_score_factors_guide.pdf §7 (Score Impact Reference Table)
-queries: [1, 3, 6]
+queries: [1, 3, 6, 7, 8, 10, 11, 41, 42]
 ---
 
 # Score impact reference table

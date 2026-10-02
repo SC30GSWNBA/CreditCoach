@@ -3,7 +3,7 @@ id: credit-goals-and-no-guarantees
 title: Setting a credit goal, and why no one can guarantee a score
 category: financial_literacy
 source: CreditCoach team, based on credit_score_factors_guide.pdf §6–§7
-queries: [3, 5, 6]
+queries: [3, 5, 6, 11, 25, 28, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 50]
 ---
 
 # Setting a credit goal, and why no one can guarantee a score

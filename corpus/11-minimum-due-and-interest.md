@@ -3,7 +3,7 @@ id: minimum-due-and-interest
 title: Credit card bills, minimum amount due, and interest
 category: financial_literacy
 source: CreditCoach team (general education)
-queries: [2, 3, 4]
+queries: [2, 3, 4, 21, 27, 29]
 ---
 
 # Credit card bills, minimum amount due, and interest

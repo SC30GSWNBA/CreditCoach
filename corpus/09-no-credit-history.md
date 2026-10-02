@@ -3,7 +3,7 @@ id: no-credit-history
 title: No credit history yet (new to credit)
 category: financial_literacy
 source: CreditCoach team (general education)
-queries: [3]
+queries: [3, 14, 20]
 ---
 
 # No credit history yet

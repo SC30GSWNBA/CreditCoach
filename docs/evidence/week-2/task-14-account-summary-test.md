@@ -1,12 +1,12 @@
 # Task 14 Evidence: Account-Summary Tool
 
-*2026-09-30 · Code: `creditcoach/tools/account_summary.py`, `creditcoach/tools/common.py` · Tests: `tests/test_account_summary.py` · Script: `uv run python scripts/task14_account_summary_test.py`*
+*2026-10-02 · Code: `creditcoach/tools/account_summary.py`, `creditcoach/tools/common.py` · Tests: `tests/test_account_summary.py` · Script: `uv run python scripts/task14_account_summary_test.py`*
 
 **Definition of Done:** returns correct balances, limits and utilization ratio for a known user, and a clear error for an unknown one. The tool follows the spec in [docs/tools.md](../../tools.md) §3.
 
 **How utilization is computed:** balance ÷ limit for each credit card, and total card balances ÷ total card limits overall, rounded half-up to 3 places (0.374 = 37.4%). Loans have no limit and don't count. The tool never reads the CSV's 2-place `utilization_ratio` column, so ACC-01 is 0.787, not 0.79.
 
-**Result: ✅ PASS** (6/6 logged cases correct; pytest passed)
+**Result: ✅ PASS** (6/6 logged cases correct; pytest passed; requirements.md figures all match)
 
 ## Summary
 
@@ -265,6 +265,86 @@
   "note": "This user has no credit file yet: no credit accounts and no credit score. Don't state or estimate a score."
 }
 ```
+
+## All requirements.md figures for this tool (71 checks across 24 queries)
+
+Every figure the expected answers in requirements.md §3 and §4 rely on that comes from this tool, read from a live call. The same checks run in CI as `tests/test_golden_queries.py`.
+
+**Result: ✅ 71/71 match.**
+
+| Query | Call | Field | Expected | Tool returned | Match |
+|---|---|---|---|---|---|
+| §3 #2 | `get_account_summary("USR-001")` | `totals.overall_utilization_ratio` | `0.374` | `0.374` | ✅ |
+| §3 #2 | `get_account_summary("USR-001")` | `totals.revolving_balance_inr` | `74750` | `74750` | ✅ |
+| §3 #2 | `get_account_summary("USR-001")` | `totals.revolving_limit_inr` | `200000` | `200000` | ✅ |
+| §3 #3 | `get_account_summary("USR-001")` | `accounts.ACC-01.utilization_ratio` | `0.787` | `0.787` | ✅ |
+| §4 #7 | `get_account_summary("USR-001")` | `accounts.ACC-01.utilization_ratio` | `0.787` | `0.787` | ✅ |
+| §4 #10 | `get_account_summary("USR-011")` | `accounts.ACC-18.balance_inr` | `210900` | `210900` | ✅ |
+| §4 #10 | `get_account_summary("USR-011")` | `accounts.ACC-18.credit_limit_inr` | `440000` | `440000` | ✅ |
+| §4 #10 | `get_account_summary("USR-011")` | `accounts.ACC-18.utilization_ratio` | `0.479` | `0.479` | ✅ |
+| §4 #12 | `get_account_summary("USR-012")` | `accounts.ACC-20.balance_inr` | `378100` | `378100` | ✅ |
+| §4 #12 | `get_account_summary("USR-012")` | `accounts.ACC-20.credit_limit_inr` | `455000` | `455000` | ✅ |
+| §4 #12 | `get_account_summary("USR-012")` | `accounts.ACC-20.utilization_ratio` | `0.831` | `0.831` | ✅ |
+| §4 #12 | `get_account_summary("USR-012")` | `accounts.ACC-23.type` | `'Instant Loan App'` | `'Instant Loan App'` | ✅ |
+| §4 #12 | `get_account_summary("USR-012")` | `accounts.ACC-23.high_risk_product` | `True` | `True` | ✅ |
+| §4 #14 | `get_account_summary("USR-004")` | `has_credit_file` | `False` | `False` | ✅ |
+| §4 #15 | `get_account_summary("USR-001")` | `accounts.ACC-01.balance_inr` | `59000` | `59000` | ✅ |
+| §4 #15 | `get_account_summary("USR-001")` | `accounts.ACC-01.credit_limit_inr` | `75000` | `75000` | ✅ |
+| §4 #15 | `get_account_summary("USR-001")` | `accounts.ACC-01.utilization_ratio` | `0.787` | `0.787` | ✅ |
+| §4 #15 | `get_account_summary("USR-001")` | `accounts.ACC-02.balance_inr` | `11000` | `11000` | ✅ |
+| §4 #15 | `get_account_summary("USR-001")` | `accounts.ACC-02.credit_limit_inr` | `100000` | `100000` | ✅ |
+| §4 #15 | `get_account_summary("USR-001")` | `accounts.ACC-02.utilization_ratio` | `0.11` | `0.11` | ✅ |
+| §4 #15 | `get_account_summary("USR-001")` | `accounts.ACC-05.balance_inr` | `4750` | `4750` | ✅ |
+| §4 #15 | `get_account_summary("USR-001")` | `accounts.ACC-05.credit_limit_inr` | `25000` | `25000` | ✅ |
+| §4 #15 | `get_account_summary("USR-001")` | `accounts.ACC-05.utilization_ratio` | `0.19` | `0.19` | ✅ |
+| §4 #15 | `get_account_summary("USR-001")` | `totals.overall_utilization_ratio` | `0.374` | `0.374` | ✅ |
+| §4 #15 | `get_account_summary("USR-001")` | `accounts.ACC-03.category` | `'installment'` | `'installment'` | ✅ |
+| §4 #15 | `get_account_summary("USR-001")` | `accounts.ACC-04.category` | `'installment'` | `'installment'` | ✅ |
+| §4 #16 | `get_account_summary("USR-001")` | `totals.revolving_balance_inr` | `74750` | `74750` | ✅ |
+| §4 #16 | `get_account_summary("USR-001")` | `totals.revolving_limit_inr` | `200000` | `200000` | ✅ |
+| §4 #16 | `get_account_summary("USR-001")` | `accounts.ACC-01.balance_inr` | `59000` | `59000` | ✅ |
+| §4 #16 | `get_account_summary("USR-001")` | `accounts.ACC-01.credit_limit_inr` | `75000` | `75000` | ✅ |
+| §4 #17 | `get_account_summary("USR-001")` | `totals.revolving_balance_inr` | `74750` | `74750` | ✅ |
+| §4 #17 | `get_account_summary("USR-001")` | `accounts.ACC-03.balance_inr` | `420000` | `420000` | ✅ |
+| §4 #17 | `get_account_summary("USR-001")` | `accounts.ACC-04.balance_inr` | `305000` | `305000` | ✅ |
+| §4 #17 | `get_account_summary("USR-001")` | `totals.total_balance_inr` | `799750` | `799750` | ✅ |
+| §4 #18 | `get_account_summary("USR-013")` | `accounts.ACC-24.balance_inr` | `28600` | `28600` | ✅ |
+| §4 #18 | `get_account_summary("USR-013")` | `accounts.ACC-24.credit_limit_inr` | `320000` | `320000` | ✅ |
+| §4 #18 | `get_account_summary("USR-013")` | `accounts.ACC-25.balance_inr` | `30600` | `30600` | ✅ |
+| §4 #18 | `get_account_summary("USR-013")` | `accounts.ACC-25.credit_limit_inr` | `345000` | `345000` | ✅ |
+| §4 #18 | `get_account_summary("USR-013")` | `totals.revolving_balance_inr` | `59200` | `59200` | ✅ |
+| §4 #18 | `get_account_summary("USR-013")` | `totals.revolving_limit_inr` | `665000` | `665000` | ✅ |
+| §4 #18 | `get_account_summary("USR-013")` | `totals.overall_utilization_ratio` | `0.089` | `0.089` | ✅ |
+| §4 #19 | `get_account_summary("USR-005")` | `accounts.ACC-10.type` | `'Education Loan'` | `'Education Loan'` | ✅ |
+| §4 #19 | `get_account_summary("USR-005")` | `accounts.ACC-10.balance_inr` | `330000` | `330000` | ✅ |
+| §4 #19 | `get_account_summary("USR-005")` | `totals.revolving_count` | `0` | `0` | ✅ |
+| §4 #19 | `get_account_summary("USR-005")` | `totals.overall_utilization_ratio` | `None` | `None` | ✅ |
+| §4 #20 | `get_account_summary("USR-007")` | `has_credit_file` | `False` | `False` | ✅ |
+| §4 #21 | `get_account_summary("USR-012")` | `accounts.ACC-20.balance_inr` | `378100` | `378100` | ✅ |
+| §4 #21 | `get_account_summary("USR-012")` | `accounts.ACC-20.credit_limit_inr` | `455000` | `455000` | ✅ |
+| §4 #21 | `get_account_summary("USR-012")` | `accounts.ACC-20.utilization_ratio` | `0.831` | `0.831` | ✅ |
+| §4 #23 | `get_account_summary("USR-003")` | `accounts.ACC-08.balance_inr` | `39800` | `39800` | ✅ |
+| §4 #23 | `get_account_summary("USR-003")` | `accounts.ACC-08.credit_limit_inr` | `145000` | `145000` | ✅ |
+| §4 #23 | `get_account_summary("USR-003")` | `accounts.ACC-08.utilization_ratio` | `0.274` | `0.274` | ✅ |
+| §4 #24 | `get_account_summary("USR-013")` | `totals.overall_utilization_ratio` | `0.089` | `0.089` | ✅ |
+| §4 #25 | `get_account_summary("USR-001")` | `accounts.ACC-01.utilization_ratio` | `0.787` | `0.787` | ✅ |
+| §4 #26 | `get_account_summary("USR-008")` | `totals.revolving_balance_inr` | `8500` | `8500` | ✅ |
+| §4 #26 | `get_account_summary("USR-008")` | `totals.revolving_limit_inr` | `110000` | `110000` | ✅ |
+| §4 #26 | `get_account_summary("USR-008")` | `totals.overall_utilization_ratio` | `0.077` | `0.077` | ✅ |
+| §4 #27 | `get_account_summary("USR-006")` | `accounts.ACC-11.balance_inr` | `66000` | `66000` | ✅ |
+| §4 #27 | `get_account_summary("USR-006")` | `accounts.ACC-11.credit_limit_inr` | `250000` | `250000` | ✅ |
+| §4 #27 | `get_account_summary("USR-006")` | `accounts.ACC-11.utilization_ratio` | `0.264` | `0.264` | ✅ |
+| §4 #27 | `get_account_summary("USR-006")` | `accounts.ACC-12.type` | `'Education Loan'` | `'Education Loan'` | ✅ |
+| §4 #27 | `get_account_summary("USR-006")` | `accounts.ACC-12.balance_inr` | `455000` | `455000` | ✅ |
+| §4 #28 | `get_account_summary("USR-010")` | `accounts.ACC-16.utilization_ratio` | `0.272` | `0.272` | ✅ |
+| §4 #29 | `get_account_summary("USR-012")` | `accounts.ACC-23.type` | `'Instant Loan App'` | `'Instant Loan App'` | ✅ |
+| §4 #29 | `get_account_summary("USR-012")` | `accounts.ACC-23.balance_inr` | `24000` | `24000` | ✅ |
+| §4 #29 | `get_account_summary("USR-012")` | `accounts.ACC-23.high_risk_product` | `True` | `True` | ✅ |
+| §4 #32 | `get_account_summary("USR-011")` | `accounts.ACC-18.utilization_ratio` | `0.479` | `0.479` | ✅ |
+| §4 #33 | `get_account_summary("USR-001")` | `accounts.ACC-01.utilization_ratio` | `0.787` | `0.787` | ✅ |
+| §4 #37 | `get_account_summary("USR-001")` | `accounts.ACC-01.utilization_ratio` | `0.787` | `0.787` | ✅ |
+| §4 #44 | `get_account_summary("USR-012")` | `accounts.ACC-20.utilization_ratio` | `0.831` | `0.831` | ✅ |
+| §4 #44 | `get_account_summary("USR-012")` | `accounts.ACC-23.high_risk_product` | `True` | `True` | ✅ |
 
 ## Test log
 

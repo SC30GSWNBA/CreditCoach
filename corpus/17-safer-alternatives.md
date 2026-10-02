@@ -3,7 +3,7 @@ id: safer-alternatives
 title: Safer alternatives when you're short of money
 category: product_risk
 source: CreditCoach team (general education)
-queries: [4]
+queries: [4, 12, 21, 29, 32, 33, 44]
 ---
 
 # Safer alternatives when you're short of money

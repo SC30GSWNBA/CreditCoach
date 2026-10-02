@@ -4,7 +4,7 @@ A chat assistant that helps first-time borrowers understand why their credit sco
 
 All guidance is educational, not financial advice. All user data in this repo is synthetic.
 
-**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, and goal memory) is in progress: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history and account-summary tools (Tasks 13–14) are built and tested, and since Task 15 the chat reads each user's scores and accounts live through them over MCP. The [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
+**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, and goal memory) is in progress: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history and account-summary tools (Tasks 13–14) are built and tested, and since Task 15 the chat reads each user's scores and accounts live through them over MCP. The [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Every Week 1–2 evaluation runs all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
 ## Quickstart (fresh clone)
 
@@ -64,20 +64,24 @@ CreditCoach/
     tools/            #   data tools from docs/tools.md: score_history.py (Task 13), account_summary.py (Task 14); common.py (errors, data);
                       #   server.py: MCP server exposing both (Task 15): python -m creditcoach.tools.server
     app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share]; logins.json
+    evals/            #   golden.py + golden_queries.json: the 50 requirements.md queries with their checks;
+                      #   live.py: runs them through the agent and saves every answer (Tasks 5, 10, 15; Week 4)
                       #   coming: memory/
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
   data/               # synthetic dataset: 15 users, accounts, score history (see data/README.md)
-  tests/              # pytest tests (uv run pytest), run by CI (.github/workflows/tests.yml)
+  tests/              # pytest tests (uv run pytest), run by CI (.github/workflows/tests.yml); includes
+                      #   test_golden_queries.py: every requirements.md figure checked against the tools
   scripts/
     synthetic/        #   step1-3: build data/ from the interviews and the sample
-    task05_prompt_tests.py   # system prompt test runs (Task 5)
-    task07_corpus_report.py  # corpus validation and coverage report (Task 7)
-    task09_retrieval_eval.py # retrieval test and strategy comparison (Task 9)
-    task10_prototype_run.py  # prototype round trip with grounding checks (Task 10)
+    task05_prompt_tests.py   # system prompt test runs (Task 5; --all: rule checks on all 50 answers)
+    task07_corpus_report.py  # corpus validation and coverage of all 50 queries (Task 7)
+    task08_ingestion_report.py # rebuild the vector store and regenerate the Task 8 evidence
+    task09_retrieval_eval.py # retrieval test and strategy comparison, incl. all 50 queries (Task 9)
+    task10_prototype_run.py  # prototype round trip with grounding checks (Task 10; --all: 50 queries)
     task11_login_isolation.py # per-user logins and data-isolation checks (Task 11 follow-up)
     task13_score_history_test.py # score-history tool test log (Task 13)
     task14_account_summary_test.py # account-summary tool test log (Task 14)
-    task15_mcp_round_trip.py # live MCP round trip trace (Task 15; paid model calls)
+    task15_mcp_round_trip.py # live MCP round trip trace (Task 15; --all: 50 queries; paid model calls)
     set_login.py             # add or change a chat UI login
   user_interviews/    # 14 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
@@ -98,6 +102,25 @@ uv run python scripts/synthetic/step3_summary.py
 ```
 
 **Stack:** Python 3.12 · OpenAI GPT-5 / GPT-4 models via OpenRouter · sentence-transformers (local embeddings) · ChromaDB · Gradio. See [docs/team.md](docs/team.md) for the full stack and the reasons behind each choice.
+
+## Evaluation queries
+
+requirements.md lists 50 queries with their expected behavior: 6 sample queries (§3) and 44 additional queries (§4) that vary them across users, figures and wording. They are one golden set, read by every evaluation so none of them drifts back to the original 6:
+
+- **`creditcoach/evals/golden.py`** reads each query's text, user and expected behavior straight from requirements.md, so the set can't drift from it. **`golden_queries.json`** adds what code checks: the tools each query needs, the figures its answer relies on, answer keywords, forbidden patterns, and the later tasks a full check depends on (goal memory, multi-turn, observability).
+- **CI** (`tests/test_golden_queries.py`): every expected figure (146 values) is read from the tools and compared, and the figures requirements.md derives from them (paydowns, total debt, gaps to a target) are recomputed. A dataset change that breaks requirements.md §4 fails the build.
+
+| Task | What runs on all 50 queries | Command | Paid calls |
+|---|---|---|---|
+| 5 | System prompt hard rules checked on every live answer | `uv run python scripts/task05_prompt_tests.py --all` | none (reads the Task 15 run) |
+| 7 | Corpus coverage: key facts for each query, and topics that must stay absent | `uv run python scripts/task07_corpus_report.py` | none |
+| 8 | Chunk tags for all 50 queries in the vector store | `uv run python scripts/task08_ingestion_report.py` | none |
+| 9 | Retrieval Hit@3, Precision@3 and MRR for four strategies | `uv run python scripts/task09_retrieval_eval.py` | none |
+| 10 | Prototype answers with no user data | `uv run python scripts/task10_prototype_run.py --all` | 50 |
+| 13–14 | Every figure each query relies on, from the tools | `uv run python scripts/task13_score_history_test.py` (and `task14_…`) | none |
+| 15 | Full agent over MCP, each query signed in as its user; #45 with a forced tool timeout | `uv run python scripts/task15_mcp_round_trip.py --all` | about 100–150 |
+
+The live checks are lenient keyword checks: they catch a missing figure or behavior, and the Task 27 judge scores tone and completeness.
 
 ## Configuration
 
@@ -147,7 +170,7 @@ git push -u origin week1/task-05-system-prompt
 
 ## Engineering Roadmap
 
-A technical review after Week 1 found gaps in testing, tooling and robustness. This section tracks them alongside the [4-week plan](tasks.md). Items tied to a later task are built as part of that task. **Items 1 and 2 are started (Task 13); the rest aren't started yet.**
+A technical review after Week 1 found gaps in testing, tooling and robustness. This section tracks them alongside the [4-week plan](tasks.md). Items tied to a later task are built as part of that task. **Items 1 and 2 are started (Task 13), and item 5 is started (the 50-query golden set); the rest aren't started yet.**
 
 ### 1. Before Week 2: what technical reviewers check first
 
@@ -157,7 +180,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 | 2 | **No CI.** There's no `.github/workflows/`. | One GitHub Actions workflow on every PR: `uv sync`, lint, `creditcoach.check` and the tests. Add a build badge to this README once it passes.<br><br>**Started (Task 13):** `.github/workflows/tests.yml` runs `uv sync --frozen` and `pytest` on every PR and push to `main`. Still to do: lint, `creditcoach.check` (it needs an API key, so it would need a CI secret or a skip) and the badge. |
 | 3 | **No lint, format or type-check config.** `.gitignore` lists `.ruff_cache/`, but ruff isn't configured. | Add `[tool.ruff]` and a type checker (mypy or pyright) to `pyproject.toml`, plus a `.pre-commit-config.yaml`. |
 | 4 | **No LICENSE.** The repo is public, but without a license nobody can legally reuse or contribute to the code. | Add a LICENSE file (the team picks the license). |
-| 5 | **Evals are one-off scripts, not a harness.** `scripts/task05…task10` write Markdown evidence, and the Task 5 and Task 10 judgments are filled in by a person (`_TBD_`). | A reusable eval suite with a golden set of questions (JSON or YAML), built from the 50 queries in requirements.md §3 and §4, and automatic scoring:<br>- **Retrieval:** Hit@k and MRR.<br>- **Guardrails:** refuses guarantees and predatory products; invents no numbers.<br>- **Answer quality:** an LLM judge using `SMALL_MODEL`, already set aside for this.<br><br>This is where Week 4's harness (Tasks 27–30) begins. |
+| 5 | **Evals are one-off scripts, not a harness.** `scripts/task05…task10` write Markdown evidence, and the Task 5 and Task 10 judgments are filled in by a person (`_TBD_`). | A reusable eval suite with a golden set of questions (JSON or YAML), built from the 50 queries in requirements.md §3 and §4, and automatic scoring:<br>- **Retrieval:** Hit@k and MRR.<br>- **Guardrails:** refuses guarantees and predatory products; invents no numbers.<br>- **Answer quality:** an LLM judge using `SMALL_MODEL`, already set aside for this.<br><br>This is where Week 4's harness (Tasks 27–30) begins.<br><br>**Started (2026-10-02):** the golden set (`creditcoach/evals/`, see [Evaluation queries](#evaluation-queries)) with retrieval Hit@3 and MRR, keyword and figure checks, and a guarantee check, used by Tasks 5, 7, 9, 10, 13, 14 and 15, and saved live runs to score against. Still to do: the LLM judge and a one-command harness (Task 27). |
 | 6 | **Regressions go unnoticed.** Nothing runs the evals when the prompt or model changes. | Run the retrieval evals in CI (local and free). Run the LLM evals on demand, because they cost API credits. |
 
 ### 2. Before and during Week 2: agent readiness and robustness

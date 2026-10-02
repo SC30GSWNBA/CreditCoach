@@ -7,7 +7,7 @@ Each document starts with a front-matter block that describes it, for example::
     title: Credit utilization
     category: scoring_factor          # scoring_factor | financial_literacy | product_risk
     source: credit_score_factors_guide.pdf §2 and §7
-    queries: [1, 2, 3]                # requirements.md sample queries this document helps answer
+    queries: [1, 2, 3]                # requirements.md queries (#1-50) this document helps answer
     ---
 
 Used by ingestion (Task 8) and by the corpus coverage report (Task 7).
@@ -30,7 +30,7 @@ class Document:
         title: Human-readable title.
         category: "scoring_factor", "financial_literacy", or "product_risk".
         source: Where the content comes from, e.g. "credit_score_factors_guide.pdf §2".
-        queries: Numbers of the requirements.md sample queries this document helps answer.
+        queries: Numbers of the requirements.md queries (§3 #1-6, §4 #7-50) this document helps answer.
         body: The Markdown text after the front matter.
     """
     file: str

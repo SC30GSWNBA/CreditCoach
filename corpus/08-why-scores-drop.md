@@ -3,7 +3,7 @@ id: why-scores-drop
 title: Why did my credit score drop? Common causes
 category: scoring_factor
 source: CreditCoach team, summarizing credit_score_factors_guide.pdf §1–§4 and §7
-queries: [1]
+queries: [1, 7, 8, 9, 10, 12, 13]
 ---
 
 # Why did my credit score drop?

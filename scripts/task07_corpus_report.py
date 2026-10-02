@@ -3,8 +3,11 @@
 Checks that:
     - every document in ``corpus/`` has complete front matter (id, title, category, source, queries) with
       a known category and a unique id;
-    - each of the 6 requirements.md sample queries has at least one tagged document containing the key
-      facts its answer needs (``KEY_FACTS``);
+    - each of the 50 requirements.md queries (§3 sample queries #1-6 and §4 additional queries #7-50, read from
+      ``creditcoach.evals.golden``) has at least one tagged document containing the key facts its answer needs
+      (``KEY_FACTS``), except the queries in ``NO_CORPUS``, whose answers need no corpus content;
+    - no document covers a topic that a query expects the corpus not to have (``ABSENT``: buy now, pay later,
+      for §4 #48, whose expected answer is "I don't have specific information on that");
     - every section (§1-§7) of credit_score_factors_guide.pdf is represented in at least one document.
 
 Writes:
@@ -19,6 +22,7 @@ import re
 import sys
 
 from creditcoach import config
+from creditcoach.evals import golden
 from creditcoach.rag.corpus import parse_front_matter
 
 CORPUS = config.ROOT / "corpus"
@@ -27,15 +31,9 @@ REQUIRED = ["id", "title", "category", "source", "queries"]
 CATEGORIES = {"scoring_factor": "Credit-scoring factors", "financial_literacy": "Financial literacy",
               "product_risk": "Product risk"}
 
-SAMPLE_QUERIES = {
-    1: "Why did my credit score drop 20 points this month?",
-    2: "What's my current credit utilization ratio?",
-    3: "I want to buy a car in 12 months — what should I focus on?",
-    4: "Should I take out this payday loan to pay off my credit card?",
-    5: "Remember that I'm saving for a car and want to hit a 720 score by next year.",
-    6: "Can you guarantee my score will hit 720 if I do what you said?",
-}
+QUERIES = golden.load()
 # Facts each query's answer depends on; every phrase must appear in at least one document tagged for that query.
+# Phrases are quoted from the corpus, so a reworded document fails here instead of silently losing a fact.
 KEY_FACTS = {
     1: ["utilization spike", "hard inquiry", "10 to 40 points", "2 to 10 points"],
     2: ["balance divided by your limit", "30%"],
@@ -43,7 +41,50 @@ KEY_FACTS = {
     4: ["payday", "instant loan app", "don't report to the credit bureaus", "safer"],
     5: ["target score", "target date", "purpose"],
     6: ["guarantee", "not public"],
+    7: ["two events in the same month", "10 to 40 points", "2 to 10 points"],
+    8: ["2 to 10 points", "12 months"],
+    9: ["within a short window", "small, temporary"],
+    10: ["30%", "one reporting cycle"],
+    11: ["60 to 110 points", "up to seven years", "about two years"],
+    12: ["free credit counselling", "borrowing from one app to repay another", "30%"],
+    13: ["small ups and downs of a few points are normal"],
+    14: ["new to credit", "secured credit card"],
+    15: ["not part of utilization"],
+    16: ["divide the total balance by the total limit", "30%"],
+    18: ["30%"],
+    19: ["not part of utilization"],
+    20: ["no record of you", "new to credit"],
+    21: ["into emis", "payment plan", "stop adding new spending"],
+    23: ["within a short window", "car loan", "30%"],
+    24: ["check your credit report early", "keep old cards open", "pause new credit applications"],
+    25: ["a goal can be ambitious", "fastest lever"],
+    26: ["your income, and your existing emis", "better interest rate"],
+    27: ["interest is charged on the unpaid balance", "pay the full statement balance"],
+    28: ["pay every bill on time", "a target score, a target date, and a purpose"],
+    29: ["borrowing from one app to repay another", "payment plan", "free credit counselling"],
+    30: ["disputed with the credit bureau for free", "asks for payment before doing any work"],
+    31: ["a payday loan is a small, short-term loan", "why they are high-risk"],
+    32: ["key fact statement", "rbi-regulated"],
+    33: ["balance transfer", "the rate after the offer ends", "hard inquiry"],
+    34: ["cannot be removed by a dispute or by paying a company", "disputing is free"],
+    35: ["a target score, a target date, and a purpose"],
+    36: ["review progress"],
+    37: ["target score"],
+    38: ["target score"],
+    39: ["target score"],
+    40: ["a goal can be ambitious"],
+    41: ["one reporting cycle after the balance is paid down", "not predictions"],
+    42: ["about two years", "guarantee"],
+    43: ["not public", "no one can calculate your exact future score"],
+    44: ["no one can guarantee", "free credit counselling"],
+    50: ["guarantee", "not public"],
 }
+# Queries whose expected answer needs no corpus content: the user's own figures (#17, #22), a tool failure (#45),
+# a period with no data (#46), a clarifying question (#47), a topic the corpus doesn't cover (#48), and another
+# user's data (#49). No document may be tagged for them.
+NO_CORPUS = {17, 22, 45, 46, 47, 48, 49}
+# Topics the corpus must not cover, because a query's expected answer depends on their absence.
+ABSENT = {48: ["buy now", "pay later", "bnpl"]}
 # Every section of credit_score_factors_guide.pdf must be represented.
 GUIDE_SECTIONS = {"§1": "Payment history", "§2": "Credit utilization", "§3": "Length of credit history",
                   "§4": "Hard inquiries", "§5": "Credit mix", "§6": "High-risk products", "§7": "Score impact table"}
@@ -76,16 +117,31 @@ def main() -> int:
     if len({d["id"] for d in docs}) != len(docs):
         errors.append("duplicate document ids")
 
+    ids = {q.id for q in QUERIES}
+    if set(KEY_FACTS) | NO_CORPUS != ids or set(KEY_FACTS) & NO_CORPUS:
+        errors.append("KEY_FACTS and NO_CORPUS must together list every query exactly once")
+    unknown = sorted({n for d in docs for n in d.get("queries", [])} - ids)
+    if unknown:
+        errors.append(f"documents tagged for queries that don't exist: {unknown}")
     coverage = {}
-    for q, facts in KEY_FACTS.items():
-        tagged = [d for d in docs if q in d.get("queries", [])]
+    for q in QUERIES:
+        tagged = [d for d in docs if q.id in d.get("queries", [])]
         text = " ".join(d["body"].lower() for d in tagged)
-        missing = [f for f in facts if f.lower() not in text]
-        coverage[q] = (tagged, missing)
+        missing = [f for f in KEY_FACTS.get(q.id, []) if f.lower() not in text]
+        coverage[q.id] = (tagged, missing)
+        if q.id in NO_CORPUS:
+            if tagged:
+                errors.append(f"query {q.id}: needs no corpus content but is tagged in {[d['file'] for d in tagged]}")
+            continue
         if not tagged:
-            errors.append(f"sample query {q}: no document tagged")
+            errors.append(f"query {q.id}: no document tagged")
         if missing:
-            errors.append(f"sample query {q}: key facts not found: {missing}")
+            errors.append(f"query {q.id}: key facts not found: {missing}")
+    all_text = " ".join(d["body"].lower() for d in docs)
+    present = {q: [t for t in terms if t in all_text] for q, terms in ABSENT.items()}
+    for q, found in present.items():
+        if found:
+            errors.append(f"query {q}: the corpus must not cover {found}")
 
     sources = " ".join(d["source"] for d in docs)
     guide_missing = [s for s in GUIDE_SECTIONS if s not in sources]
@@ -98,18 +154,36 @@ def main() -> int:
              "| Category | Documents |", "|---|---|"]
     for cat, label in CATEGORIES.items():
         lines.append(f"| {label} (`{cat}`) | {sum(d['category'] == cat for d in docs)} |")
-    lines += ["", "## Documents", "", "| # | Title | Category | Words | Sample queries | Source |", "|---|---|---|---|---|---|"]
+    lines += ["", "## Documents", "", "\"Queries\" are the requirements.md queries (§3 #1–6, §4 #7–50) each document helps "
+              "answer, from its front matter. Task 9 uses the same tags as relevance labels.", "",
+              "| # | Title | Category | Words | Queries | Source |", "|---|---|---|---|---|---|"]
     for d in docs:
         lines.append(f"| {d['file'][:2]} | {d['title']} | {d['category']} | {d['words']} | "
                      f"{', '.join(map(str, d['queries']))} | {d['source']} |")
-    lines += ["", "## Coverage of the 6 sample queries (requirements.md §3)", "",
-              "| # | Sample query | Documents | Key facts checked | Result |", "|---|---|---|---|---|"]
-    for q, query in SAMPLE_QUERIES.items():
-        tagged, missing = coverage[q]
-        facts = ", ".join(f'"{f}"' for f in KEY_FACTS[q])
-        lines.append(f"| {q} | {query} | {len(tagged)} ({', '.join(d['file'][:2] for d in tagged)}) | {facts} | "
-                     f"{'✅ covered' if tagged and not missing else '❌ ' + ', '.join(missing)} |")
-    lines += ["", "## Coverage of credit_score_factors_guide.pdf", "",
+    covered = [q for q in QUERIES if q.id not in NO_CORPUS and coverage[q.id][0] and not coverage[q.id][1]]
+    lines += ["", "## Coverage of all 50 requirements.md queries", "",
+              f"**{len(covered)} of {len(QUERIES) - len(NO_CORPUS)} queries that need corpus content are covered**, "
+              f"and {len(NO_CORPUS)} need none (#{', #'.join(map(str, sorted(NO_CORPUS)))}). A query is covered when at "
+              "least one document is tagged for it and the tagged documents contain every key fact its expected "
+              "answer depends on.", ""]
+    for section, title in [("3", "§3 Sample queries"), ("4", "§4 Additional queries")]:
+        lines += [f"### {title}", "", "| # | User | Query | Documents | Key facts checked | Result |",
+                  "|---|---|---|---|---|---|"]
+        for q in (q for q in QUERIES if q.section[0] == section):
+            tagged, missing = coverage[q.id]
+            facts = ", ".join(f'"{f}"' for f in KEY_FACTS.get(q.id, []))
+            if q.id in NO_CORPUS:
+                result = "✅ needs no corpus content" if not tagged else "❌ tagged but needs none"
+                if q.id in ABSENT:
+                    found = present[q.id]
+                    facts = "absent: " + ", ".join(f'"{t}"' for t in ABSENT[q.id])
+                    result = "✅ topic absent, as expected" if not found and not tagged else f"❌ found {found}"
+            else:
+                result = "✅ covered" if tagged and not missing else "❌ " + (", ".join(missing) or "no document")
+            docs_cell = f"{len(tagged)} ({', '.join(d['file'][:2] for d in tagged)})" if tagged else "—"
+            lines.append(f"| {q.id} | {q.user_id} | {q.query} | {docs_cell} | {facts or '—'} | {result} |")
+        lines.append("")
+    lines += ["## Coverage of credit_score_factors_guide.pdf", "",
               "| Section | Topic | Represented in |", "|---|---|---|"]
     for s, topic in GUIDE_SECTIONS.items():
         where = ", ".join(d["file"][:2] for d in docs if s in d["source"])

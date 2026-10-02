@@ -12,7 +12,8 @@ How a question is answered, step by step:
        how well the chunk answers the question. This is slower but more accurate than vector search.
     3. Diversity: keep at most 2 chunks per document, then return the top 3.
 
-This design was chosen in Task 9 by comparing strategies on 10 hand-labelled questions (see
+This design was chosen in Task 9 by comparing strategies on 10 hand-labelled questions, and is also scored
+on all 50 requirements.md queries at document level (see
 ``docs/evidence/week-1/task-09-retrieval-test.md``). Both models run locally and are loaded once, on
 first use.
 
@@ -42,7 +43,7 @@ class Result:
         title: Title of the document the chunk comes from.
         category: "scoring_factor", "financial_literacy", or "product_risk".
         text: The chunk text (starts with the document title).
-        metadata: All stored fields (source, doc id, sample-query tags, ...).
+        metadata: All stored fields (source, doc id, query tags, ...).
     """
     rank: int
     id: str
@@ -131,7 +132,7 @@ def retrieve(query: str, k: int = 3, where: dict | None = None, *, rerank: bool 
         query: The user's question in plain language.
         k: How many chunks to return (default 3).
         where: Optional ChromaDB metadata filter, e.g. ``{"category": "product_risk"}`` for risk content
-            only, or ``{"q4": True}`` for chunks tagged for sample query 4.
+            only, or ``{"q4": True}`` for chunks tagged for query 4 (requirements.md #1-50).
         rerank: Reorder candidates with the cross-encoder (default True).
         fusion: Combine the vector and reranker rankings (reciprocal rank fusion) instead of using the
             reranker's order alone (default False; it scored lower in Task 9).
