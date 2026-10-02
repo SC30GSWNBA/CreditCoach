@@ -7,7 +7,7 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 | 1 | Kickoff: roles and stack | [docs/team.md](../../team.md) | Sign-off table in team.md §5 | ✅ | ⬜ Each member ticks their row |
 | 2 | 6-pager | [docs/6-pager.md](../../6-pager.md) | Team review and agreement | ✅ | ⬜ Change "Draft for team review" to "Agreed" with the date |
 | 3 | PR/FAQ | [docs/pr-faq.md](../../pr-faq.md) | Team review and agreement | ✅ | ⬜ Same as Task 2 |
-| 4 | Git repo, README | [README.md](../../../README.md), [GitHub](https://github.com/SC30GSWNBA/CreditCoach) | [task-04-clone-test.md](task-04-clone-test.md) | ✅ | ⬜ Aman, Anil and Devisri each clone, run, and tick their row |
+| 4 | Git repo, README | [README.md](../../../README.md), [GitHub](https://github.com/SC30GSWNBA/CreditCoach) | [task-04-clone-test.md](task-04-clone-test.md) | ✅ | ⬜ Aman and Anil each clone, run, and tick their row |
 | 5 | System prompt | [system_prompt.md](../../../creditcoach/prompts/system_prompt.md) | [task-05-prompt-tests.md](task-05-prompt-tests.md): 3/3 pass; [task-05-all-queries.md](task-05-all-queries.md): hard rules on all 50 live answers: no guarantee 50/50, no other user's data 50/50, figures 43/50 with nothing to review (7 flagged, none an invented figure about the user) | ✅ | ⬜ Review transcripts |
 | 6 | Synthetic dataset | [data/](../../../data/) (15 users) | [task-06-dataset-summary.md](task-06-dataset-summary.md) | ✅ | ⬜ Review summary |
 | 7 | RAG corpus | [corpus/](../../../corpus/) (17 documents) | [task-07-corpus-summary.md](task-07-corpus-summary.md): all 50 requirements.md queries covered (43 by tagged documents with their key facts, 7 need no corpus content) | ✅ | ⬜ Review documents |
