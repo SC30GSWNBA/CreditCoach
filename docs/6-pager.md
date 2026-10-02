@@ -1,6 +1,6 @@
 # CreditCoach: A Grounded, Honest Credit Coach for First-Time Borrowers
 
-*Six-page narrative · Authors: Aman, Anil, Sudip · Draft for team review · 2026-09-23*
+*Six-page narrative · Authors: Aman, Anil, Sudip · Draft for team review · 2026-09-23 · Reviewed and Signed Off: Sudip (2026-10-02)*
 
 ---
 

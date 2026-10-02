@@ -404,4 +404,4 @@ Beyond T1–T15, every figure that an expected answer in requirements.md §3 and
 |---|---|---|
 | Aman | [ ] | |
 | Anil | [ ] | |
-| Sudip | [ ] | |
+| Sudip | ✅ Reviewed and Signed Off | 2026-10-02 |
