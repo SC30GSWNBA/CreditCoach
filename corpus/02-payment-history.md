@@ -3,7 +3,7 @@ id: factor-payment-history
 title: Payment history and late payments
 category: scoring_factor
 source: credit_score_factors_guide.pdf §1 and §7 (impact ranges); India terms added by CreditCoach team
-queries: [1, 3]
+queries: [1, 3, 11, 34, 42]
 ---
 
 # Payment history and late payments

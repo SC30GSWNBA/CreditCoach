@@ -14,18 +14,32 @@ strategy was compared. Four strategies are scored (``STRATEGIES``):
     nDCG@3       How close the top-3 order is to the ideal (all relevant chunks first), discounting lower
                  ranks by 1 / log2(rank + 1). Relevance is binary.
 
+Part 3, all 50 requirements.md queries (§3 #1-6 and §4 #7-50, from ``creditcoach.evals.golden``): the same four
+strategies scored at document level. A retrieved chunk is relevant if its document is tagged for the query in
+``corpus/`` front matter (the tags Task 7 validates, set from document content before retrieval was run). The 7
+queries whose answers need no corpus content (``task07_corpus_report.NO_CORPUS``) are listed but not scored.
+    hit@3        Share of queries with a chunk from a relevant document in the top 3.
+    precision@3  Share of the top-3 chunks that come from a relevant document.
+    MRR          Average of 1 / rank of the first chunk from a relevant document.
+
 Writes:
-    docs/evidence/week-1/task-09-retrieval-test.md   Logged query, per-chunk judgments, and comparison.
+    docs/evidence/week-1/task-09-retrieval-test.md   Logged query, per-chunk judgments, and both comparisons.
 
 Run after building the vector store (no API key needed; results are deterministic):
     uv run python scripts/task09_retrieval_eval.py
 """
 
 import math
+import sys
 from datetime import date
 
 from creditcoach import config
+from creditcoach.evals import golden
 from creditcoach.rag import retrieve as R
+from creditcoach.rag.corpus import load_corpus
+
+sys.path.insert(0, str(config.ROOT / "scripts"))
+from task07_corpus_report import NO_CORPUS  # noqa: E402  (one list of queries that need no corpus content)
 
 EVIDENCE = config.ROOT / "docs" / "evidence" / "week-1" / "task-09-retrieval-test.md"
 TEST_QUERY = "why did my credit score drop 20 points?"
@@ -104,8 +118,84 @@ def evaluate(options: dict) -> dict:
             "rows": rows}
 
 
+def doc_labels() -> dict[int, set[str]]:
+    """Relevant document ids for each golden query, from the ``queries`` tags in the corpus front matter."""
+    labels = {}
+    for d in load_corpus():
+        for q in d.queries:
+            labels.setdefault(q, set()).add(d.id)
+    return labels
+
+
+def evaluate_docs(options: dict, labels: dict[int, set[str]]) -> dict:
+    """Score one strategy on every golden query that needs corpus content, at document level.
+
+    Returns:
+        ``{"hit@3", "precision@3", "mrr"}`` averages and ``"rows"``: (query, top-3 chunk ids, rank of the first
+        chunk from a relevant document or None).
+    """
+    hits = prec = mrr = 0.0
+    rows = []
+    scored = [q for q in golden.load() if q.id not in NO_CORPUS]
+    for q in scored:
+        relevant = labels.get(q.id, set())
+        results = R.retrieve(q.query, k=3, **options)
+        good = [r.metadata["doc_id"] in relevant for r in results]
+        first = next((i + 1 for i, g in enumerate(good) if g), None)
+        hits += first is not None
+        prec += sum(good) / 3
+        mrr += 1 / first if first else 0
+        rows.append((q, [r.id for r in results], first))
+    n = len(scored)
+    return {"hit@3": hits / n, "precision@3": prec / n, "mrr": mrr / n, "rows": rows}
+
+
+def golden_section() -> list[str]:
+    """Evidence lines for Part 3: all 50 requirements.md queries, scored at document level."""
+    labels = doc_labels()
+    queries = golden.load()
+    lines = ["", "## All 50 requirements.md queries (document-level labels)\n",
+             f"The 6 sample queries (§3) and the 44 additional queries (§4), asked word for word. A retrieved chunk "
+             "counts as relevant if its document is tagged for the query in the corpus front matter; the tags were "
+             "set from document content and validated by Task 7 before retrieval was run. "
+             f"{len(NO_CORPUS)} queries need no corpus content (#{', #'.join(map(str, sorted(NO_CORPUS)))}: the "
+             "user's own figures, a tool failure, a period with no data, a clarifying question, a topic the corpus "
+             f"deliberately doesn't cover, another user's data), so {len(queries) - len(NO_CORPUS)} are scored.\n",
+             "| Strategy | Hit@3 | Precision@3 | MRR |", "|---|---|---|---|"]
+    scores = {name: evaluate_docs(options, labels) for name, options in STRATEGIES.items()}
+    for name, m in scores.items():
+        lines.append(f"| {name} | {m['hit@3']:.2f} | {m['precision@3']:.2f} | {m['mrr']:.2f} |")
+        print(f"[50 queries] {name:<38} hit@3 {m['hit@3']:.2f}  precision@3 {m['precision@3']:.2f}  MRR {m['mrr']:.2f}")
+    chosen = next(m for name, m in scores.items() if name.startswith("C"))
+    best = max(scores, key=lambda name: (scores[name]["mrr"], scores[name]["hit@3"]))
+    misses = [(q, ids, f) for q, ids, f in chosen["rows"] if f != 1]
+    lines += ["", "Precision@3 here counts every chunk from a relevant document, a looser test than the chunk-level "
+              f"labels above. **Highest MRR on all 50 queries: {best}.** "
+              + ("The chosen strategy (C) also leads on all 50 queries." if best.startswith("C") else
+                 "The chosen strategy (C) stays in production for now: it still leads on the hand-labelled chunk-level "
+                 "comparison, the gap here is small, and the Task 10 and Task 15 runs use it. The misses below are "
+                 "input for the Task 29 error analysis, which decides whether to switch."),
+              "", f"Queries where the chosen strategy's first chunk is not from a relevant document: {len(misses)} of "
+              f"{len(chosen['rows'])}.\n"]
+    lines += [f"- #{q.id} {q.query!r}: first relevant chunk at rank {f or 'none'} (top 3: {', '.join(ids)}; "
+              f"relevant: {', '.join(sorted(labels.get(q.id, set())))})" for q, ids, f in misses]
+    lines += ["", "### Per-query results with the chosen strategy\n",
+              "| # | User | Query | Relevant documents | Top 3 | First relevant |", "|---|---|---|---|---|---|"]
+    rows = {q.id: (ids, f) for q, ids, f in chosen["rows"]}
+    for q in queries:
+        if q.id in NO_CORPUS:
+            ids = [r.id for r in R.retrieve(q.query)]
+            lines.append(f"| {q.id} | {q.user_id} | {q.query} | none needed | {', '.join(f'`{i}`' for i in ids)} | "
+                         "not scored |")
+            continue
+        ids, f = rows[q.id]
+        lines.append(f"| {q.id} | {q.user_id} | {q.query} | {', '.join(sorted(labels[q.id]))} | "
+                     f"{', '.join(f'`{i}`' for i in ids)} | {'✅ 1' if f == 1 else ('⚠️ ' + str(f)) if f else '❌ none'} |")
+    return lines
+
+
 def main() -> None:
-    """Run the test query and the strategy comparison, print the scores, and write the evidence file."""
+    """Run the test query and the strategy comparisons, print the scores, and write the evidence file."""
     results = R.retrieve(TEST_QUERY)  # production defaults: rerank + max 2 chunks per document
     judged = [(r, r.id in SCORE_DROP and r.category == "scoring_factor") for r in results]
     passed = any(ok for _, ok in judged)
@@ -157,6 +247,7 @@ def main() -> None:
     lines += ["", "## Per-query results with the chosen strategy\n", "| Query | Top 3 |", "|---|---|"]
     for query, _ in EVAL_SET:
         lines.append(f"| {query} | {', '.join(f'`{r.id}`' for r in R.retrieve(query))} |")
+    lines += golden_section()
 
     EVIDENCE.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"\nTest query top 3: {[r.id for r in results]} -> {'PASS' if passed else 'FAIL'}")

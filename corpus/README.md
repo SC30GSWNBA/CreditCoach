@@ -18,7 +18,7 @@ id: factor-credit-utilization      # unique, stable
 title: Credit utilization
 category: scoring_factor           # scoring_factor | financial_literacy | product_risk
 source: credit_score_factors_guide.pdf §2 and §7
-queries: [1, 2, 3]                 # requirements.md sample queries this document helps answer
+queries: [1, 2, 3]                 # requirements.md queries (#1–50) this document helps answer
 ---
 ```
 
@@ -30,4 +30,6 @@ Keep each document to one topic of about 150–500 words, written in plain langu
 uv run python scripts/task07_corpus_report.py
 ```
 
-This validates the front matter and confirms that all 6 sample queries and every section of the factors guide are covered. It writes the result to `docs/evidence/week-1/task-07-corpus-summary.md`.
+This validates the front matter and confirms that every section of the factors guide is covered, and that all 50 requirements.md queries (the 6 sample queries in §3 and the 44 additional queries in §4) are covered: each has a tagged document containing the key facts its answer needs, or is one of the 7 queries that need no corpus content. It also checks that the corpus still has no buy-now-pay-later content, because §4 #48 expects the answer "I don't have specific information on that." It writes the result to `docs/evidence/week-1/task-07-corpus-summary.md`.
+
+After editing documents or their `queries` tags, rebuild the vector store and its evidence with `uv run python scripts/task08_ingestion_report.py`, then rerun the retrieval eval (`uv run python scripts/task09_retrieval_eval.py`), which uses the tags as relevance labels for all 50 queries.

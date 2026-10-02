@@ -3,7 +3,7 @@ id: payday-loans-and-instant-loan-apps
 title: Payday loans and instant loan apps — why they are high-risk
 category: product_risk
 source: credit_score_factors_guide.pdf §6; India digital-lending safeguards summarized by CreditCoach team
-queries: [4]
+queries: [4, 12, 29, 31, 32, 44]
 ---
 
 # Payday loans and instant loan apps

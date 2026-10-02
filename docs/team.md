@@ -34,7 +34,7 @@ Each role owns its area end to end across all four weeks: design, build, tests, 
 | Caching | **diskcache** for embeddings and tool lookups, keyed by a hash of the normalized query | Gives a persistent cache hit or miss we can log and badge in the UI (Task #25). |
 | Guardrails | Custom rule layer: regex/keyword pre-check, a small-model classifier (GPT-5 mini / GPT-4.1 mini), and a figure-provenance check against tool output | Maps one-to-one to requirements.md §6. No black-box dependency. |
 | Observability | Structured JSON logs with a per-request `trace_id`, written to SQLite, plus a Gradio "Dashboard" tab | Meets §6 (tool-failure rate, graceful degradation) with no extra infrastructure. |
-| Evals | **pytest** with custom scorers over the 6 sample queries (requirements.md §3) and the 44 additional queries (§4) | One command: `uv run pytest evals/` (Task #27). |
+| Evals | **pytest** with custom scorers over the 6 sample queries (requirements.md §3) and the 44 additional queries (§4). The 50 queries are one golden set: `creditcoach/evals/golden.py` reads the text from requirements.md and the checks from `golden_queries.json` | One command (Task #27). The golden set already drives the Week 1–2 evaluations, and `tests/test_golden_queries.py` checks every expected figure against the tools in CI. |
 | UI | **Gradio** `ChatInterface`, `launch(share=True)`, with one login per dataset user (`creditcoach/auth.py`) | Gives the shareable link Task #11 requires. Each login sees only its own user's data, so any teammate can demo any of the 15 users. |
 | Secrets | `.env` (git-ignored) with `OPENROUTER_API_KEY`, loaded by `python-dotenv`. `.env.example` is committed with a placeholder value. Chat UI passwords are committed only as salted PBKDF2 hashes (`creditcoach/app/logins.json`) and shared privately | Keys and passwords are never committed. |
 
@@ -58,7 +58,7 @@ See the README for the current layout. Code lives in the `creditcoach/` Python p
 4. Never silently override the user's stored goal.
 5. Track tool-call failures and degrade gracefully ("here's what I last confirmed").
 
-**Our acceptance bar:** the 6 sample queries in requirements.md §3. They become the eval suite in Task #27. The 44 additional queries in requirements.md §4 test the same behaviors with other users, figures, and wording, so the suite catches answers that only pass the original 6.
+**Our acceptance bar:** the 6 sample queries in requirements.md §3. They become the eval suite in Task #27. The 44 additional queries in requirements.md §4 test the same behaviors with other users, figures, and wording, so the suite catches answers that only pass the original 6. Every Week 1 and Week 2 evaluation runs all 50 of them.
 
 **What the sample data already shows (`sample_data/credit_profile_sample.xlsx`):**
 - USR-001's score went from 690 (Jul 2026) to 670 (Aug, *utilization spike*) and then to 650 (Sep, *hard inquiry + utilization spike*). The Sep drop is exactly the "20 points this month" in sample query #1.

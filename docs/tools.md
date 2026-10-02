@@ -372,6 +372,8 @@ Both tools share one error shape:
 
 Each task's Definition of Done asks for a known case and an error case. These are the minimum; the implementing task may add more. T1–T8 and T15 for `get_score_history` are automated in `tests/test_score_history.py` (Task 13), and T9–T15 for `get_account_summary` in `tests/test_account_summary.py` (Task 14). The latter also checks that every complete JSON example in §3 is exactly what the tool returns, so this spec and the code can't drift apart.
 
+Beyond T1–T15, every figure that an expected answer in requirements.md §3 and §4 relies on (146 values across the 50 queries, from `creditcoach/evals/golden_queries.json`) is read from the tools and compared on every pull request by `tests/test_golden_queries.py`. The Task 13 and Task 14 test logs list each one.
+
 | # | Tool | Input | Expected |
 |---|---|---|---|
 | T1 | `get_score_history` | USR-001, `latest` | One point: 650, change −20, `Hard inquiry + utilization spike` |
@@ -392,7 +394,7 @@ Each task's Definition of Done asks for a known case and an error case. These ar
 
 ## 6. Open Questions for Team Review
 
-1. **Rounding.** The tools return ratios to 3 places, so ACC-01 is 78.7%. requirements.md §4 #15 says "79%" and §4 #18 says "9%" for USR-013's cards (8.9% at 3 places). Both are roundings of the tool's figure, but the Task #27 scorers should accept either or check against the tool output. Proposal: keep 3 places, and update the scorers rather than requirements.md.
+1. **Rounding.** The tools return ratios to 3 places, so ACC-01 is 78.7%. requirements.md §4 #15 says "79%" and §4 #18 says "9%" for USR-013's cards (8.9% at 3 places). Both are roundings of the tool's figure, but the Task #27 scorers should accept either or check against the tool output. Proposal: keep 3 places, and update the scorers rather than requirements.md. *Done in the golden set (2026-10-02): each figure check accepts both roundings, for example "79%" or "78.7%".*
 2. **Timeout.** 5 seconds is a starting value. Local CSV reads take milliseconds, so the timeout only matters when Task #32 simulates a slow API.
 3. **More tools.** Profile fields from `users.csv` (such as `pays_card` and `goals_2yr`) are not part of either tool. They stay in the prompt context through `user_data.py` until Task #16 decides whether stored goals replace `goals_2yr`.
 

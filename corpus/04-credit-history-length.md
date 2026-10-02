@@ -3,7 +3,7 @@ id: factor-credit-history-length
 title: Length of credit history and closing old cards
 category: scoring_factor
 source: credit_score_factors_guide.pdf §3 and §7 (impact ranges)
-queries: [1, 3]
+queries: [1, 3, 24]
 ---
 
 # Length of credit history

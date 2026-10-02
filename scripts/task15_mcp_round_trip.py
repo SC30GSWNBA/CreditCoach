@@ -7,13 +7,23 @@ latency and the full result), the MCP host's log lines, the final answer, and a 
 in the answer back to the tool output. It passes only if both tools were called through MCP and succeeded, and
 the answer states the figures from their output.
 
-Writes:
-    docs/evidence/week-2/task-15-mcp-round-trip.md
+With ``--all``, it instead runs all 50 requirements.md queries (§3 #1-6 and §4 #7-50, ``creditcoach.evals.golden``)
+through the same MCP agent loop, each signed in as its own user, and checks every answer automatically: the tools
+the query needs were called and succeeded, the answer states the figures from their output, it shows the expected
+behavior keywords, it matches no forbidden pattern, and it has no unhedged guarantee. Query #45 runs with
+``get_account_summary`` timing out in the MCP host. The run is saved as JSON so Task 5 and Task 27 can re-score it.
 
-Run (needs OPENROUTER_API_KEY and the vector store; about 2-3 paid model calls):
-    uv run python scripts/task15_mcp_round_trip.py
+Writes:
+    docs/evidence/week-2/task-15-mcp-round-trip.md      (default) one query's full trace
+    docs/evidence/week-2/task-15-all-queries.md         (--all) all 50 queries: checks, tool calls and answers
+    docs/evidence/week-2/runs/task-15-all-queries.json  (--all) the raw run
+
+Run (needs OPENROUTER_API_KEY and the vector store):
+    uv run python scripts/task15_mcp_round_trip.py          # about 2-3 paid model calls
+    uv run python scripts/task15_mcp_round_trip.py --all    # about 100-150 paid model calls, a few minutes
 """
 
+import argparse
 import asyncio
 import json
 import logging
@@ -24,8 +34,11 @@ from datetime import date
 from creditcoach import config
 from creditcoach.agent import pipeline
 from creditcoach.agent.mcp_host import McpHost
+from creditcoach.evals import golden, live
 
 EVIDENCE = config.ROOT / "docs" / "evidence" / "week-2" / "task-15-mcp-round-trip.md"
+ALL_EVIDENCE = config.ROOT / "docs" / "evidence" / "week-2" / "task-15-all-queries.md"
+ALL_RUN = config.ROOT / "docs" / "evidence" / "week-2" / "runs" / "task-15-all-queries.json"
 USER = "USR-001"
 QUESTION = "Why did my credit score drop 20 points this month, and what's my credit utilization right now?"
 
@@ -193,5 +206,137 @@ def main() -> None:
         sys.exit(1)
 
 
+def cell(text: str) -> str:
+    """Make text safe for one Markdown table cell."""
+    return text.replace("|", "\\|").replace("\n", " ")
+
+
+def failure_kinds(records: list[dict], checks: dict) -> dict[str, list[int]]:
+    """Group failing queries by the first thing that went wrong, so the error analysis starts from patterns."""
+    kinds = {"Tool not called, so the user's figures are missing": [],
+             "Tools called, but a required figure is missing": [],
+             "Expected behavior missing (warning, alternative, typical range, question back, ...)": [],
+             "Forbidden content or an unhedged guarantee": [], "Crashed": []}
+    for r in records:
+        c = checks[r["id"]]
+        if r["error"] or not r["answer"]:
+            kinds["Crashed"].append(r["id"])
+        elif c.missing_tools:
+            kinds["Tool not called, so the user's figures are missing"].append(r["id"])
+        elif c.missing_figures:
+            kinds["Tools called, but a required figure is missing"].append(r["id"])
+        elif c.missing_behavior:
+            kinds["Expected behavior missing (warning, alternative, typical range, question back, ...)"].append(r["id"])
+        elif c.forbidden_hits or c.guarantees:
+            kinds["Forbidden content or an unhedged guarantee"].append(r["id"])
+    return kinds
+
+
+def main_all(rescore: bool = False) -> None:
+    """Run all 50 golden queries through the MCP agent, check each answer, and write the evidence and raw run."""
+    if rescore:  # re-check the saved answers, e.g. after improving a check; no model calls
+        run = live.load_run(ALL_RUN)
+        records, run_date = run["records"], run["created"][:10]
+    else:
+        records, run_date = live.run("tools"), date.today().isoformat()
+        live.save(records, ALL_RUN, mode="tools", model=config.CHAT_MODEL, reasoning_effort=config.REASONING_EFFORT)
+    checks = {r["id"]: live.check(r) for r in records}
+    status = {r["id"]: live.status(r, checks[r["id"]]) for r in records}
+    count = lambda label: sum(s.startswith(label) for s in status.values())  # noqa: E731
+    calls = [c for r in records for c in r["tool_calls"]]
+    failed_calls = [c for c in calls if not c["ok"]]
+    own_user = all(c["user_id"] == r["user_id"] for r in records for c in r["tool_calls"])
+    failures = sorted({"#{} {} {}".format(r["id"], c["tool"], c["code"]) for r in records for c in r["tool_calls"]
+                       if not c["ok"]})
+    queries = golden.by_id()
+
+    lines = [
+        "# Task 15 Evidence: All 50 requirements.md Queries Through MCP",
+        "",
+        f"*Run {run_date} · {config.CHAT_MODEL} at reasoning effort `{config.REASONING_EFFORT}` · "
+        "Script: `uv run python scripts/task15_mcp_round_trip.py --all` · Raw run: "
+        "[runs/task-15-all-queries.json](runs/task-15-all-queries.json)*",
+        "",
+        "Task 15's Definition of Done was shown on one query ([task-15-mcp-round-trip.md](task-15-mcp-round-trip.md)). "
+        "This run asks all 50 requirements.md queries, the 6 sample queries (§3) and the 44 additional queries (§4), "
+        "through the same agent loop, each signed in as the user its row names, so the Week 4 eval (Tasks 27–30) "
+        "starts from a baseline that covers more than the original 6.",
+        "",
+        "**How each answer is checked (automatically, from `creditcoach/evals/golden_queries.json`):** the tools "
+        "the query needs were called and succeeded; the answer states the figures the tools returned (for example "
+        "37.4% or ₹14,750, in any common format); it contains the expected behavior (for example a high-risk warning "
+        "and a safer alternative); it matches no forbidden pattern (such as another user's score); and it has no "
+        "guarantee language without a negation. The checks are keyword-based and lenient. Tone, completeness and "
+        "refusal quality are judged in Task 27.",
+        "",
+        "**Not built yet, so not checked:** goal memory and recall across sessions (Tasks 16–17; queries #3, #5, "
+        "#23, #25, #35–#40), multi-turn follow-ups (#47), and the guardrail layer (Tasks 19–21: today the system "
+        "prompt alone enforces the rules). These queries ran as single turns; their status is \"pass, partly "
+        "deferred\" when the parts that can be checked today pass.",
+        "",
+        "## Result",
+        "",
+        "| | Queries |",
+        "|---|---|",
+        f"| ✅ Pass (fully checkable today) | {count('✅')} |",
+        f"| ⏸ Pass on what can be checked today (rest needs a later task) | {count('⏸')} |",
+        f"| ❌ Fail | {count('❌')} |",
+        f"| 💥 Error (crashed) | {count('💥')} |",
+        f"| **Total** | **{len(records)}** |",
+        "",
+        f"**Tool calls:** {len(calls)} over MCP, {len(failed_calls)} failed "
+        f"({', '.join(failures) or 'none'}). "
+        f"Every call ran for the signed-in user only: {'✅' if own_user else '❌'}. "
+        f"Total time {sum(r['seconds'] for r in records):.0f} s of model and tool time "
+        f"(median {sorted(r['seconds'] for r in records)[len(records) // 2]:.1f} s per query).",
+        "",
+        "## Failures by kind (input for the Task 29 error analysis)",
+        "",
+        "| Kind | Queries |",
+        "|---|---|",
+        *[f"| {kind} | {', '.join(f'#{i}' for i in ids) or '—'} |" for kind, ids in failure_kinds(records, checks).items()],
+        "",
+        "## Per query",
+        "",
+        "| # | User | Query | Tool calls | Status | Problems found | Numbers to review |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for r in records:
+        chk, q = checks[r["id"]], queries[r["id"]]
+        tools = ", ".join(f"{c['tool'].removeprefix('get_')}({', '.join(f'{v}' for v in c['arguments'].values())})"
+                          f"{'' if c['ok'] else ' → ' + c['code']}" for c in r["tool_calls"]) or "none"
+        review = golden.unsourced_numbers(r["answer"] or "", live.sources(r))
+        problems = chk.problems() + ([r["error"].strip().splitlines()[-1]] if r["error"] else [])
+        lines.append(f"| {r['id']} | {r['user_id']} | {cell(q.query)} | {tools} | {status[r['id']]} | "
+                     f"{cell('; '.join(problems)) or '—'} | {', '.join(review) or '—'} |")
+    lines += ["", "*Numbers to review* are figures in the answer that aren't in the question, the passages or the "
+              "tool results, and aren't one or two arithmetic steps from them. They aren't automatically wrong (a "
+              "date or a rounded figure can land here), but each needs a human look: the system prompt's rule 1 "
+              "forbids inventing figures.", "", "## Answers", ""]
+    for r in records:
+        q = queries[r["id"]]
+        lines += [f"### #{r['id']} · {q.label} · {q.user}", "",
+                  f"**Query:** {q.query}" + (f" *({q.note})*" if q.note else ""), "",
+                  f"**Expected (requirements.md):** {q.expected}", "",
+                  f"**Status:** {status[r['id']]}" + (f" · needs: {'; '.join(r['needs'])}" if r["needs"] else "")
+                  + (f" · injected fault: {r['fault']}" if r["fault"] else ""), "",
+                  f"*{r['model'] or 'no model'} · passages {', '.join(p['id'] for p in r['passages']) or 'none'} · "
+                  f"{r['seconds']:.1f} s*", ""]
+        if r["error"]:
+            lines += ["```", r["error"].strip(), "```", ""]
+        lines += ["<details><summary>Answer</summary>", "", *[f"> {l}" if l else ">" for l in (r["answer"] or "").splitlines()],
+                  "", "</details>", ""]
+    ALL_EVIDENCE.write_text("\n".join(lines), encoding="utf-8")
+    print(f"pass {count('✅')}, pass partly deferred {count('⏸')}, fail {count('❌')}, error {count('💥')}: "
+          f"wrote {ALL_EVIDENCE.relative_to(config.ROOT)} and {ALL_RUN.relative_to(config.ROOT)}")
+
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Task 15 evidence: one traced query, or all 50 with --all.")
+    parser.add_argument("--all", action="store_true", help="run all 50 requirements.md queries (paid model calls)")
+    parser.add_argument("--rescore", action="store_true", help="with --all: re-check the saved run, no model calls")
+    args = parser.parse_args()
+    if args.all:
+        main_all(rescore=args.rescore)
+    else:
+        main()

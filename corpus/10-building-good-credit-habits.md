@@ -3,7 +3,7 @@ id: building-good-credit-habits
 title: Habits that build a strong credit score
 category: financial_literacy
 source: CreditCoach team, based on credit_score_factors_guide.pdf §1–§5
-queries: [3, 6]
+queries: [3, 6, 11, 24, 26, 27, 28, 43]
 ---
 
 # Habits that build a strong credit score

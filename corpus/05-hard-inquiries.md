@@ -3,7 +3,7 @@ id: factor-hard-inquiries
 title: New credit and hard inquiries
 category: scoring_factor
 source: credit_score_factors_guide.pdf §4 and §7 (impact ranges); soft vs hard inquiries by CreditCoach team
-queries: [1, 3]
+queries: [1, 3, 7, 8, 9, 12, 23, 33]
 ---
 
 # New credit and hard inquiries

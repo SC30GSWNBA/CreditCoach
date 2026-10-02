@@ -29,7 +29,7 @@ Output:
 All checks passed. Ready to build.
 ```
 
-> **Note (after Task 6):** the last check line now reads `[PASS] Dataset readable (data/) - 15 users, 28 accounts, 156 score rows; ...` (13 users, 25 accounts and 132 score rows before the 2026-09-30 update) because the check validates the synthetic dataset instead of the sample workbook. Since Task 8 it also prints `[INFO] Vector store built - 45 chunks ...` (or `[INFO] Vector store not built yet ...` before you run `uv run python -m creditcoach.rag.ingest`); this line is informational and never fails the check.
+> **Note (after Task 6):** the last check line now reads `[PASS] Dataset readable (data/) - 15 users, 28 accounts, 156 score rows; ...` (13 users, 25 accounts and 132 score rows before the 2026-09-30 update) because the check validates the synthetic dataset instead of the sample workbook. Since Task 8 it also prints `[INFO] Vector store built - 45 chunks ...` (or `[INFO] Vector store not built yet ...` before you run `uv run python -m creditcoach.rag.ingest`); this line is informational and never fails the check. Since Task 11 it also checks `[PASS] Chat UI logins (creditcoach/app/logins.json) - 15 logins for 15 of 15 users`, and since Task 15 `[PASS] import mcp`. A fresh clone can also run `uv run pytest` (README step 9), which needs no API key.
 
 ## Teammate verification (to fill in)
 

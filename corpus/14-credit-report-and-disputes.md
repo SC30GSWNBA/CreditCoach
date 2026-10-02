@@ -3,7 +3,7 @@ id: credit-report-and-disputes
 title: Reading your credit report and fixing errors
 category: financial_literacy
 source: CreditCoach team (general education on the Indian credit system)
-queries: [1, 6]
+queries: [1, 6, 24, 30, 34]
 ---
 
 # Reading your credit report and fixing errors

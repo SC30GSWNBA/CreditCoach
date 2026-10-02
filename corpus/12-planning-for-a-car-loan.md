@@ -3,7 +3,7 @@ id: planning-for-a-car-loan
 title: Preparing your credit for a car loan (or any big loan)
 category: financial_literacy
 source: CreditCoach team, based on credit_score_factors_guide.pdf §1–§4
-queries: [3, 5]
+queries: [3, 5, 9, 23, 24, 25, 26]
 ---
 
 # Preparing your credit for a car loan

@@ -2,7 +2,7 @@
 
 *2026-09-24 · Code: `creditcoach/app/main.py` · Run: `uv run python -m creditcoach.app --share`*
 
-> **Update (2026-09-27): per-user logins.** The single `APP_USERNAME` / `APP_PASSWORD` login has been replaced by one login per dataset user (`creditcoach_user1` → USR-001 … `creditcoach_user13` → USR-013). Answers now use the signed-in user's own profile, score history and accounts, and never another user's. The screenshot and transcript below predate this change, so that answer says it can't see account data; a signed-in user now gets their own figures. Evidence: [task-11-user-logins.md](task-11-user-logins.md).
+> **Update (2026-09-27): per-user logins.** The single `APP_USERNAME` / `APP_PASSWORD` login has been replaced by one login per dataset user (`creditcoach_user1` → USR-001 … `creditcoach_user13` → USR-013; 15 users since 2026-09-30). Answers now use the signed-in user's own profile, score history and accounts, and never another user's. The screenshot and transcript below predate this change, so that answer says it can't see account data; a signed-in user now gets their own figures. Evidence: [task-11-user-logins.md](task-11-user-logins.md).
 
 **Definition of Done:** the Gradio app launches and returns a grounded explanation for a real query. **Evidence:** a screenshot of the running UI, plus the shareable link posted to the team channel.
 

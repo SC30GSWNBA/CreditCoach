@@ -1,64 +1,64 @@
 # Task 8 evidence: all 45 chunks in the vector store
 
-*Exported from the Chroma collection `creditcoach_corpus` in `.chroma` on 2026-09-27, in corpus order. Text is exactly what was embedded (each chunk starts with its document title), shown in fenced blocks so its markdown isn't rendered. Rebuild the store with `uv run python -m creditcoach.rag.ingest`; if the corpus or chunking changes, re-export this file.*
+*Exported from the Chroma collection `creditcoach_corpus` in `.chroma` on 2026-10-02, in corpus order, by `uv run python scripts/task08_ingestion_report.py`. Text is exactly what was embedded (each chunk starts with its document title), shown in fenced blocks so its markdown isn't rendered.*
 
-**45 chunks · 17 source files · 5,099 words.** "Queries" are the requirements.md §3 sample queries the source file is tagged for.
+**45 chunks · 17 source files · 5,099 words.** "Queries" are the requirements.md queries (§3 #1–6 and §4 #7–50) the source file is tagged for.
 
 ## Index
 
 | # | Chunk ID | File | Part | Category | Words / Tokens | Queries |
 |---|---|---|---|---|---|---|
-| 1 | [`credit-scores-in-india#00`](#1-credit-scores-in-india00) | `01-credit-scores-in-india.md` | 1/2 | scoring_factor | 159 / 209 | 1,3,6 |
-| 2 | [`credit-scores-in-india#01`](#2-credit-scores-in-india01) | `01-credit-scores-in-india.md` | 2/2 | scoring_factor | 131 / 158 | 1,3,6 |
-| 3 | [`factor-payment-history#00`](#3-factor-payment-history00) | `02-payment-history.md` | 1/2 | scoring_factor | 158 / 195 | 1,3 |
-| 4 | [`factor-payment-history#01`](#4-factor-payment-history01) | `02-payment-history.md` | 2/2 | scoring_factor | 153 / 183 | 1,3 |
-| 5 | [`factor-credit-utilization#00`](#5-factor-credit-utilization00) | `03-credit-utilization.md` | 1/3 | scoring_factor | 128 / 202 | 1,2,3 |
-| 6 | [`factor-credit-utilization#01`](#6-factor-credit-utilization01) | `03-credit-utilization.md` | 2/3 | scoring_factor | 170 / 226 | 1,2,3 |
-| 7 | [`factor-credit-utilization#02`](#7-factor-credit-utilization02) | `03-credit-utilization.md` | 3/3 | scoring_factor | 54 / 75 | 1,2,3 |
-| 8 | [`factor-credit-history-length#00`](#8-factor-credit-history-length00) | `04-credit-history-length.md` | 1/2 | scoring_factor | 185 / 231 | 1,3 |
-| 9 | [`factor-credit-history-length#01`](#9-factor-credit-history-length01) | `04-credit-history-length.md` | 2/2 | scoring_factor | 25 / 40 | 1,3 |
-| 10 | [`factor-hard-inquiries#00`](#10-factor-hard-inquiries00) | `05-hard-inquiries.md` | 1/2 | scoring_factor | 138 / 184 | 1,3 |
-| 11 | [`factor-hard-inquiries#01`](#11-factor-hard-inquiries01) | `05-hard-inquiries.md` | 2/2 | scoring_factor | 114 / 145 | 1,3 |
+| 1 | [`credit-scores-in-india#00`](#1-credit-scores-in-india00) | `01-credit-scores-in-india.md` | 1/2 | scoring_factor | 159 / 209 | 1,3,6,13,20,26,43,50 |
+| 2 | [`credit-scores-in-india#01`](#2-credit-scores-in-india01) | `01-credit-scores-in-india.md` | 2/2 | scoring_factor | 131 / 158 | 1,3,6,13,20,26,43,50 |
+| 3 | [`factor-payment-history#00`](#3-factor-payment-history00) | `02-payment-history.md` | 1/2 | scoring_factor | 158 / 195 | 1,3,11,34,42 |
+| 4 | [`factor-payment-history#01`](#4-factor-payment-history01) | `02-payment-history.md` | 2/2 | scoring_factor | 153 / 183 | 1,3,11,34,42 |
+| 5 | [`factor-credit-utilization#00`](#5-factor-credit-utilization00) | `03-credit-utilization.md` | 1/3 | scoring_factor | 128 / 202 | 1,2,3,7,10,12,15,16,18,19,21,23,25,28,37,41 |
+| 6 | [`factor-credit-utilization#01`](#6-factor-credit-utilization01) | `03-credit-utilization.md` | 2/3 | scoring_factor | 170 / 226 | 1,2,3,7,10,12,15,16,18,19,21,23,25,28,37,41 |
+| 7 | [`factor-credit-utilization#02`](#7-factor-credit-utilization02) | `03-credit-utilization.md` | 3/3 | scoring_factor | 54 / 75 | 1,2,3,7,10,12,15,16,18,19,21,23,25,28,37,41 |
+| 8 | [`factor-credit-history-length#00`](#8-factor-credit-history-length00) | `04-credit-history-length.md` | 1/2 | scoring_factor | 185 / 231 | 1,3,24 |
+| 9 | [`factor-credit-history-length#01`](#9-factor-credit-history-length01) | `04-credit-history-length.md` | 2/2 | scoring_factor | 25 / 40 | 1,3,24 |
+| 10 | [`factor-hard-inquiries#00`](#10-factor-hard-inquiries00) | `05-hard-inquiries.md` | 1/2 | scoring_factor | 138 / 184 | 1,3,7,8,9,12,23,33 |
+| 11 | [`factor-hard-inquiries#01`](#11-factor-hard-inquiries01) | `05-hard-inquiries.md` | 2/2 | scoring_factor | 114 / 145 | 1,3,7,8,9,12,23,33 |
 | 12 | [`factor-credit-mix#00`](#12-factor-credit-mix00) | `06-credit-mix.md` | 1/1 | scoring_factor | 133 / 154 | 3 |
-| 13 | [`score-impact-reference#00`](#13-score-impact-reference00) | `07-score-impact-reference.md` | 1/3 | scoring_factor | 53 / 67 | 1,3,6 |
-| 14 | [`score-impact-reference#01`](#14-score-impact-reference01) | `07-score-impact-reference.md` | 2/3 | scoring_factor | 141 / 184 | 1,3,6 |
-| 15 | [`score-impact-reference#02`](#15-score-impact-reference02) | `07-score-impact-reference.md` | 3/3 | scoring_factor | 90 / 110 | 1,3,6 |
-| 16 | [`why-scores-drop#00`](#16-why-scores-drop00) | `08-why-scores-drop.md` | 1/3 | scoring_factor | 51 / 69 | 1 |
-| 17 | [`why-scores-drop#01`](#17-why-scores-drop01) | `08-why-scores-drop.md` | 2/3 | scoring_factor | 122 / 173 | 1 |
-| 18 | [`why-scores-drop#02`](#18-why-scores-drop02) | `08-why-scores-drop.md` | 3/3 | scoring_factor | 170 / 230 | 1 |
-| 19 | [`no-credit-history#00`](#19-no-credit-history00) | `09-no-credit-history.md` | 1/2 | financial_literacy | 175 / 233 | 3 |
-| 20 | [`no-credit-history#01`](#20-no-credit-history01) | `09-no-credit-history.md` | 2/2 | financial_literacy | 91 / 122 | 3 |
-| 21 | [`building-good-credit-habits#00`](#21-building-good-credit-habits00) | `10-building-good-credit-habits.md` | 1/3 | financial_literacy | 25 / 37 | 3,6 |
-| 22 | [`building-good-credit-habits#01`](#22-building-good-credit-habits01) | `10-building-good-credit-habits.md` | 2/3 | financial_literacy | 155 / 216 | 3,6 |
-| 23 | [`building-good-credit-habits#02`](#23-building-good-credit-habits02) | `10-building-good-credit-habits.md` | 3/3 | financial_literacy | 105 / 134 | 3,6 |
-| 24 | [`minimum-due-and-interest#00`](#24-minimum-due-and-interest00) | `11-minimum-due-and-interest.md` | 1/3 | financial_literacy | 57 / 87 | 2,3,4 |
-| 25 | [`minimum-due-and-interest#01`](#25-minimum-due-and-interest01) | `11-minimum-due-and-interest.md` | 2/3 | financial_literacy | 158 / 212 | 2,3,4 |
-| 26 | [`minimum-due-and-interest#02`](#26-minimum-due-and-interest02) | `11-minimum-due-and-interest.md` | 3/3 | financial_literacy | 97 / 128 | 2,3,4 |
-| 27 | [`planning-for-a-car-loan#00`](#27-planning-for-a-car-loan00) | `12-planning-for-a-car-loan.md` | 1/3 | financial_literacy | 64 / 92 | 3,5 |
-| 28 | [`planning-for-a-car-loan#01`](#28-planning-for-a-car-loan01) | `12-planning-for-a-car-loan.md` | 2/3 | financial_literacy | 151 / 220 | 3,5 |
-| 29 | [`planning-for-a-car-loan#02`](#29-planning-for-a-car-loan02) | `12-planning-for-a-car-loan.md` | 3/3 | financial_literacy | 120 / 158 | 3,5 |
-| 30 | [`credit-goals-and-no-guarantees#00`](#30-credit-goals-and-no-guarantees00) | `13-credit-goals-and-no-guarantees.md` | 1/2 | financial_literacy | 158 / 205 | 3,5,6 |
-| 31 | [`credit-goals-and-no-guarantees#01`](#31-credit-goals-and-no-guarantees01) | `13-credit-goals-and-no-guarantees.md` | 2/2 | financial_literacy | 157 / 213 | 3,5,6 |
-| 32 | [`credit-report-and-disputes#00`](#32-credit-report-and-disputes00) | `14-credit-report-and-disputes.md` | 1/3 | financial_literacy | 76 / 109 | 1,6 |
-| 33 | [`credit-report-and-disputes#01`](#33-credit-report-and-disputes01) | `14-credit-report-and-disputes.md` | 2/3 | financial_literacy | 146 / 223 | 1,6 |
-| 34 | [`credit-report-and-disputes#02`](#34-credit-report-and-disputes02) | `14-credit-report-and-disputes.md` | 3/3 | financial_literacy | 83 / 123 | 1,6 |
-| 35 | [`payday-loans-and-instant-loan-apps#00`](#35-payday-loans-and-instant-loan-apps00) | `15-payday-loans-and-instant-loan-apps.md` | 1/5 | product_risk | 70 / 112 | 4 |
-| 36 | [`payday-loans-and-instant-loan-apps#01`](#36-payday-loans-and-instant-loan-apps01) | `15-payday-loans-and-instant-loan-apps.md` | 2/5 | product_risk | 150 / 220 | 4 |
-| 37 | [`payday-loans-and-instant-loan-apps#02`](#37-payday-loans-and-instant-loan-apps02) | `15-payday-loans-and-instant-loan-apps.md` | 3/5 | product_risk | 85 / 130 | 4 |
-| 38 | [`payday-loans-and-instant-loan-apps#03`](#38-payday-loans-and-instant-loan-apps03) | `15-payday-loans-and-instant-loan-apps.md` | 4/5 | product_risk | 108 / 157 | 4 |
-| 39 | [`payday-loans-and-instant-loan-apps#04`](#39-payday-loans-and-instant-loan-apps04) | `15-payday-loans-and-instant-loan-apps.md` | 5/5 | product_risk | 52 / 100 | 4 |
-| 40 | [`credit-repair-scams#00`](#40-credit-repair-scams00) | `16-credit-repair-scams.md` | 1/2 | product_risk | 122 / 169 | 4,6 |
-| 41 | [`credit-repair-scams#01`](#41-credit-repair-scams01) | `16-credit-repair-scams.md` | 2/2 | product_risk | 141 / 190 | 4,6 |
-| 42 | [`safer-alternatives#00`](#42-safer-alternatives00) | `17-safer-alternatives.md` | 1/4 | product_risk | 40 / 54 | 4 |
-| 43 | [`safer-alternatives#01`](#43-safer-alternatives01) | `17-safer-alternatives.md` | 2/4 | product_risk | 160 / 222 | 4 |
-| 44 | [`safer-alternatives#02`](#44-safer-alternatives02) | `17-safer-alternatives.md` | 3/4 | product_risk | 149 / 217 | 4 |
-| 45 | [`safer-alternatives#03`](#45-safer-alternatives03) | `17-safer-alternatives.md` | 4/4 | product_risk | 29 / 59 | 4 |
+| 13 | [`score-impact-reference#00`](#13-score-impact-reference00) | `07-score-impact-reference.md` | 1/3 | scoring_factor | 53 / 67 | 1,3,6,7,8,10,11,41,42 |
+| 14 | [`score-impact-reference#01`](#14-score-impact-reference01) | `07-score-impact-reference.md` | 2/3 | scoring_factor | 141 / 184 | 1,3,6,7,8,10,11,41,42 |
+| 15 | [`score-impact-reference#02`](#15-score-impact-reference02) | `07-score-impact-reference.md` | 3/3 | scoring_factor | 90 / 110 | 1,3,6,7,8,10,11,41,42 |
+| 16 | [`why-scores-drop#00`](#16-why-scores-drop00) | `08-why-scores-drop.md` | 1/3 | scoring_factor | 51 / 69 | 1,7,8,9,10,12,13 |
+| 17 | [`why-scores-drop#01`](#17-why-scores-drop01) | `08-why-scores-drop.md` | 2/3 | scoring_factor | 122 / 173 | 1,7,8,9,10,12,13 |
+| 18 | [`why-scores-drop#02`](#18-why-scores-drop02) | `08-why-scores-drop.md` | 3/3 | scoring_factor | 170 / 230 | 1,7,8,9,10,12,13 |
+| 19 | [`no-credit-history#00`](#19-no-credit-history00) | `09-no-credit-history.md` | 1/2 | financial_literacy | 175 / 233 | 3,14,20 |
+| 20 | [`no-credit-history#01`](#20-no-credit-history01) | `09-no-credit-history.md` | 2/2 | financial_literacy | 91 / 122 | 3,14,20 |
+| 21 | [`building-good-credit-habits#00`](#21-building-good-credit-habits00) | `10-building-good-credit-habits.md` | 1/3 | financial_literacy | 25 / 37 | 3,6,11,24,26,27,28,43 |
+| 22 | [`building-good-credit-habits#01`](#22-building-good-credit-habits01) | `10-building-good-credit-habits.md` | 2/3 | financial_literacy | 155 / 216 | 3,6,11,24,26,27,28,43 |
+| 23 | [`building-good-credit-habits#02`](#23-building-good-credit-habits02) | `10-building-good-credit-habits.md` | 3/3 | financial_literacy | 105 / 134 | 3,6,11,24,26,27,28,43 |
+| 24 | [`minimum-due-and-interest#00`](#24-minimum-due-and-interest00) | `11-minimum-due-and-interest.md` | 1/3 | financial_literacy | 57 / 87 | 2,3,4,21,27,29 |
+| 25 | [`minimum-due-and-interest#01`](#25-minimum-due-and-interest01) | `11-minimum-due-and-interest.md` | 2/3 | financial_literacy | 158 / 212 | 2,3,4,21,27,29 |
+| 26 | [`minimum-due-and-interest#02`](#26-minimum-due-and-interest02) | `11-minimum-due-and-interest.md` | 3/3 | financial_literacy | 97 / 128 | 2,3,4,21,27,29 |
+| 27 | [`planning-for-a-car-loan#00`](#27-planning-for-a-car-loan00) | `12-planning-for-a-car-loan.md` | 1/3 | financial_literacy | 64 / 92 | 3,5,9,23,24,25,26 |
+| 28 | [`planning-for-a-car-loan#01`](#28-planning-for-a-car-loan01) | `12-planning-for-a-car-loan.md` | 2/3 | financial_literacy | 151 / 220 | 3,5,9,23,24,25,26 |
+| 29 | [`planning-for-a-car-loan#02`](#29-planning-for-a-car-loan02) | `12-planning-for-a-car-loan.md` | 3/3 | financial_literacy | 120 / 158 | 3,5,9,23,24,25,26 |
+| 30 | [`credit-goals-and-no-guarantees#00`](#30-credit-goals-and-no-guarantees00) | `13-credit-goals-and-no-guarantees.md` | 1/2 | financial_literacy | 158 / 205 | 3,5,6,11,25,28,35,36,37,38,39,40,41,42,43,44,50 |
+| 31 | [`credit-goals-and-no-guarantees#01`](#31-credit-goals-and-no-guarantees01) | `13-credit-goals-and-no-guarantees.md` | 2/2 | financial_literacy | 157 / 213 | 3,5,6,11,25,28,35,36,37,38,39,40,41,42,43,44,50 |
+| 32 | [`credit-report-and-disputes#00`](#32-credit-report-and-disputes00) | `14-credit-report-and-disputes.md` | 1/3 | financial_literacy | 76 / 109 | 1,6,24,30,34 |
+| 33 | [`credit-report-and-disputes#01`](#33-credit-report-and-disputes01) | `14-credit-report-and-disputes.md` | 2/3 | financial_literacy | 146 / 223 | 1,6,24,30,34 |
+| 34 | [`credit-report-and-disputes#02`](#34-credit-report-and-disputes02) | `14-credit-report-and-disputes.md` | 3/3 | financial_literacy | 83 / 123 | 1,6,24,30,34 |
+| 35 | [`payday-loans-and-instant-loan-apps#00`](#35-payday-loans-and-instant-loan-apps00) | `15-payday-loans-and-instant-loan-apps.md` | 1/5 | product_risk | 70 / 112 | 4,12,29,31,32,44 |
+| 36 | [`payday-loans-and-instant-loan-apps#01`](#36-payday-loans-and-instant-loan-apps01) | `15-payday-loans-and-instant-loan-apps.md` | 2/5 | product_risk | 150 / 220 | 4,12,29,31,32,44 |
+| 37 | [`payday-loans-and-instant-loan-apps#02`](#37-payday-loans-and-instant-loan-apps02) | `15-payday-loans-and-instant-loan-apps.md` | 3/5 | product_risk | 85 / 130 | 4,12,29,31,32,44 |
+| 38 | [`payday-loans-and-instant-loan-apps#03`](#38-payday-loans-and-instant-loan-apps03) | `15-payday-loans-and-instant-loan-apps.md` | 4/5 | product_risk | 108 / 157 | 4,12,29,31,32,44 |
+| 39 | [`payday-loans-and-instant-loan-apps#04`](#39-payday-loans-and-instant-loan-apps04) | `15-payday-loans-and-instant-loan-apps.md` | 5/5 | product_risk | 52 / 100 | 4,12,29,31,32,44 |
+| 40 | [`credit-repair-scams#00`](#40-credit-repair-scams00) | `16-credit-repair-scams.md` | 1/2 | product_risk | 122 / 169 | 4,6,12,30,34,44 |
+| 41 | [`credit-repair-scams#01`](#41-credit-repair-scams01) | `16-credit-repair-scams.md` | 2/2 | product_risk | 141 / 190 | 4,6,12,30,34,44 |
+| 42 | [`safer-alternatives#00`](#42-safer-alternatives00) | `17-safer-alternatives.md` | 1/4 | product_risk | 40 / 54 | 4,12,21,29,32,33,44 |
+| 43 | [`safer-alternatives#01`](#43-safer-alternatives01) | `17-safer-alternatives.md` | 2/4 | product_risk | 160 / 222 | 4,12,21,29,32,33,44 |
+| 44 | [`safer-alternatives#02`](#44-safer-alternatives02) | `17-safer-alternatives.md` | 3/4 | product_risk | 149 / 217 | 4,12,21,29,32,33,44 |
+| 45 | [`safer-alternatives#03`](#45-safer-alternatives03) | `17-safer-alternatives.md` | 4/4 | product_risk | 29 / 59 | 4,12,21,29,32,33,44 |
 
 ## Chunks
 
 ### 1. credit-scores-in-india00
 
-`credit-scores-in-india#00` · [01-credit-scores-in-india.md](../../../corpus/01-credit-scores-in-india.md) · part 1 of 2 · scoring_factor · 159 words / 209 tokens · queries 1,3,6  
+`credit-scores-in-india#00` · [01-credit-scores-in-india.md](../../../corpus/01-credit-scores-in-india.md) · part 1 of 2 · scoring_factor · 159 words / 209 tokens · queries 1,3,6,13,20,26,43,50  
 Source: CreditCoach team (general education on the Indian credit system)
 
 ```text
@@ -73,7 +73,7 @@ Most Indian credit scores run from 300 to 900. A higher score means lower risk t
 
 ### 2. credit-scores-in-india01
 
-`credit-scores-in-india#01` · [01-credit-scores-in-india.md](../../../corpus/01-credit-scores-in-india.md) · part 2 of 2 · scoring_factor · 131 words / 158 tokens · queries 1,3,6  
+`credit-scores-in-india#01` · [01-credit-scores-in-india.md](../../../corpus/01-credit-scores-in-india.md) · part 2 of 2 · scoring_factor · 131 words / 158 tokens · queries 1,3,6,13,20,26,43,50  
 Source: CreditCoach team (general education on the Indian credit system)
 
 ```text
@@ -88,7 +88,7 @@ No one can calculate your exact future score, including CreditCoach. Scoring mod
 
 ### 3. factor-payment-history00
 
-`factor-payment-history#00` · [02-payment-history.md](../../../corpus/02-payment-history.md) · part 1 of 2 · scoring_factor · 158 words / 195 tokens · queries 1,3  
+`factor-payment-history#00` · [02-payment-history.md](../../../corpus/02-payment-history.md) · part 1 of 2 · scoring_factor · 158 words / 195 tokens · queries 1,3,11,34,42  
 Source: credit_score_factors_guide.pdf §1 and §7 (impact ranges); India terms added by CreditCoach team
 
 ```text
@@ -103,7 +103,7 @@ In India, credit reports show late payments as "days past due" (DPD). DPD counts
 
 ### 4. factor-payment-history01
 
-`factor-payment-history#01` · [02-payment-history.md](../../../corpus/02-payment-history.md) · part 2 of 2 · scoring_factor · 153 words / 183 tokens · queries 1,3  
+`factor-payment-history#01` · [02-payment-history.md](../../../corpus/02-payment-history.md) · part 2 of 2 · scoring_factor · 153 words / 183 tokens · queries 1,3,11,34,42  
 Source: credit_score_factors_guide.pdf §1 and §7 (impact ranges); India terms added by CreditCoach team
 
 ```text
@@ -121,7 +121,7 @@ A late payment cannot be removed from your report just because you ask or pay so
 
 ### 5. factor-credit-utilization00
 
-`factor-credit-utilization#00` · [03-credit-utilization.md](../../../corpus/03-credit-utilization.md) · part 1 of 3 · scoring_factor · 128 words / 202 tokens · queries 1,2,3  
+`factor-credit-utilization#00` · [03-credit-utilization.md](../../../corpus/03-credit-utilization.md) · part 1 of 3 · scoring_factor · 128 words / 202 tokens · queries 1,2,3,7,10,12,15,16,18,19,21,23,25,28,37,41  
 Source: credit_score_factors_guide.pdf §2 and §7 (impact ranges); worked example by CreditCoach team
 
 ```text
@@ -138,7 +138,7 @@ Credit utilization is the percentage of your available revolving credit (credit 
 
 ### 6. factor-credit-utilization01
 
-`factor-credit-utilization#01` · [03-credit-utilization.md](../../../corpus/03-credit-utilization.md) · part 2 of 3 · scoring_factor · 170 words / 226 tokens · queries 1,2,3  
+`factor-credit-utilization#01` · [03-credit-utilization.md](../../../corpus/03-credit-utilization.md) · part 2 of 3 · scoring_factor · 170 words / 226 tokens · queries 1,2,3,7,10,12,15,16,18,19,21,23,25,28,37,41  
 Source: credit_score_factors_guide.pdf §2 and §7 (impact ranges); worked example by CreditCoach team
 
 ```text
@@ -153,7 +153,7 @@ Credit utilization (how much of your card limits you use)
 
 ### 7. factor-credit-utilization02
 
-`factor-credit-utilization#02` · [03-credit-utilization.md](../../../corpus/03-credit-utilization.md) · part 3 of 3 · scoring_factor · 54 words / 75 tokens · queries 1,2,3  
+`factor-credit-utilization#02` · [03-credit-utilization.md](../../../corpus/03-credit-utilization.md) · part 3 of 3 · scoring_factor · 54 words / 75 tokens · queries 1,2,3,7,10,12,15,16,18,19,21,23,25,28,37,41  
 Source: credit_score_factors_guide.pdf §2 and §7 (impact ranges); worked example by CreditCoach team
 
 ```text
@@ -168,7 +168,7 @@ Credit utilization (how much of your card limits you use)
 
 ### 8. factor-credit-history-length00
 
-`factor-credit-history-length#00` · [04-credit-history-length.md](../../../corpus/04-credit-history-length.md) · part 1 of 2 · scoring_factor · 185 words / 231 tokens · queries 1,3  
+`factor-credit-history-length#00` · [04-credit-history-length.md](../../../corpus/04-credit-history-length.md) · part 1 of 2 · scoring_factor · 185 words / 231 tokens · queries 1,3,24  
 Source: credit_score_factors_guide.pdf §3 and §7 (impact ranges)
 
 ```text
@@ -185,7 +185,7 @@ If an old card has no annual fee, keeping it open and using it lightly (for exam
 
 ### 9. factor-credit-history-length01
 
-`factor-credit-history-length#01` · [04-credit-history-length.md](../../../corpus/04-credit-history-length.md) · part 2 of 2 · scoring_factor · 25 words / 40 tokens · queries 1,3  
+`factor-credit-history-length#01` · [04-credit-history-length.md](../../../corpus/04-credit-history-length.md) · part 2 of 2 · scoring_factor · 25 words / 40 tokens · queries 1,3,24  
 Source: credit_score_factors_guide.pdf §3 and §7 (impact ranges)
 
 ```text
@@ -196,7 +196,7 @@ Length of credit history and closing old cards
 
 ### 10. factor-hard-inquiries00
 
-`factor-hard-inquiries#00` · [05-hard-inquiries.md](../../../corpus/05-hard-inquiries.md) · part 1 of 2 · scoring_factor · 138 words / 184 tokens · queries 1,3  
+`factor-hard-inquiries#00` · [05-hard-inquiries.md](../../../corpus/05-hard-inquiries.md) · part 1 of 2 · scoring_factor · 138 words / 184 tokens · queries 1,3,7,8,9,12,23,33  
 Source: credit_score_factors_guide.pdf §4 and §7 (impact ranges); soft vs hard inquiries by CreditCoach team
 
 ```text
@@ -211,7 +211,7 @@ New credit makes up roughly 10% of most scoring models.
 
 ### 11. factor-hard-inquiries01
 
-`factor-hard-inquiries#01` · [05-hard-inquiries.md](../../../corpus/05-hard-inquiries.md) · part 2 of 2 · scoring_factor · 114 words / 145 tokens · queries 1,3  
+`factor-hard-inquiries#01` · [05-hard-inquiries.md](../../../corpus/05-hard-inquiries.md) · part 2 of 2 · scoring_factor · 114 words / 145 tokens · queries 1,3,7,8,9,12,23,33  
 Source: credit_score_factors_guide.pdf §4 and §7 (impact ranges); soft vs hard inquiries by CreditCoach team
 
 ```text
@@ -243,7 +243,7 @@ Taking on a loan you don't need just to improve your credit mix is generally not
 
 ### 13. score-impact-reference00
 
-`score-impact-reference#00` · [07-score-impact-reference.md](../../../corpus/07-score-impact-reference.md) · part 1 of 3 · scoring_factor · 53 words / 67 tokens · queries 1,3,6  
+`score-impact-reference#00` · [07-score-impact-reference.md](../../../corpus/07-score-impact-reference.md) · part 1 of 3 · scoring_factor · 53 words / 67 tokens · queries 1,3,6,7,8,10,11,41,42  
 Source: credit_score_factors_guide.pdf §7 (Score Impact Reference Table)
 
 ```text
@@ -254,7 +254,7 @@ The table below summarizes the typical score impact of common credit events, how
 
 ### 14. score-impact-reference01
 
-`score-impact-reference#01` · [07-score-impact-reference.md](../../../corpus/07-score-impact-reference.md) · part 2 of 3 · scoring_factor · 141 words / 184 tokens · queries 1,3,6  
+`score-impact-reference#01` · [07-score-impact-reference.md](../../../corpus/07-score-impact-reference.md) · part 2 of 3 · scoring_factor · 141 words / 184 tokens · queries 1,3,6,7,8,10,11,41,42  
 Source: credit_score_factors_guide.pdf §7 (Score Impact Reference Table)
 
 ```text
@@ -272,7 +272,7 @@ Score impact reference table
 
 ### 15. score-impact-reference02
 
-`score-impact-reference#02` · [07-score-impact-reference.md](../../../corpus/07-score-impact-reference.md) · part 3 of 3 · scoring_factor · 90 words / 110 tokens · queries 1,3,6  
+`score-impact-reference#02` · [07-score-impact-reference.md](../../../corpus/07-score-impact-reference.md) · part 3 of 3 · scoring_factor · 90 words / 110 tokens · queries 1,3,6,7,8,10,11,41,42  
 Source: credit_score_factors_guide.pdf §7 (Score Impact Reference Table)
 
 ```text
@@ -287,7 +287,7 @@ How to read it:
 
 ### 16. why-scores-drop00
 
-`why-scores-drop#00` · [08-why-scores-drop.md](../../../corpus/08-why-scores-drop.md) · part 1 of 3 · scoring_factor · 51 words / 69 tokens · queries 1  
+`why-scores-drop#00` · [08-why-scores-drop.md](../../../corpus/08-why-scores-drop.md) · part 1 of 3 · scoring_factor · 51 words / 69 tokens · queries 1,7,8,9,10,12,13  
 Source: CreditCoach team, summarizing credit_score_factors_guide.pdf §1–§4 and §7
 
 ```text
@@ -298,7 +298,7 @@ A sudden drop is worrying, but most drops have an ordinary, explainable cause. T
 
 ### 17. why-scores-drop01
 
-`why-scores-drop#01` · [08-why-scores-drop.md](../../../corpus/08-why-scores-drop.md) · part 2 of 3 · scoring_factor · 122 words / 173 tokens · queries 1  
+`why-scores-drop#01` · [08-why-scores-drop.md](../../../corpus/08-why-scores-drop.md) · part 2 of 3 · scoring_factor · 122 words / 173 tokens · queries 1,7,8,9,10,12,13  
 Source: CreditCoach team, summarizing credit_score_factors_guide.pdf §1–§4 and §7
 
 ```text
@@ -312,7 +312,7 @@ Why did my credit score drop? Common causes
 
 ### 18. why-scores-drop02
 
-`why-scores-drop#02` · [08-why-scores-drop.md](../../../corpus/08-why-scores-drop.md) · part 3 of 3 · scoring_factor · 170 words / 230 tokens · queries 1  
+`why-scores-drop#02` · [08-why-scores-drop.md](../../../corpus/08-why-scores-drop.md) · part 3 of 3 · scoring_factor · 170 words / 230 tokens · queries 1,7,8,9,10,12,13  
 Source: CreditCoach team, summarizing credit_score_factors_guide.pdf §1–§4 and §7
 
 ```text
@@ -337,7 +337,7 @@ Why did my credit score drop? Common causes
 
 ### 19. no-credit-history00
 
-`no-credit-history#00` · [09-no-credit-history.md](../../../corpus/09-no-credit-history.md) · part 1 of 2 · financial_literacy · 175 words / 233 tokens · queries 3  
+`no-credit-history#00` · [09-no-credit-history.md](../../../corpus/09-no-credit-history.md) · part 1 of 2 · financial_literacy · 175 words / 233 tokens · queries 3,14,20  
 Source: CreditCoach team (general education)
 
 ```text
@@ -355,7 +355,7 @@ People with no credit history can still find it harder or costlier to get a loan
 
 ### 20. no-credit-history01
 
-`no-credit-history#01` · [09-no-credit-history.md](../../../corpus/09-no-credit-history.md) · part 2 of 2 · financial_literacy · 91 words / 122 tokens · queries 3  
+`no-credit-history#01` · [09-no-credit-history.md](../../../corpus/09-no-credit-history.md) · part 2 of 2 · financial_literacy · 91 words / 122 tokens · queries 3,14,20  
 Source: CreditCoach team (general education)
 
 ```text
@@ -372,7 +372,7 @@ A history of a few months is a thin file. It becomes stronger over time as accou
 
 ### 21. building-good-credit-habits00
 
-`building-good-credit-habits#00` · [10-building-good-credit-habits.md](../../../corpus/10-building-good-credit-habits.md) · part 1 of 3 · financial_literacy · 25 words / 37 tokens · queries 3,6  
+`building-good-credit-habits#00` · [10-building-good-credit-habits.md](../../../corpus/10-building-good-credit-habits.md) · part 1 of 3 · financial_literacy · 25 words / 37 tokens · queries 3,6,11,24,26,27,28,43  
 Source: CreditCoach team, based on credit_score_factors_guide.pdf §1–§5
 
 ```text
@@ -383,7 +383,7 @@ Credit scores reward steady, boring habits over time. There is no shortcut, but 
 
 ### 22. building-good-credit-habits01
 
-`building-good-credit-habits#01` · [10-building-good-credit-habits.md](../../../corpus/10-building-good-credit-habits.md) · part 2 of 3 · financial_literacy · 155 words / 216 tokens · queries 3,6  
+`building-good-credit-habits#01` · [10-building-good-credit-habits.md](../../../corpus/10-building-good-credit-habits.md) · part 2 of 3 · financial_literacy · 155 words / 216 tokens · queries 3,6,11,24,26,27,28,43  
 Source: CreditCoach team, based on credit_score_factors_guide.pdf §1–§5
 
 ```text
@@ -399,7 +399,7 @@ Habits that build a strong credit score
 
 ### 23. building-good-credit-habits02
 
-`building-good-credit-habits#02` · [10-building-good-credit-habits.md](../../../corpus/10-building-good-credit-habits.md) · part 3 of 3 · financial_literacy · 105 words / 134 tokens · queries 3,6  
+`building-good-credit-habits#02` · [10-building-good-credit-habits.md](../../../corpus/10-building-good-credit-habits.md) · part 3 of 3 · financial_literacy · 105 words / 134 tokens · queries 3,6,11,24,26,27,28,43  
 Source: CreditCoach team, based on credit_score_factors_guide.pdf §1–§5
 
 ```text
@@ -414,7 +414,7 @@ No one can promise a specific score by a specific date. These habits improve the
 
 ### 24. minimum-due-and-interest00
 
-`minimum-due-and-interest#00` · [11-minimum-due-and-interest.md](../../../corpus/11-minimum-due-and-interest.md) · part 1 of 3 · financial_literacy · 57 words / 87 tokens · queries 2,3,4  
+`minimum-due-and-interest#00` · [11-minimum-due-and-interest.md](../../../corpus/11-minimum-due-and-interest.md) · part 1 of 3 · financial_literacy · 57 words / 87 tokens · queries 2,3,4,21,27,29  
 Source: CreditCoach team (general education)
 
 ```text
@@ -428,7 +428,7 @@ Every credit card statement shows three important amounts and dates:
 
 ### 25. minimum-due-and-interest01
 
-`minimum-due-and-interest#01` · [11-minimum-due-and-interest.md](../../../corpus/11-minimum-due-and-interest.md) · part 2 of 3 · financial_literacy · 158 words / 212 tokens · queries 2,3,4  
+`minimum-due-and-interest#01` · [11-minimum-due-and-interest.md](../../../corpus/11-minimum-due-and-interest.md) · part 2 of 3 · financial_literacy · 158 words / 212 tokens · queries 2,3,4,21,27,29  
 Source: CreditCoach team (general education)
 
 ```text
@@ -444,7 +444,7 @@ Credit card bills, minimum amount due, and interest
 
 ### 26. minimum-due-and-interest02
 
-`minimum-due-and-interest#02` · [11-minimum-due-and-interest.md](../../../corpus/11-minimum-due-and-interest.md) · part 3 of 3 · financial_literacy · 97 words / 128 tokens · queries 2,3,4  
+`minimum-due-and-interest#02` · [11-minimum-due-and-interest.md](../../../corpus/11-minimum-due-and-interest.md) · part 3 of 3 · financial_literacy · 97 words / 128 tokens · queries 2,3,4,21,27,29  
 Source: CreditCoach team (general education)
 
 ```text
@@ -459,7 +459,7 @@ Credit card bills, minimum amount due, and interest
 
 ### 27. planning-for-a-car-loan00
 
-`planning-for-a-car-loan#00` · [12-planning-for-a-car-loan.md](../../../corpus/12-planning-for-a-car-loan.md) · part 1 of 3 · financial_literacy · 64 words / 92 tokens · queries 3,5  
+`planning-for-a-car-loan#00` · [12-planning-for-a-car-loan.md](../../../corpus/12-planning-for-a-car-loan.md) · part 1 of 3 · financial_literacy · 64 words / 92 tokens · queries 3,5,9,23,24,25,26  
 Source: CreditCoach team, based on credit_score_factors_guide.pdf §1–§4
 
 ```text
@@ -470,7 +470,7 @@ If you plan to take a car loan (or a home or other large loan) within the next y
 
 ### 28. planning-for-a-car-loan01
 
-`planning-for-a-car-loan#01` · [12-planning-for-a-car-loan.md](../../../corpus/12-planning-for-a-car-loan.md) · part 2 of 3 · financial_literacy · 151 words / 220 tokens · queries 3,5  
+`planning-for-a-car-loan#01` · [12-planning-for-a-car-loan.md](../../../corpus/12-planning-for-a-car-loan.md) · part 2 of 3 · financial_literacy · 151 words / 220 tokens · queries 3,5,9,23,24,25,26  
 Source: CreditCoach team, based on credit_score_factors_guide.pdf §1–§4
 
 ```text
@@ -486,7 +486,7 @@ Preparing your credit for a car loan (or any big loan)
 
 ### 29. planning-for-a-car-loan02
 
-`planning-for-a-car-loan#02` · [12-planning-for-a-car-loan.md](../../../corpus/12-planning-for-a-car-loan.md) · part 3 of 3 · financial_literacy · 120 words / 158 tokens · queries 3,5  
+`planning-for-a-car-loan#02` · [12-planning-for-a-car-loan.md](../../../corpus/12-planning-for-a-car-loan.md) · part 3 of 3 · financial_literacy · 120 words / 158 tokens · queries 3,5,9,23,24,25,26  
 Source: CreditCoach team, based on credit_score_factors_guide.pdf §1–§4
 
 ```text
@@ -503,7 +503,7 @@ These steps are the habits most associated with a stronger credit profile. How m
 
 ### 30. credit-goals-and-no-guarantees00
 
-`credit-goals-and-no-guarantees#00` · [13-credit-goals-and-no-guarantees.md](../../../corpus/13-credit-goals-and-no-guarantees.md) · part 1 of 2 · financial_literacy · 158 words / 205 tokens · queries 3,5,6  
+`credit-goals-and-no-guarantees#00` · [13-credit-goals-and-no-guarantees.md](../../../corpus/13-credit-goals-and-no-guarantees.md) · part 1 of 2 · financial_literacy · 158 words / 205 tokens · queries 3,5,6,11,25,28,35,36,37,38,39,40,41,42,43,44,50  
 Source: CreditCoach team, based on credit_score_factors_guide.pdf §6–§7
 
 ```text
@@ -521,7 +521,7 @@ A goal can be ambitious. If it is, plan the steps that give it the best chance a
 
 ### 31. credit-goals-and-no-guarantees01
 
-`credit-goals-and-no-guarantees#01` · [13-credit-goals-and-no-guarantees.md](../../../corpus/13-credit-goals-and-no-guarantees.md) · part 2 of 2 · financial_literacy · 157 words / 213 tokens · queries 3,5,6  
+`credit-goals-and-no-guarantees#01` · [13-credit-goals-and-no-guarantees.md](../../../corpus/13-credit-goals-and-no-guarantees.md) · part 2 of 2 · financial_literacy · 157 words / 213 tokens · queries 3,5,6,11,25,28,35,36,37,38,39,40,41,42,43,44,50  
 Source: CreditCoach team, based on credit_score_factors_guide.pdf §6–§7
 
 ```text
@@ -539,7 +539,7 @@ So any honest projection is educational: "this habit is commonly associated with
 
 ### 32. credit-report-and-disputes00
 
-`credit-report-and-disputes#00` · [14-credit-report-and-disputes.md](../../../corpus/14-credit-report-and-disputes.md) · part 1 of 3 · financial_literacy · 76 words / 109 tokens · queries 1,6  
+`credit-report-and-disputes#00` · [14-credit-report-and-disputes.md](../../../corpus/14-credit-report-and-disputes.md) · part 1 of 3 · financial_literacy · 76 words / 109 tokens · queries 1,6,24,30,34  
 Source: CreditCoach team (general education on the Indian credit system)
 
 ```text
@@ -550,7 +550,7 @@ Your credit report is the record your score is calculated from. In India, each o
 
 ### 33. credit-report-and-disputes01
 
-`credit-report-and-disputes#01` · [14-credit-report-and-disputes.md](../../../corpus/14-credit-report-and-disputes.md) · part 2 of 3 · financial_literacy · 146 words / 223 tokens · queries 1,6  
+`credit-report-and-disputes#01` · [14-credit-report-and-disputes.md](../../../corpus/14-credit-report-and-disputes.md) · part 2 of 3 · financial_literacy · 146 words / 223 tokens · queries 1,6,24,30,34  
 Source: CreditCoach team (general education on the Indian credit system)
 
 ```text
@@ -570,7 +570,7 @@ Reading your credit report and fixing errors
 
 ### 34. credit-report-and-disputes02
 
-`credit-report-and-disputes#02` · [14-credit-report-and-disputes.md](../../../corpus/14-credit-report-and-disputes.md) · part 3 of 3 · financial_literacy · 83 words / 123 tokens · queries 1,6  
+`credit-report-and-disputes#02` · [14-credit-report-and-disputes.md](../../../corpus/14-credit-report-and-disputes.md) · part 3 of 3 · financial_literacy · 83 words / 123 tokens · queries 1,6,24,30,34  
 Source: CreditCoach team (general education on the Indian credit system)
 
 ```text
@@ -584,7 +584,7 @@ If a lender or bureau does not resolve your complaint, you can escalate to the l
 
 ### 35. payday-loans-and-instant-loan-apps00
 
-`payday-loans-and-instant-loan-apps#00` · [15-payday-loans-and-instant-loan-apps.md](../../../corpus/15-payday-loans-and-instant-loan-apps.md) · part 1 of 5 · product_risk · 70 words / 112 tokens · queries 4  
+`payday-loans-and-instant-loan-apps#00` · [15-payday-loans-and-instant-loan-apps.md](../../../corpus/15-payday-loans-and-instant-loan-apps.md) · part 1 of 5 · product_risk · 70 words / 112 tokens · queries 4,12,29,31,32,44  
 Source: credit_score_factors_guide.pdf §6; India digital-lending safeguards summarized by CreditCoach team
 
 ```text
@@ -595,7 +595,7 @@ Payday loans and instant loan apps — why they are high-risk
 
 ### 36. payday-loans-and-instant-loan-apps01
 
-`payday-loans-and-instant-loan-apps#01` · [15-payday-loans-and-instant-loan-apps.md](../../../corpus/15-payday-loans-and-instant-loan-apps.md) · part 2 of 5 · product_risk · 150 words / 220 tokens · queries 4  
+`payday-loans-and-instant-loan-apps#01` · [15-payday-loans-and-instant-loan-apps.md](../../../corpus/15-payday-loans-and-instant-loan-apps.md) · part 2 of 5 · product_risk · 150 words / 220 tokens · queries 4,12,29,31,32,44  
 Source: credit_score_factors_guide.pdf §6; India digital-lending safeguards summarized by CreditCoach team
 
 ```text
@@ -610,7 +610,7 @@ Payday loans and instant loan apps — why they are high-risk
 
 ### 37. payday-loans-and-instant-loan-apps02
 
-`payday-loans-and-instant-loan-apps#02` · [15-payday-loans-and-instant-loan-apps.md](../../../corpus/15-payday-loans-and-instant-loan-apps.md) · part 3 of 5 · product_risk · 85 words / 130 tokens · queries 4  
+`payday-loans-and-instant-loan-apps#02` · [15-payday-loans-and-instant-loan-apps.md](../../../corpus/15-payday-loans-and-instant-loan-apps.md) · part 3 of 5 · product_risk · 85 words / 130 tokens · queries 4,12,29,31,32,44  
 Source: credit_score_factors_guide.pdf §6; India digital-lending safeguards summarized by CreditCoach team
 
 ```text
@@ -623,7 +623,7 @@ Payday loans and instant loan apps — why they are high-risk
 
 ### 38. payday-loans-and-instant-loan-apps03
 
-`payday-loans-and-instant-loan-apps#03` · [15-payday-loans-and-instant-loan-apps.md](../../../corpus/15-payday-loans-and-instant-loan-apps.md) · part 4 of 5 · product_risk · 108 words / 157 tokens · queries 4  
+`payday-loans-and-instant-loan-apps#03` · [15-payday-loans-and-instant-loan-apps.md](../../../corpus/15-payday-loans-and-instant-loan-apps.md) · part 4 of 5 · product_risk · 108 words / 157 tokens · queries 4,12,29,31,32,44  
 Source: credit_score_factors_guide.pdf §6; India digital-lending safeguards summarized by CreditCoach team
 
 ```text
@@ -639,7 +639,7 @@ Payday loans and instant loan apps — why they are high-risk
 
 ### 39. payday-loans-and-instant-loan-apps04
 
-`payday-loans-and-instant-loan-apps#04` · [15-payday-loans-and-instant-loan-apps.md](../../../corpus/15-payday-loans-and-instant-loan-apps.md) · part 5 of 5 · product_risk · 52 words / 100 tokens · queries 4  
+`payday-loans-and-instant-loan-apps#04` · [15-payday-loans-and-instant-loan-apps.md](../../../corpus/15-payday-loans-and-instant-loan-apps.md) · part 5 of 5 · product_risk · 52 words / 100 tokens · queries 4,12,29,31,32,44  
 Source: credit_score_factors_guide.pdf §6; India digital-lending safeguards summarized by CreditCoach team
 
 ```text
@@ -650,7 +650,7 @@ Payday loans and instant loan apps — why they are high-risk
 
 ### 40. credit-repair-scams00
 
-`credit-repair-scams#00` · [16-credit-repair-scams.md](../../../corpus/16-credit-repair-scams.md) · part 1 of 2 · product_risk · 122 words / 169 tokens · queries 4,6  
+`credit-repair-scams#00` · [16-credit-repair-scams.md](../../../corpus/16-credit-repair-scams.md) · part 1 of 2 · product_risk · 122 words / 169 tokens · queries 4,6,12,30,34,44  
 Source: credit_score_factors_guide.pdf §6; CreditCoach team
 
 ```text
@@ -666,7 +666,7 @@ After a score drop, you may see advertisements offering to "fix" or "boost" your
 
 ### 41. credit-repair-scams01
 
-`credit-repair-scams#01` · [16-credit-repair-scams.md](../../../corpus/16-credit-repair-scams.md) · part 2 of 2 · product_risk · 141 words / 190 tokens · queries 4,6  
+`credit-repair-scams#01` · [16-credit-repair-scams.md](../../../corpus/16-credit-repair-scams.md) · part 2 of 2 · product_risk · 141 words / 190 tokens · queries 4,6,12,30,34,44  
 Source: credit_score_factors_guide.pdf §6; CreditCoach team
 
 ```text
@@ -683,7 +683,7 @@ Credit repair services and score-guarantee scams
 
 ### 42. safer-alternatives00
 
-`safer-alternatives#00` · [17-safer-alternatives.md](../../../corpus/17-safer-alternatives.md) · part 1 of 4 · product_risk · 40 words / 54 tokens · queries 4  
+`safer-alternatives#00` · [17-safer-alternatives.md](../../../corpus/17-safer-alternatives.md) · part 1 of 4 · product_risk · 40 words / 54 tokens · queries 4,12,21,29,32,33,44  
 Source: CreditCoach team (general education)
 
 ```text
@@ -694,7 +694,7 @@ If you are struggling to pay a credit card bill or an EMI, it is tempting to rea
 
 ### 43. safer-alternatives01
 
-`safer-alternatives#01` · [17-safer-alternatives.md](../../../corpus/17-safer-alternatives.md) · part 2 of 4 · product_risk · 160 words / 222 tokens · queries 4  
+`safer-alternatives#01` · [17-safer-alternatives.md](../../../corpus/17-safer-alternatives.md) · part 2 of 4 · product_risk · 160 words / 222 tokens · queries 4,12,21,29,32,33,44  
 Source: CreditCoach team (general education)
 
 ```text
@@ -708,7 +708,7 @@ Safer alternatives when you're short of money
 
 ### 44. safer-alternatives02
 
-`safer-alternatives#02` · [17-safer-alternatives.md](../../../corpus/17-safer-alternatives.md) · part 3 of 4 · product_risk · 149 words / 217 tokens · queries 4  
+`safer-alternatives#02` · [17-safer-alternatives.md](../../../corpus/17-safer-alternatives.md) · part 3 of 4 · product_risk · 149 words / 217 tokens · queries 4,12,21,29,32,33,44  
 Source: CreditCoach team (general education)
 
 ```text
@@ -727,7 +727,7 @@ Safer alternatives when you're short of money
 
 ### 45. safer-alternatives03
 
-`safer-alternatives#03` · [17-safer-alternatives.md](../../../corpus/17-safer-alternatives.md) · part 4 of 4 · product_risk · 29 words / 59 tokens · queries 4  
+`safer-alternatives#03` · [17-safer-alternatives.md](../../../corpus/17-safer-alternatives.md) · part 4 of 4 · product_risk · 29 words / 59 tokens · queries 4,12,21,29,32,33,44  
 Source: CreditCoach team (general education)
 
 ```text

@@ -35,7 +35,7 @@ class Chunk:
     Attributes:
         id: Stable id, "<document id>#<two-digit index>", e.g. "factor-credit-utilization#01".
         text: The text that is embedded and later shown to the model; starts with the document title.
-        metadata: Fields stored alongside the vector (doc id, title, category, source, sample-query tags,
+        metadata: Fields stored alongside the vector (doc id, title, category, source, query tags,
             and word and token counts).
     """
     id: str
@@ -132,7 +132,7 @@ def chunk_document(doc: Document, count_tokens) -> list[Chunk]:
     Returns:
         The document's chunks. Each has a stable id ("<doc id>#<index>", e.g. "why-scores-drop#01"), text
         that starts with the document title, and metadata: doc id, title, category, source, file, chunk
-        position, word and token counts, and sample-query tags (``queries`` plus ``q1``..``q6`` flags that
+        position, word and token counts, and query tags (``queries`` plus ``q1``..``q50`` flags that
         retrieval can filter on).
     """
     fits = lambda body: count_tokens(f"{doc.title}\n\n{body}") <= MAX_TOKENS
@@ -158,7 +158,7 @@ def chunk_document(doc: Document, count_tokens) -> list[Chunk]:
                 "doc_id": doc.id, "title": doc.title, "category": doc.category, "source": doc.source,
                 "file": doc.file, "chunk_index": i, "chunk_count": len(packed), "words": len(body.split()),
                 "tokens": count_tokens(text), "queries": ",".join(map(str, doc.queries)),
-                **{f"q{q}": True for q in doc.queries},  # scalar flags so retrieval can filter by sample query
+                **{f"q{q}": True for q in doc.queries},  # scalar flags so retrieval can filter by query
             },
         ))
     return chunks

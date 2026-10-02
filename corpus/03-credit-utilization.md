@@ -3,7 +3,7 @@ id: factor-credit-utilization
 title: Credit utilization (how much of your card limits you use)
 category: scoring_factor
 source: credit_score_factors_guide.pdf §2 and §7 (impact ranges); worked example by CreditCoach team
-queries: [1, 2, 3]
+queries: [1, 2, 3, 7, 10, 12, 15, 16, 18, 19, 21, 23, 25, 28, 37, 41]
 ---
 
 # Credit utilization

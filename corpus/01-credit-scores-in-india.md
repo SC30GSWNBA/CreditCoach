@@ -3,7 +3,7 @@ id: credit-scores-in-india
 title: How credit scores work in India
 category: scoring_factor
 source: CreditCoach team (general education on the Indian credit system)
-queries: [1, 3, 6]
+queries: [1, 3, 6, 13, 20, 26, 43, 50]
 ---
 
 # How credit scores work in India
