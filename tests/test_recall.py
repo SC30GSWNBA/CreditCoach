@@ -179,7 +179,7 @@ def test_agent_saves_a_goal_through_the_memory_tool(monkeypatch):
         (None, "Saved: 720 by 2027 to buy a car."),
     ], seen))
     text, _, calls = asyncio.run(pipeline.run_agent([{"role": "user", "content": CAR}], "USR-001",
-                                                    recall.MemoryTools(s, CAR)))
+                                                    recall.MemoryTools(s, CAR), prefetch=False))
     assert text.startswith("Saved") and [(c.tool, c.ok) for c in calls] == [("save_goal", True)]
     assert {"save_goal", "clear_goal", "get_score_history"} <= {t["function"]["name"] for t in seen[0]["tools"]}
     assert store.load("USR-001").goal.target_score == 720
@@ -204,7 +204,9 @@ def test_answer_puts_memory_and_history_before_the_question(monkeypatch):
     a = pipeline.answer("What should I work on this month?", user_id="USR-001", session=s2, history=history)
     msgs = seen[0]["messages"]
     assert "MEMORY" in msgs[1]["content"] and "target score 720" in msgs[1]["content"]
-    assert [m["content"] for m in msgs[2:]] == ["hi", "hello", "What should I work on this month?"]
+    assert [m["content"] for m in msgs[2:5]] == ["hi", "hello", "What should I work on this month?"]
+    assert [m["role"] for m in msgs[5:]] == ["assistant", "tool", "tool"]  # the prefetched data follows the question
+    assert [c.tool for c in a.tool_calls] == ["get_score_history", "get_account_summary"]
     assert a.text.startswith("You're aiming for 720")
 
 

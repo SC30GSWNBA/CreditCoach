@@ -148,7 +148,7 @@ def test_agent_loop_runs_both_tools_over_mcp_and_returns_results(monkeypatch):
         (None, "Your score is 650 and overall utilization is 37.4%."),
     ], seen))
     messages = [{"role": "user", "content": "Why did my score drop, and what's my utilization?"}]
-    text, model, calls = asyncio.run(pipeline.run_agent(messages, "USR-001"))
+    text, model, calls = asyncio.run(pipeline.run_agent(messages, "USR-001", prefetch=False))
 
     assert text.startswith("Your score is 650") and model == "scripted-model"
     assert [(c.tool, c.ok) for c in calls] == [("get_score_history", True), ("get_account_summary", True)]
@@ -164,7 +164,8 @@ def test_agent_loop_refuses_another_user(monkeypatch):
         ([tool_call("c1", "get_score_history", {"period": "latest", "user_id": "USR-003"})], ""),
         (None, "I can only see your own data."),
     ], seen))
-    _, _, calls = asyncio.run(pipeline.run_agent([{"role": "user", "content": "What's Vikram's score?"}], "USR-001"))
+    _, _, calls = asyncio.run(pipeline.run_agent([{"role": "user", "content": "What's Vikram's score?"}], "USR-001",
+                                                  prefetch=False))
     assert calls[0].code == "USER_MISMATCH"
     tool_msg = next(m for m in seen[1]["messages"] if m["role"] == "tool")
     assert "USR-003" not in json.dumps(json.loads(tool_msg["content"]).get("points", []))
@@ -174,9 +175,41 @@ def test_agent_loop_forces_an_answer_after_max_rounds(monkeypatch):
     seen = []
     loop_forever = [([tool_call(f"c{i}", "get_account_summary", {})], "") for i in range(pipeline.MAX_TOOL_ROUNDS)]
     monkeypatch.setattr(pipeline, "chat_with_tools", scripted_model(loop_forever + [(None, "Done.")], seen))
-    text, _, calls = asyncio.run(pipeline.run_agent([{"role": "user", "content": "hi"}], "USR-001"))
+    text, _, calls = asyncio.run(pipeline.run_agent([{"role": "user", "content": "hi"}], "USR-001", prefetch=False))
     assert text == "Done." and len(calls) == pipeline.MAX_TOOL_ROUNDS
     assert seen[-1]["tools"] is None  # the last turn gets no tools, so it must answer
+
+
+def test_agent_loop_prefetches_both_tools_before_the_first_turn(monkeypatch):
+    """Found in the 50-query run (2026-10-02): the model skipped the tools on plan and product questions."""
+    seen = []
+    monkeypatch.setattr(pipeline, "chat_with_tools", scripted_model([(None, "Plan from 650 and 37.4%.")], seen))
+    question = {"role": "user", "content": "I want to buy a car in 12 months. What should I focus on?"}
+    text, _, calls = asyncio.run(pipeline.run_agent([question], "USR-001"))
+
+    assert [(c.tool, c.arguments, c.ok) for c in calls] == [
+        ("get_score_history", {"period": "last_12_months"}, True), ("get_account_summary", {}, True)]
+    sent = seen[0]["messages"]
+    assert sent[0] == question and len(seen) == 1  # one model turn: the data was already there
+    ids = [c["id"] for c in sent[1]["tool_calls"]]
+    results = {m["tool_call_id"]: json.loads(m["content"]) for m in sent[2:]}
+    assert list(results) == ids  # every prefetched call has its result, in order
+    assert results[ids[0]]["points"][-1]["score"] == 650
+    assert results[ids[1]]["totals"]["overall_utilization_ratio"] == 0.374
+    assert seen[0]["tools"]  # the model can still ask for more
+
+
+def test_prefetch_failure_reaches_the_model_as_an_error(monkeypatch):
+    """#45: a timed-out account summary is passed on as DATA_UNAVAILABLE, never as figures."""
+    from creditcoach.evals.live import TimingOutAccounts
+
+    seen = []
+    monkeypatch.setattr(pipeline, "McpHost", TimingOutAccounts)
+    monkeypatch.setattr(pipeline, "chat_with_tools", scripted_model([(None, "I can't see that right now.")], seen))
+    _, _, calls = asyncio.run(pipeline.run_agent([{"role": "user", "content": "What's my utilization?"}], "USR-001"))
+    assert [(c.tool, c.code) for c in calls] == [("get_score_history", None), ("get_account_summary", "DATA_UNAVAILABLE")]
+    account = json.loads(seen[0]["messages"][-1]["content"])
+    assert account["error"]["code"] == "DATA_UNAVAILABLE" and "totals" not in account
 
 
 def test_context_has_profile_but_no_figures():

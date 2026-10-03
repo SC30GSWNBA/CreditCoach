@@ -12,7 +12,7 @@ Each role owns its area end to end across all four weeks: design, build, tests, 
 | **Tools / MCP** | Aman / Anil / Sudip | Synthetic dataset (#6), tool specs (#12), score-history + account-summary tools (#13–14), MCP wiring (#15) | Week 2 |
 | **Memory** | Aman / Anil / Sudip | Memory schema (#16), cross-session goal recall (#17) | Week 2 |
 | **Guardrails / Caching** | Aman / Anil / Sudip | Guardrail rules + checks + tests (#19–21), caching + latency (#22–23) | Week 3 |
-| **Observability / UI** | Aman / Anil / Sudip | Gradio UI (#11, #18, #25), tracing (#26), dashboard (#31) | Weeks 1 & 4 |
+| **Observability / UI** | Aman / Anil / Sudip | Gradio UI (#11, #18, #25), tracing (#26), dashboard (#31) | Weeks 1, 2 & 4 |
 | **Shared (all)** | Everyone | 6-pager (#2), PR/FAQ (#3), repo setup (#4), E2E run (#24), evals (#27–30), edge cases (#32), demo (#33–34) | — |
 
 > All roles and tasks are shared by Aman, Anil and Sudip. There are no individual role leads.

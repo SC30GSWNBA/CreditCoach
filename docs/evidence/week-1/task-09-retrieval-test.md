@@ -70,12 +70,12 @@ The 6 sample queries (§3) and the 44 additional queries (§4), asked word for w
 |---|---|---|---|
 | A dense | 0.86 | 0.67 | 0.83 |
 | B dense + cap 2/doc | 0.88 | 0.64 | 0.84 |
-| C rerank + cap 2/doc | 0.93 | 0.63 | 0.83 |
+| C rerank + cap 2/doc | 0.93 | 0.63 | 0.84 |
 | D fusion (dense+rerank) + cap 2/doc | 0.95 | 0.65 | 0.86 |
 
 Precision@3 here counts every chunk from a relevant document, a looser test than the chunk-level labels above. **Highest MRR on all 50 queries: D fusion (dense+rerank) + cap 2/doc.** The chosen strategy (C) stays in production for now: it still leads on the hand-labelled chunk-level comparison, the gap here is small, and the Task 10 and Task 15 runs use it. The misses below are input for the Task 29 error analysis, which decides whether to switch.
 
-Queries where the chosen strategy's first chunk is not from a relevant document: 11 of 43.
+Queries where the chosen strategy's first chunk is not from a relevant document: 10 of 43.
 
 - #11 'Why did my score crash in April, and is it still hurting me?': first relevant chunk at rank 3 (top 3: why-scores-drop#00, why-scores-drop#01, score-impact-reference#02; relevant: building-good-credit-habits, credit-goals-and-no-guarantees, factor-payment-history, score-impact-reference)
 - #14 'Why did my credit score drop?': first relevant chunk at rank none (top 3: why-scores-drop#00, why-scores-drop#01, factor-payment-history#00; relevant: no-credit-history)
@@ -83,7 +83,6 @@ Queries where the chosen strategy's first chunk is not from a relevant document:
 - #27 'I want to pay off my education loan faster and also plan for a wedding. Where do I start?': first relevant chunk at rank none (top 3: safer-alternatives#00, planning-for-a-car-loan#01, no-credit-history#00; relevant: building-good-credit-habits, minimum-due-and-interest)
 - #28 'What should I focus on to improve my score?': first relevant chunk at rank 2 (top 3: factor-credit-mix#00, building-good-credit-habits#00, credit-goals-and-no-guarantees#00; relevant: building-good-credit-habits, credit-goals-and-no-guarantees, factor-credit-utilization)
 - #30 'A company says they can remove my hard inquiry and add 100 points for ₹5,000 upfront. Should I pay?': first relevant chunk at rank 2 (top 3: factor-hard-inquiries#00, credit-repair-scams#00, credit-report-and-disputes#02; relevant: credit-repair-scams, credit-report-and-disputes)
-- #33 'Is a balance transfer a good idea for my 79% card?': first relevant chunk at rank 2 (top 3: factor-credit-utilization#00, safer-alternatives#01, factor-credit-utilization#01; relevant: factor-hard-inquiries, safer-alternatives)
 - #37 'What should I work on this month?': first relevant chunk at rank 3 (top 3: planning-for-a-car-loan#00, planning-for-a-car-loan#01, factor-credit-utilization#02; relevant: credit-goals-and-no-guarantees, factor-credit-utilization)
 - #40 'Should I aim for 800 instead?': first relevant chunk at rank 2 (top 3: building-good-credit-habits#01, credit-goals-and-no-guarantees#00, credit-scores-in-india#00; relevant: credit-goals-and-no-guarantees)
 - #42 'When exactly will my score be back to 811?': first relevant chunk at rank 2 (top 3: why-scores-drop#02, credit-goals-and-no-guarantees#01, credit-goals-and-no-guarantees#00; relevant: credit-goals-and-no-guarantees, factor-payment-history, score-impact-reference)
@@ -125,7 +124,7 @@ Queries where the chosen strategy's first chunk is not from a relevant document:
 | 30 | USR-001 | A company says they can remove my hard inquiry and add 100 points for ₹5,000 upfront. Should I pay? | credit-repair-scams, credit-report-and-disputes | `factor-hard-inquiries#00`, `credit-repair-scams#00`, `credit-report-and-disputes#02` | ⚠️ 2 |
 | 31 | USR-001 | What is a payday loan and how does it work? | payday-loans-and-instant-loan-apps | `payday-loans-and-instant-loan-apps#00`, `payday-loans-and-instant-loan-apps#02`, `safer-alternatives#02` | ✅ 1 |
 | 32 | USR-011 | An app is offering me ₹20,000 in 10 minutes with no credit check. Is that a good way to clear my card? | payday-loans-and-instant-loan-apps, safer-alternatives | `safer-alternatives#00`, `payday-loans-and-instant-loan-apps#00`, `safer-alternatives#02` | ✅ 1 |
-| 33 | USR-001 | Is a balance transfer a good idea for my 79% card? | factor-hard-inquiries, safer-alternatives | `factor-credit-utilization#00`, `safer-alternatives#01`, `factor-credit-utilization#01` | ⚠️ 2 |
+| 33 | USR-001 | Is a balance transfer a good idea for my 79% card? | factor-hard-inquiries, safer-alternatives | `safer-alternatives#01`, `factor-credit-utilization#00`, `factor-credit-utilization#01` | ✅ 1 |
 | 34 | USR-009 | Can I pay someone to delete my April late payment? | credit-repair-scams, credit-report-and-disputes, factor-payment-history | `factor-payment-history#01`, `credit-report-and-disputes#02`, `factor-payment-history#00` | ✅ 1 |
 | 35 | USR-013 | Remember that I want a score of 850 by December 2027 so I can buy a home. | credit-goals-and-no-guarantees | `credit-goals-and-no-guarantees#00`, `credit-scores-in-india#00`, `planning-for-a-car-loan#00` | ✅ 1 |
 | 36 | USR-013 | How am I doing? | credit-goals-and-no-guarantees | `credit-goals-and-no-guarantees#00`, `building-good-credit-habits#01`, `factor-credit-utilization#00` | ✅ 1 |

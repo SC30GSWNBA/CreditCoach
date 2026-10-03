@@ -34,7 +34,7 @@
 [ingest]   credit-repair-scams                2 chunks
 [ingest]   safer-alternatives                 4 chunks
 [ingest] Check: expected 45 chunks, store has 45; chunks truncated by the model: 0 -> OK
-[ingest] Done in 5.8s
+[ingest] Done in 6.9s
 ```
 
 ## Result

@@ -13,7 +13,7 @@ Credit utilization is the percentage of your available revolving credit (credit 
 **How to calculate it**
 - Per card: card balance ÷ card limit × 100.
 - Overall: add up all card balances, add up all card limits, then divide the total balance by the total limit × 100.
-- Example: balances of ₹59,000, ₹11,000 and ₹4,750 on limits of ₹75,000, ₹1,00,000 and ₹25,000 give ₹74,750 ÷ ₹2,00,000 = 37.4% overall. The first card on its own is at 79%.
+- Example: balances of ₹45,000, ₹15,000 and ₹12,000 on limits of ₹60,000, ₹80,000 and ₹40,000 give ₹72,000 ÷ ₹1,80,000 = 40% overall. The first card on its own is at 75%.
 - Loans such as education, car, home, or personal loans have no credit limit, so they are not part of utilization.
 
 **The 30% level.** Utilization above roughly 30% on any single card, or across all cards combined, is commonly associated with score drops. This applies even if you pay your bill in full every month. Lower is generally better; many people aim to keep it under 10% to 30%.
