@@ -15,6 +15,8 @@ The pipeline reports each step as it happens (`pipeline.Progress`): retrieval, m
 | Each step appears as it starts, with a spinner and a running timer: searching the library, recalling memory, deciding what to check, checking score history, reading accounts, writing the answer. | The block collapses to "🧭 Agent trace · 6 steps, 2 tool calls · 18.5s" and can be expanded. |
 | During the slowest step (the model writing its answer), a short credit tip from the library rotates under it every 6 seconds ("💡 While you wait: …"). | Each tool call shows its arguments and a one-line result. The memory step shows the recalled goal and the number of earlier conversations. The library step lists the passages used. |
 
+**Since 2026-10-02** both tools are fetched before the model's first turn (see [docs/tools.md](../../tools.md) §4), so the two data steps appear right after memory and the first model step is "Writing your answer"; a further tool call the model makes still appears as "Decided to check more of your data". The screenshots below show the order before that change.
+
 The trace summarises results rather than dumping tool output: the answer carries the figures, and the trace shows where they came from. A failed tool call is marked ⚠️ with its error code (for example `DATA_UNAVAILABLE` after a retry). Trace steps are not sent back to the model as chat history, and they aren't stored in memory: the episode keeps the answer and which tools it used.
 
 ## Screenshots (real query, signed in as Aravind, USR-001, with the goal "720 by 2027 to buy a car" saved earlier)

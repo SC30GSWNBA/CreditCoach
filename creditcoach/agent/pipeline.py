@@ -4,9 +4,11 @@ Built in Task 10; since Task 15 the user's credit data comes from MCP tool calls
     1. Retrieves the 3 most relevant passages from the credit-education corpus (``rag.retrieve``).
     2. Builds the turn context: USER PROFILE holds the signed-in user's interview profile
        (``user_data.load_user_data``), and REFERENCE CONTEXT holds the numbered passages [1]-[3].
-    3. Runs the agent loop: the chat model (``llm.chat_with_tools``) may call ``get_score_history`` and
-       ``get_account_summary``; the MCP host (``agent.mcp_host``) runs each call on the CreditCoach MCP server
-       for the signed-in user only, and the results go back to the model as TOOL RESULTS until it answers.
+    3. Runs the agent loop over MCP: the host (``agent.mcp_host``) first fetches the signed-in user's last 12
+       months of score history and account summary (``PREFETCH``), then the chat model
+       (``llm.chat_with_tools``) may call ``get_score_history`` and ``get_account_summary`` for more; every call
+       runs on the CreditCoach MCP server for the signed-in user only, and the results go back to the model as
+       TOOL RESULTS until it answers.
     4. Returns the answer with its passages, every tool call, and timings.
 
 Since Task 17, when the chat UI passes the user's open memory ``session``, the context also has a MEMORY section
@@ -55,6 +57,10 @@ USER_SCOPE = ("The profile below belongs to the signed-in user ({user_id}). It h
               "get those with the tools, which return only this user's data. You have no access to any other "
               "user's data.")
 MAX_TOOL_ROUNDS = 4  # model turns that may call tools; the next turn must answer in text
+PREFETCH = (("get_score_history", {"period": "last_12_months"}), ("get_account_summary", {}))
+"""Tool calls the host makes before the model's first turn, for every signed-in question. The 50-query run
+(2026-10-02) showed the model skipping the tools on plan, product and goal questions and answering without the
+user's figures; fetching both up front (about 0.1 s) removes that failure and saves the model a turn."""
 
 Progress = Callable[[str, dict], None]
 """Called as ``progress(step, details)`` while an answer is built (Task 18). Steps, in order:
@@ -126,18 +132,20 @@ def build_context(passages: list[Result], user_id: str | None = None, memory: st
 
 
 async def run_agent(messages: list[dict], user_id: str, memory: recall.MemoryTools | None = None,
-                    progress: Progress | None = None) -> tuple[str, str, list[ToolCall]]:
+                    progress: Progress | None = None, prefetch: bool = True) -> tuple[str, str, list[ToolCall]]:
     """Run the tool-calling loop for one question over MCP.
 
-    The model gets the two tools (without ``user_id``). Each round, any tool calls it makes are run by the MCP
-    host for the signed-in user and returned as ``tool`` messages. After ``MAX_TOOL_ROUNDS`` rounds the model must
-    answer in text.
+    With ``prefetch``, the host first runs the ``PREFETCH`` calls and adds them to ``messages`` as one assistant
+    tool-call turn and its results, exactly as if the model had asked. The model then gets the two tools (without
+    ``user_id``). Each round, any tool calls it makes are run by the MCP host for the signed-in user and returned
+    as ``tool`` messages. After ``MAX_TOOL_ROUNDS`` rounds the model must answer in text.
 
     Args:
         messages: System prompt, context and question; extended in place with tool calls and results.
         user_id: The signed-in user, from the login session.
         memory: The memory tools for this session (Task 17), or None to offer only the data tools.
         progress: Optional callback for live progress (Task 18): each model turn and each tool call.
+        prefetch: Fetch the ``PREFETCH`` data before the model's first turn (default True).
 
     Returns:
         ``(answer_text, model_used, tool_calls)``.
@@ -145,6 +153,20 @@ async def run_agent(messages: list[dict], user_id: str, memory: recall.MemoryToo
     async with McpHost(user_id) as host:
         offered = host.openai_tools + (memory.specs if memory else [])
         calls: list[ToolCall] = []
+        if prefetch:
+            fetched = []
+            for i, (name, args) in enumerate(PREFETCH):
+                _report(progress, "tool", status="start", name=name, arguments=args)
+                result = await host.call(name, args)
+                calls.append(host.calls[-1])
+                _report(progress, "tool", status="done", call=host.calls[-1])
+                fetched.append((f"call_prefetch_{i}", name, args, result))
+            messages.append({"role": "assistant", "content": "",
+                             "tool_calls": [{"id": cid, "type": "function",
+                                             "function": {"name": name, "arguments": json.dumps(args)}}
+                                            for cid, name, args, _ in fetched]})
+            messages += [{"role": "tool", "tool_call_id": cid, "content": json.dumps(result, ensure_ascii=False)}
+                         for cid, _, _, result in fetched]
         for round_ in range(MAX_TOOL_ROUNDS + 1):
             tools = offered if round_ < MAX_TOOL_ROUNDS else None
             _report(progress, "model", round=round_ + 1)

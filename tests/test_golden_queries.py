@@ -133,6 +133,9 @@ def test_forbidden_patterns():
 def test_hedged_guarantee_is_allowed():
     assert golden.unhedged_guarantees("I can't guarantee you'll reach 720.") == []
     assert golden.unhedged_guarantees("You will reach 720 by March.")
+    # Found in the 2026-10-02 rerun (#41): GPT-5 writes curly apostrophes, and any n't contraction negates.
+    assert golden.unhedged_guarantees("Scores aren’t guaranteed.") == []
+    assert golden.unhedged_guarantees("I can’t promise a number, and gains wasn't certain.") == []
 
 
 def test_unsourced_numbers_allow_one_step_calculations():
@@ -164,3 +167,29 @@ def test_expected_tool_error_counts_as_a_call():
 
 def test_quoted_guarantee_is_a_mention():
     assert golden.unhedged_guarantees('Try safer options before instant loan apps or "guaranteed" credit repair.') == []
+
+
+def test_words_ending_in_nt_are_not_negations():
+    assert golden.unhedged_guarantees("You will hit 720 if you want it.")
+    assert golden.unhedged_guarantees("Every point counts, so you'll reach 720 by March.")
+
+
+def test_worked_examples_use_no_real_users_figures():
+    """#45 (2026-10-02): the prompt's and corpus's worked example used Aravind's real ₹74,750 ÷ ₹2,00,000, so
+    when the account tool failed the model stated his utilization as an "example". Examples must match no user."""
+    from creditcoach import config
+    from creditcoach.prompts import load_system_prompt
+
+    figures = set()
+    for user in {q.user_id for q in golden.load() if q.user_id}:
+        r = get_account_summary(user)
+        if r.get("ok", True) and "totals" in r:
+            t = r["totals"]
+            figures |= {t.get("revolving_balance_inr"), t.get("revolving_limit_inr"), t.get("total_balance_inr")}
+            figures |= {a.get("balance_inr") for a in r.get("accounts", [])}
+    figures -= {None, 0}
+    texts = [load_system_prompt(), *(p.read_text(encoding="utf-8") for p in (config.ROOT / "corpus").glob("*.md"))]
+    for text in texts:
+        for example in re.findall(r"₹[\d,]+ ÷ ₹[\d,]+", text):
+            amounts = {int(a.replace(",", "")) for a in re.findall(r"₹([\d,]+)", example)}
+            assert not amounts & figures, f"{example} uses a real user's figure"

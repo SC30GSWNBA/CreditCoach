@@ -175,3 +175,14 @@ def test_respond_without_a_question_or_login_needs_no_trace(monkeypatch):
     assert list(app.respond("  ", [], SimpleNamespace(username="creditcoach_user1", session_hash="h3"))) == [
         "Please type a question about your credit."]
     assert list(app.respond("hi", [], SimpleNamespace(username=None))) == ["Please sign in again to continue."]
+
+
+def test_prefetched_data_comes_before_the_first_model_turn():
+    """The pipeline fetches both tools before the model's first turn (2026-10-02), so that turn writes the answer."""
+    t = T.Trace()
+    t.update("tool", {"status": "start", "name": "get_score_history", "arguments": {"period": "last_12_months"}})
+    t.update("tool", {"status": "done", "call": call("get_score_history", get_score_history("USR-001", "last_12_months"))})
+    t.update("model", {"round": 1})
+    assert t.messages()[-1].metadata["title"].startswith("✍️ Writing your answer")
+    t.update("tool", {"status": "start", "name": "get_score_history", "arguments": {"period": "all"}})
+    assert t.messages()[-2].metadata["title"] == "🤔 Decided to check more of your data"

@@ -120,7 +120,8 @@ class Trace:
         for s in self.steps:
             if s.waiting and not s.done:
                 s.ended, s.log = time.monotonic(), ""
-                s.title = ("🤔 Read your question and decided what to check" if s.id == "model-1" else
+                first = s.id == "model-1" and not any(t.id.startswith("tool-") for t in self.steps[:self.steps.index(s)])
+                s.title = ("🤔 Read your question and decided what to check" if first else
                            "🤔 Decided to check more of your data") if outcome == "tool" else "✍️ Wrote your answer"
 
     def update(self, step: str, details: dict) -> None:
@@ -139,7 +140,7 @@ class Trace:
             s.log = f"{_goal(details.get('goal'))}\n{n} earlier conversation{'s' if n != 1 else ''}."
         elif step == "model":
             self._close_waiting("tool")
-            first = details.get("round", 1) == 1
+            first = details.get("round", 1) == 1 and not any(t.id.startswith("tool-") for t in self.steps)
             self._open(f"model-{details.get('round', 1)}",
                        "🤔 Reading your question and deciding what to check" if first else "✍️ Writing your answer",
                        waiting=True)

@@ -12,7 +12,7 @@
 | 2 | [`credit-scores-in-india#01`](#2-credit-scores-in-india01) | `01-credit-scores-in-india.md` | 2/2 | scoring_factor | 131 / 158 | 1,3,6,13,20,26,43,50 |
 | 3 | [`factor-payment-history#00`](#3-factor-payment-history00) | `02-payment-history.md` | 1/2 | scoring_factor | 158 / 195 | 1,3,11,34,42 |
 | 4 | [`factor-payment-history#01`](#4-factor-payment-history01) | `02-payment-history.md` | 2/2 | scoring_factor | 153 / 183 | 1,3,11,34,42 |
-| 5 | [`factor-credit-utilization#00`](#5-factor-credit-utilization00) | `03-credit-utilization.md` | 1/3 | scoring_factor | 128 / 202 | 1,2,3,7,10,12,15,16,18,19,21,23,25,28,37,41 |
+| 5 | [`factor-credit-utilization#00`](#5-factor-credit-utilization00) | `03-credit-utilization.md` | 1/3 | scoring_factor | 128 / 198 | 1,2,3,7,10,12,15,16,18,19,21,23,25,28,37,41 |
 | 6 | [`factor-credit-utilization#01`](#6-factor-credit-utilization01) | `03-credit-utilization.md` | 2/3 | scoring_factor | 170 / 226 | 1,2,3,7,10,12,15,16,18,19,21,23,25,28,37,41 |
 | 7 | [`factor-credit-utilization#02`](#7-factor-credit-utilization02) | `03-credit-utilization.md` | 3/3 | scoring_factor | 54 / 75 | 1,2,3,7,10,12,15,16,18,19,21,23,25,28,37,41 |
 | 8 | [`factor-credit-history-length#00`](#8-factor-credit-history-length00) | `04-credit-history-length.md` | 1/2 | scoring_factor | 185 / 231 | 1,3,24 |
@@ -121,7 +121,7 @@ A late payment cannot be removed from your report just because you ask or pay so
 
 ### 5. factor-credit-utilization00
 
-`factor-credit-utilization#00` · [03-credit-utilization.md](../../../corpus/03-credit-utilization.md) · part 1 of 3 · scoring_factor · 128 words / 202 tokens · queries 1,2,3,7,10,12,15,16,18,19,21,23,25,28,37,41  
+`factor-credit-utilization#00` · [03-credit-utilization.md](../../../corpus/03-credit-utilization.md) · part 1 of 3 · scoring_factor · 128 words / 198 tokens · queries 1,2,3,7,10,12,15,16,18,19,21,23,25,28,37,41  
 Source: credit_score_factors_guide.pdf §2 and §7 (impact ranges); worked example by CreditCoach team
 
 ```text
@@ -132,7 +132,7 @@ Credit utilization is the percentage of your available revolving credit (credit 
 **How to calculate it**
 - Per card: card balance ÷ card limit × 100.
 - Overall: add up all card balances, add up all card limits, then divide the total balance by the total limit × 100.
-- Example: balances of ₹59,000, ₹11,000 and ₹4,750 on limits of ₹75,000, ₹1,00,000 and ₹25,000 give ₹74,750 ÷ ₹2,00,000 = 37.4% overall. The first card on its own is at 79%.
+- Example: balances of ₹45,000, ₹15,000 and ₹12,000 on limits of ₹60,000, ₹80,000 and ₹40,000 give ₹72,000 ÷ ₹1,80,000 = 40% overall. The first card on its own is at 75%.
 - Loans such as education, car, home, or personal loans have no credit limit, so they are not part of utilization.
 ```
 

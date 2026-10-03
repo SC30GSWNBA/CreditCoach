@@ -4,7 +4,7 @@ A chat assistant that helps first-time borrowers understand why their credit sco
 
 All guidance is educational, not financial advice. All user data in this repo is synthetic.
 
-**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, and goal memory) is in progress: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history and account-summary tools (Tasks 13–14) are built and tested, and since Task 15 the chat reads each user's scores and accounts live through them over MCP. Since Tasks 16–17 every conversation is saved to that user's memory, which is shared through git, and answers recall the user's goal and earlier conversations (see [Memory](#memory)). Since Task 18 the chat shows live progress while an answer is being built, then an expandable agent trace of every tool call and the recalled goal. The [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Every Week 1–2 evaluation runs all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
+**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, goal memory and the agent trace) is built, with Aman's and Anil's sign-off still to come: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history and account-summary tools (Tasks 13–14) are built and tested, and since Task 15 the chat reads each user's scores and accounts live through them over MCP. Since Tasks 16–17 every conversation is saved to that user's memory, which is shared through git, and answers recall the user's goal and earlier conversations (see [Memory](#memory)). Since Task 18 the chat shows live progress while an answer is being built, then an expandable agent trace of every tool call and the recalled goal. The [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Every Week 1–2 evaluation runs all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
 ## Quickstart (fresh clone)
 
@@ -31,7 +31,7 @@ uv run python -m creditcoach.rag.ingest
 # 6. Try retrieval
 uv run python -m creditcoach.rag.retrieve "why did my credit score drop 20 points?"
 
-# 7. Ask CreditCoach (retrieval + GPT-5; needs your OpenRouter key)
+# 7. Ask CreditCoach (retrieval + GPT-5; needs your OpenRouter key). Add --user USR-001 to answer from that user's data via the MCP tools
 uv run python -m creditcoach.agent.pipeline "why did my credit score drop 20 points?"
 
 # 8. Open the chat UI at http://127.0.0.1:7860 (add --share for a public link) and sign in as one of the 15 users
@@ -59,7 +59,7 @@ CreditCoach/
     user_data.py      #   one signed-in user's profile, scores and accounts from data/, nobody else's
     prompts/          #   system_prompt.md (tone, India context, hard rules)
     rag/              #   corpus loader, ingestion (chunk, embed, store in .chroma/), retrieval (search + rerank)
-    agent/            #   pipeline.py: question -> retrieval -> agent loop with MCP tool calls -> grounded answer;
+    agent/            #   pipeline.py: question -> retrieval -> both tools prefetched over MCP -> agent loop -> grounded answer;
                       #   mcp_host.py: MCP client that runs tool calls for the signed-in user only (Task 15)
     tools/            #   data tools from docs/tools.md: score_history.py (Task 13), account_summary.py (Task 14); common.py (errors, data);
                       #   server.py: MCP server exposing both (Task 15): python -m creditcoach.tools.server
@@ -72,7 +72,9 @@ CreditCoach/
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
   memory/             # each user's conversations and consolidated memory, committed (see memory/README.md)
   data/               # synthetic dataset: 15 users, accounts, score history (see data/README.md)
-  tests/              # pytest tests (uv run pytest), run by CI (.github/workflows/tests.yml); includes
+  tests/              # pytest tests (uv run pytest), run by CI (.github/workflows/tests.yml):
+                      #   test_score_history.py, test_account_summary.py (Tasks 13–14), test_mcp.py (Task 15),
+                      #   test_memory.py (Task 16), test_recall.py (Task 17), test_trace.py (Task 18),
                       #   test_golden_queries.py: every requirements.md figure checked against the tools
   scripts/
     synthetic/        #   step1-3: build data/ from the interviews and the sample
@@ -91,7 +93,7 @@ CreditCoach/
     set_login.py             # add or change a chat UI login
   user_interviews/    # 14 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
-  docs/               # team.md, 6-pager.md, pr-faq.md, tools.md, research/, evidence/week-1/ and week-2/
+  docs/               # team.md, 6-pager.md, pr-faq.md, tools.md, memory.md, research/, evidence/week-1/ and week-2/
   tasks.md            # 4-week task plan with Definition of Done per task
   requirements.md     # product requirements, persona, sample and additional queries, guardrails
   credit_score_factors_guide.pdf   # seed document for the RAG corpus
@@ -195,13 +197,13 @@ git push -u origin week1/task-05-system-prompt
 
 ## Engineering Roadmap
 
-A technical review after Week 1 found gaps in testing, tooling and robustness. This section tracks them alongside the [4-week plan](tasks.md). Items tied to a later task are built as part of that task. **Items 1 and 2 are started (Task 13), and item 5 is started (the 50-query golden set); the rest aren't started yet.**
+A technical review after Week 1 found gaps in testing, tooling and robustness. This section tracks them alongside the [4-week plan](tasks.md). Items tied to a later task are built as part of that task. **Items 1 and 2 are started (Task 13), item 5 is started (the 50-query golden set), and item 11 is partly addressed (Task 18's live progress); the rest aren't started yet.**
 
 ### 1. Before Week 2: what technical reviewers check first
 
 | # | Gap today | Plan |
 |---|---|---|
-| 1 | **No automated tests.** `pytest` is a dev dependency, but there's no `tests/` folder. | Unit tests for code that doesn't call the LLM: chunking (`rag/ingest.py`), `normalize_query`, front-matter parsing, `build_context`, and dataset consistency (every account and score row belongs to a known user). Mock `llm.chat` to test the pipeline's logic without API calls.<br><br>**Started (Tasks 13–14):** `tests/test_score_history.py` and `tests/test_account_summary.py` cover both data tools. Still to do: the other modules listed here. |
+| 1 | **No automated tests.** `pytest` is a dev dependency, but there's no `tests/` folder. | Unit tests for code that doesn't call the LLM: chunking (`rag/ingest.py`), `normalize_query`, front-matter parsing, `build_context`, and dataset consistency (every account and score row belongs to a known user). Mock `llm.chat` to test the pipeline's logic without API calls.<br><br>**Started (Tasks 13–18):** both data tools (`test_score_history.py`, `test_account_summary.py`), the MCP server and host (`test_mcp.py`), memory and dreaming validation (`test_memory.py`), goal recall and the goal tools (`test_recall.py`), the agent trace and streaming chat handler with `answer` mocked (`test_trace.py`), and every requirements.md figure (`test_golden_queries.py`). Still to do: chunking, `normalize_query`, front-matter parsing and `build_context`. |
 | 2 | **No CI.** There's no `.github/workflows/`. | One GitHub Actions workflow on every PR: `uv sync`, lint, `creditcoach.check` and the tests. Add a build badge to this README once it passes.<br><br>**Started (Task 13):** `.github/workflows/tests.yml` runs `uv sync --frozen` and `pytest` on every PR and push to `main`. Still to do: lint, `creditcoach.check` (it needs an API key, so it would need a CI secret or a skip) and the badge. |
 | 3 | **No lint, format or type-check config.** `.gitignore` lists `.ruff_cache/`, but ruff isn't configured. | Add `[tool.ruff]` and a type checker (mypy or pyright) to `pyproject.toml`, plus a `.pre-commit-config.yaml`. |
 | 4 | **No LICENSE.** The repo is public, but without a license nobody can legally reuse or contribute to the code. | Add a LICENSE file (the team picks the license). |
@@ -216,7 +218,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 | 8 | **Fragile LLM client.** It catches a broad `except Exception` and tries the fallback model once. It has no retries, and it creates a new client on every call. | Catch specific exceptions, retry rate limits (429) and server errors (5xx) with backoff (for example `tenacity`), and reuse one client. Task 32 covers wider timeout handling. |
 | 9 | **No architecture or design doc for Week 2.** The chat history was passed in but unused (used since Task 17). | Add a diagram of the pipeline and agent loop. The tool contracts are in [docs/tools.md](docs/tools.md) (Task 12), and the agent loop over MCP is described in `pipeline.py` and `mcp_host.py` (Task 15). Memory and recall are specified in [docs/memory.md](docs/memory.md) (Tasks 16–17). Still to write: one diagram of how retrieval, the MCP tools and memory meet in `pipeline.py`. |
 | 10 | **Prompts aren't versioned.** `system_prompt.md` has no version, and answers don't record which prompt produced them. | Add a prompt version or hash to each `Answer` and to eval results, so a change in behaviour can be traced to a prompt change. |
-| 11 | **No streaming.** The UI shows the whole answer at once, after about 8 s. | Stream tokens into the chat window so answers start appearing right away. |
+| 11 | **No streaming.** The UI shows the whole answer at once, after about 18 s with GPT-5 (18.5 s in the Task 18 run: 0.1 s retrieval, the rest almost all the model). | Stream tokens into the chat window so answers start appearing right away.<br><br>**Partly addressed (Task 18):** while the user waits, the chat shows each step live with timers and rotating credit tips. The answer's words still arrive all at once. |
 
 ### 3. Nice to have: collaborator experience
 

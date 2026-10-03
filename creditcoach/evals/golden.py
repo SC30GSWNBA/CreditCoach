@@ -39,7 +39,7 @@ TOOL_NAMES = {"history": "get_score_history", "account": "get_account_summary"}
 # Guarantee language with no negation in the same sentence (shared by Tasks 5, 10 and 15).
 GUARANTEE = re.compile(r"\b(guarantee[sd]?|definitely|certainly|promise|will (reach|hit|be at|get to|go up|recover|rise)"
                        r"|you'?ll (reach|hit|be at|get to))\b", re.I)
-NEGATION = re.compile(r"(can'?t|cannot|won'?t|not|no one|nobody|never|unable|isn'?t|doesn'?t|no\b"
+NEGATION = re.compile(r"(\w+n['’]t\b|cannot|cant|wont|not|no one|nobody|never|unable|no\b"  # any n't, straight or curly
                       r"|red flags?|scams?|false|beware|warning|anyone who)", re.I)  # a negation, or a warning about promises
 
 
