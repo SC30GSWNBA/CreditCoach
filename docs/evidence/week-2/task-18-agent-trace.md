@@ -51,5 +51,5 @@ Retrieval is fast. Nearly all the wait is the chat model (`openai/gpt-5`, reason
 | Panel lists each tool call with its arguments and result | ✅ screenshot 2: `get_score_history (period=latest)`, `get_account_summary` |
 | Panel shows the recalled goal for the response | ✅ screenshot 2: "Goal: target 720, by 2027, buy a car (saved 2026-10-02)" |
 | Progress is visible while waiting | ✅ screenshot 1: steps, timer, spinner and tip |
-| Failed tools, an answer-service failure, and an empty or signed-out message are handled | ✅ `tests/test_trace.py` (17 tests) |
+| Failed tools, an answer-service failure, and an empty or signed-out message are handled | ✅ `tests/test_trace.py` (18 tests) |
 | Answers and memory unchanged by the trace | ✅ the episode records the question and the answer only; the full test suite passes |

@@ -75,7 +75,8 @@ CreditCoach/
   tests/              # pytest tests (uv run pytest), run by CI (.github/workflows/tests.yml):
                       #   test_score_history.py, test_account_summary.py (Tasks 13–14), test_mcp.py (Task 15),
                       #   test_memory.py (Task 16), test_recall.py (Task 17), test_trace.py (Task 18),
-                      #   test_golden_queries.py: every requirements.md figure checked against the tools
+                      #   test_golden_queries.py: every requirements.md figure checked against the tools,
+                      #   test_llm.py: model client (output-token cap, fallback)
   scripts/
     synthetic/        #   step1-3: build data/ from the interviews and the sample
     task05_prompt_tests.py   # system prompt test runs (Task 5; --all: rule checks on all 50 answers)
@@ -160,6 +161,7 @@ All settings are read from `.env` (git-ignored). See [.env.example](.env.example
 | `SMALL_MODEL` | No | `openai/gpt-5-mini` | Cheap side calls (guardrail checks, eval judging) |
 | `FALLBACK_MODEL` | No | `openai/gpt-4o` | Used when the chat model is slow or unavailable |
 | `REASONING_EFFORT` | No | `low` | How long GPT-5 reasons before answering (`minimal`, `low`, `medium`, `high`). `low` keeps UI answers to about 8 s. |
+| `MAX_OUTPUT_TOKENS` | No | `16000` | Cap on each reply's tokens, reasoning included. Without it OpenRouter reserves GPT-5's full 65,536 tokens, so a key with less credit than that gets a 402 and every answer silently comes from `FALLBACK_MODEL`. |
 | `EMBEDDING_MODEL` | No | `sentence-transformers/all-MiniLM-L6-v2` | Local embedding model for the vector store. Rebuild the store after changing it. |
 | `RERANKER_MODEL` | No | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Local cross-encoder that reorders retrieved chunks |
 

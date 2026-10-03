@@ -6,6 +6,8 @@
 
 > **Note (2026-09-27):** the system prompt has since gained rule 6 ("Only ever discuss the signed-in user's data") for the per-user logins. Rules 1–5, which these tests cover, are unchanged. See [task-11-user-logins.md](task-11-user-logins.md) for rule 6's tests.
 
+> **Note (2026-10-03):** on 2026-10-02 the prompt's *Using the tools* section gained rules for prefetched data, stating the current score in plans, start and end scores for trends, and always naming a high-risk account; it also gained a paragraph on topics the library doesn't cover, and its worked utilization example changed to figures that match no user. The hard rules are unchanged. Every hard rule was re-checked on all 50 live answers with the current prompt in [task-05-all-queries.md](task-05-all-queries.md).
+
 Tools arrive in Week 2, so TOOL RESULTS are built from the synthetic dataset in `data/` (Indian context, amounts in ₹) in the same shape the tools will return. REFERENCE CONTEXT is quoted from `credit_score_factors_guide.pdf`.
 
 **Automatic checks:** *Calculated* lists numbers that are one arithmetic step from sourced numbers (for example, 30% of the ₹75,000 limit = 22500); check that the reply shows its inputs. *Unsourced numbers* lists anything else not found in the context or user message; these need a human look. *Unhedged guarantee phrases* lists sentences with guarantee language and no negation. Both should be empty; the final judgment is human.

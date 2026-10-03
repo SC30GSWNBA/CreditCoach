@@ -4,6 +4,8 @@
 
 **Definition of Done:** a goal stated in session 1 is correctly recalled, unprompted, in session 2.
 
+> **Note (2026-10-03):** these sessions ran before the 2026-10-02 prefetch and prompt fixes, so the model chose its own tool calls. Since then both data tools are fetched before the model's first turn and added right after the question; `tests/test_recall.py` checks that the MEMORY section and the history still reach the model in that order. Re-run `scripts/task17_goal_recall.py` to refresh these transcripts.
+
 **How:** the script drives the chat UI's own sign-in, message and log-out functions with live model calls, in a temporary memory folder. In session 1 the user states a goal and the model saves it with `save_goal`, in the user's own words. Session 1 is then consolidated by dreaming, as the app does at the next sign-in. Session 2 is a new session: the user never restates the goal, and the model reads it from MEMORY.
 
 **Result: ✅ PASS** (18/18 checks)
