@@ -6,6 +6,8 @@
 
 > **Note (2026-09-27):** `answer()` now takes an optional `user_id`. The chat UI passes the signed-in user's id, so TOOL RESULTS hold that user's own data. These runs used no user id, which still gives the behaviour below (TOOL RESULTS: none): `uv run python -m creditcoach.agent.pipeline "..."`, or add `--user USR-001` to answer as a user. See [task-11-user-logins.md](task-11-user-logins.md).
 
+> **Note (2026-10-03):** the system prompt gained tool and plan rules on 2026-10-02 (see [Task 5](task-05-prompt-tests.md)); with no user id no tools are offered or prefetched, so this flow is unchanged. All 50 queries were re-run with the current prompt in [task-10-all-queries.md](task-10-all-queries.md).
+
 **Definition of Done:** a full query → explanation round trip runs without crashing and reflects the corpus data.
 
 **Pipeline:** question → retrieve the top 3 corpus passages (Task 9 retriever) → build the turn context (TOOL RESULTS: none, since tools arrive in Week 2; REFERENCE CONTEXT: the numbered passages) → `openai/gpt-5` via OpenRouter with the Task 5 system prompt → explanation citing passages as [1]–[3].

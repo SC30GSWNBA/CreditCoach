@@ -10,6 +10,7 @@ Settings (environment variable -> default):
     SMALL_MODEL         "openai/gpt-5-mini"  Cheaper model for side jobs (guardrail checks, eval judging).
     FALLBACK_MODEL      "openai/gpt-4o"      Used automatically if the chat model fails.
     REASONING_EFFORT    "low"                How long GPT-5 "thinks" before answering (speed vs depth).
+    MAX_OUTPUT_TOKENS   16000                Cap on each reply's tokens, reasoning included.
     EMBEDDING_MODEL     all-MiniLM-L6-v2     Local model that turns text into vectors for search.
                                              Rebuild the vector store after changing it.
     RERANKER_MODEL      ms-marco-MiniLM-L-6-v2  Local model that reorders search results by relevance.
@@ -46,6 +47,10 @@ FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "openai/gpt-4o")
 # Reasoning effort for GPT-5-family models (minimal | low | medium | high). "low" cut answer time from
 # ~14-37s to ~8s in Task 11 with the same grounding and citation behaviour.
 REASONING_EFFORT = os.getenv("REASONING_EFFORT", "low")
+# Cap on each reply's tokens, reasoning included. Without it OpenRouter reserves GPT-5's full 65,536-token
+# limit, and a key with less credit than that gets a 402 on every call, so every answer silently came from
+# FALLBACK_MODEL (seen 2026-10-03). Answers use a few thousand tokens at "low" effort.
+MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "16000"))
 
 SAMPLE_DATA = ROOT / "sample_data" / "credit_profile_sample.xlsx"
 DATA_DIR = ROOT / "data"  # synthetic dataset (Indian context: INR, 300-900 scores)

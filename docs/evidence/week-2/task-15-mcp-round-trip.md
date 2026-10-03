@@ -4,6 +4,8 @@
 
 **Definition of Done:** the agent calls both tools via MCP and uses their results in a live response.
 
+> **Note (2026-10-03): prefetch.** This run predates the prefetch added on 2026-10-02: for every signed-in question the host now calls `get_score_history(period="last_12_months")` and `get_account_summary()` over MCP before the model's first turn, and the model can still call either tool for more (for example `period="latest"`). The run below shows the model choosing both tools itself, which `run_agent(..., prefetch=False)` still does and `tests/test_mcp.py` covers. The prefetched flow is shown live on all 50 queries in [task-15-all-queries.md](task-15-all-queries.md) and is specified in [docs/tools.md](../../tools.md) §4.
+
 **How a question flows:** retrieve 3 corpus passages → the chat model gets the two tools (without `user_id`) → for each tool call it makes, the MCP host fills `user_id` from the signed-in session and calls the CreditCoach MCP server over stdio → each result goes back to the model as a `tool` message → the model answers from those results.
 
 **Result: ✅ PASS**

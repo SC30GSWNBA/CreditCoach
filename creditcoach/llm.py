@@ -48,6 +48,7 @@ def _complete(messages: list[dict], model: str | None = None, **kwargs):
             extra = {}
             if candidate.startswith("openai/gpt-5") and config.REASONING_EFFORT:
                 extra["extra_body"] = {"reasoning": {"effort": config.REASONING_EFFORT}}
+            kwargs.setdefault("max_tokens", config.MAX_OUTPUT_TOKENS)
             response = client.chat.completions.create(model=candidate, messages=messages, timeout=90, **extra, **kwargs)
             return response.choices[0].message, candidate
         except Exception as exc:
