@@ -1,0 +1,96 @@
+{
+ "v": 1,
+ "user_id": "USR-011",
+ "created": "2026-10-04T10:58:16.441Z",
+ "model": "openai/gpt-5-mini",
+ "recorded_by": "Sudip Roy",
+ "covers": [
+  "20261003T021235Z-02a909"
+ ],
+ "semantic": {
+  "facts": [
+   {
+    "text": "Signed-in user is Sameer (USR-011).",
+    "sources": [
+     "20261003T021235Z-02a909"
+    ]
+   },
+   {
+    "text": "Has at least one credit card.",
+    "sources": [
+     "20261003T021235Z-02a909"
+    ]
+   },
+   {
+    "text": "Has a home loan.",
+    "sources": [
+     "20261003T021235Z-02a909"
+    ]
+   },
+   {
+    "text": "Wants to apply for a personal loan by February 2027.",
+    "sources": [
+     "20261003T021235Z-02a909"
+    ]
+   }
+  ],
+  "goal_candidates": [
+   {
+    "target_score": null,
+    "target_date": "2027-02",
+    "purpose": "personal loan",
+    "quote": "How do I improve my credit utilization so that I could opt for personal loan by February 2027?",
+    "session": "20261003T021235Z-02a909"
+   }
+  ]
+ },
+ "procedural": {
+  "preferences": []
+ },
+ "episodic": {
+  "sessions": [
+   {
+    "session": "20261003T021235Z-02a909",
+    "started": "2026-10-03T02:12:35.745Z",
+    "ended": "2026-10-03T02:21:53.970Z",
+    "turns": 14,
+    "logged_out": true,
+    "recorded_by": "Sudip Roy",
+    "summary": "User asked about their credit utilization and why 30% matters, how to improve utilization to qualify for a personal loan by Feb 2027, which banks ignore credit history, and requested other people's credit details (assistant clarified only Sameer's data available); assistant also recapped 2027 goals such as paying off debt and preparing for a big expense."
+   }
+  ]
+ },
+ "changes": [
+  {
+   "action": "added",
+   "kind": "fact",
+   "text": "Signed-in user is Sameer (USR-011).",
+   "reason": "User session included assistant statements identifying the account as Sameer (USR-011); durable identity fact."
+  },
+  {
+   "action": "added",
+   "kind": "fact",
+   "text": "Has at least one credit card.",
+   "reason": "User asked about credit utilization and assistant provided card balance/limit, indicating the user holds credit card(s)."
+  },
+  {
+   "action": "added",
+   "kind": "fact",
+   "text": "Has a home loan.",
+   "reason": "Assistant provided a home loan balance for the signed-in user during the session, indicating the user has a home loan."
+  },
+  {
+   "action": "added",
+   "kind": "fact",
+   "text": "Wants to apply for a personal loan by February 2027.",
+   "reason": "User explicitly asked how to improve utilization to opt for a personal loan by Feb 2027."
+  },
+  {
+   "action": "added",
+   "kind": "goal_candidates",
+   "text": "Personal loan by 2027-02 (quote preserved in goal_candidates).",
+   "reason": "User explicitly stated the date and purpose when asking how to improve utilization to qualify for a personal loan."
+  }
+ ],
+ "rejected": []
+}
