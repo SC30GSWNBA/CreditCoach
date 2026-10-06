@@ -368,6 +368,8 @@ Both tools share one error shape:
 
 **As built (Task 15):** the server is `creditcoach/tools/server.py` and the host is `creditcoach/agent/mcp_host.py`. The host adds two codes of its own: `UNKNOWN_TOOL` (the model named a tool that doesn't exist) and `INVALID_ARGUMENTS` (the model's arguments weren't valid JSON or failed the server's validation). Neither is retryable. `USER_MISMATCH` and the 5-second timeout are enforced there, as §1 and the error tables describe.
 
+**My credit tab (2026-10-06):** the chat UI's My credit tab (`creditcoach/app/charts.py`, wired in `creditcoach/app/main.py`) calls both tools directly, in process, not over MCP: it has no model in the loop, so there is no model-supplied `user_id` to check. It passes only the signed-in session's user id (§1 rule 2), and `tests/test_charts.py` checks that a page load reads no other user's rows.
+
 **Prefetch (2026-10-02):** for every signed-in question, the host calls `get_score_history(period="last_12_months")` and `get_account_summary()` over MCP before the model's first turn, and passes both results to the model as tool results (`PREFETCH` in `creditcoach/agent/pipeline.py`). The model can still call either tool for other periods. The 50-query run showed the model skipping the tools on plan, product and goal questions; prefetching removes that failure and saves a model turn. A prefetched call follows the same rules, timeout, retry and error envelope as any other.
 
 ## 5. Test Cases for Tasks #13 and #14

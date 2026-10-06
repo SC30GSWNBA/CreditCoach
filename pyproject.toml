@@ -13,6 +13,7 @@ dependencies = [
     "sentence-transformers>=3.0",
     "gradio>=4.40",
     "mcp>=2.2,<3",
+    "plotly>=5.24",
 ]
 
 [dependency-groups]

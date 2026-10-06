@@ -22,6 +22,13 @@ spinner and timer, and a rotating credit tip during the slowest step. When the a
 into an expandable "Agent trace" listing every tool call with a one-line result and the recalled goal
 (``creditcoach.app.trace``).
 
+My credit tab: next to the chat, a tab charts the signed-in user's own data (``creditcoach.app.charts``): snapshot
+tiles, "Your score story" (score line, monthly change bars and the reasons behind them, with a reason picker that
+highlights its months), card utilization with a what-if pay-down slider, and every account by balance. It reads the
+same two tools the chat uses, directly and only for the signed-in user, with no model call. Picking a month and
+pressing "Ask in chat" fills the chat box with a question about that month and switches to the chat tab; it
+doesn't send until the user presses Enter.
+
 Per-user logins: every visitor signs in as one of the 15 dataset users (``creditcoach.auth``; usernames
 ``creditcoach_user1`` to ``creditcoach_user15`` map to USR-001 to USR-015). Answers use that user's own
 profile, score history and accounts from ``data/``, and nobody else's: the user id comes from the signed-in
@@ -56,9 +63,12 @@ import gradio as gr  # noqa: E402
 
 from creditcoach import auth, config  # noqa: E402
 from creditcoach.agent.pipeline import answer  # noqa: E402
+from creditcoach.app import charts  # noqa: E402
 from creditcoach.app.trace import Trace  # noqa: E402
 from creditcoach.memory import dream, store  # noqa: E402
 from creditcoach.rag.retrieve import retrieve  # noqa: E402
+from creditcoach.tools.account_summary import get_account_summary  # noqa: E402
+from creditcoach.tools.score_history import get_score_history  # noqa: E402
 from creditcoach.user_data import load_user_data  # noqa: E402
 
 log = logging.getLogger("creditcoach.app")
@@ -277,8 +287,99 @@ def signed_in_as(request: gr.Request) -> str:
     return f"Signed in as **{name}** ({user_id}). Answers use only your own score history and accounts."
 
 
+UNAVAILABLE = ('<div class="cc-empty"><b>Your charts are unavailable right now.</b> '
+               '<p class="cc-note">Reload the page to try again. The chat still works.</p></div>')
+
+
+def goal_line(user_id: str) -> str | None:
+    """The goal under the snapshot tiles: the one saved in memory, else the 2-year goal from the user's profile."""
+    try:
+        g = store.load(user_id).goal
+    except Exception:
+        log.exception("Couldn't read the goal for %s", user_id)
+        g = None
+    if g:
+        return " · ".join(part for part in (g.purpose, g.target_score and f"target {g.target_score}",
+                                            g.target_date and f"by {g.target_date}") if part)
+    return load_user_data(user_id)["user_profile"].get("goals_2yr") or None
+
+
+def credit_story(months: int, request: gr.Request) -> tuple:
+    """V1 and V2 for the period switch: snapshot tiles, the score story, its reasons, months to ask about, table."""
+    user_id = auth.user_id_for(getattr(request, "username", None))
+    history = get_score_history(user_id, charts.period_arg(months)) if user_id else {"ok": False}
+    accounts = get_account_summary(user_id) if user_id else {"ok": False}
+    if not (history.get("ok") and accounts.get("ok") and history["has_credit_file"]):
+        return UNAVAILABLE, None, gr.update(choices=[], value=None), gr.update(choices=[], value=None), []
+    months_ = charts.month_choices(history)
+    return (charts.snapshot_html(history, accounts, goal_line(user_id)), charts.story_figure(history),
+            gr.update(choices=charts.reason_choices(history), value=""),
+            gr.update(choices=months_, value=months_[0][1]), charts.history_rows(history))
+
+
+def credit_highlight(reason: str, months: int, request: gr.Request):
+    """Redraw the score story with one reason's months highlighted ("" shows every month)."""
+    user_id = auth.user_id_for(getattr(request, "username", None))
+    history = get_score_history(user_id, charts.period_arg(months)) if user_id else {"ok": False}
+    if not (history.get("ok") and history["has_credit_file"]):
+        return None
+    return charts.story_figure(history, highlight=reason or None)
+
+
+def credit_cards(card_id: str | None, pay: float, request: gr.Request) -> tuple[str, str]:
+    """V5 after paying ``pay`` on ``card_id``: the utilization bars and the sentence under the slider."""
+    user_id = auth.user_id_for(getattr(request, "username", None))
+    accounts = get_account_summary(user_id) if user_id else {"ok": False}
+    if not accounts.get("ok"):
+        return UNAVAILABLE, ""
+    return charts.cards_html(accounts, card_id, int(pay or 0)), charts.whatif_note(accounts, card_id, int(pay or 0))
+
+
+def credit_card_picked(card_id: str | None, request: gr.Request) -> tuple:
+    """A different card in the what-if: reset the slider to 0 with that card's balance as its maximum."""
+    user_id = auth.user_id_for(getattr(request, "username", None))
+    accounts = get_account_summary(user_id) if user_id else {"ok": False}
+    card = next((a for a in charts.cards(accounts) if a["account_id"] == card_id), None) if accounts.get("ok") else None
+    slider = gr.update(maximum=card["balance_inr"] if card else 1, value=0)
+    return (slider, *credit_cards(card_id, 0, request))
+
+
+def load_credit(months: int, request: gr.Request) -> tuple:
+    """On page load: fill the My credit tab, or show the empty state for a user with no credit file."""
+    user_id = auth.user_id_for(getattr(request, "username", None))
+    accounts = get_account_summary(user_id) if user_id else {"ok": False}
+    history = get_score_history(user_id, charts.period_arg(months)) if user_id else {"ok": False}
+    if not (accounts.get("ok") and history.get("ok")):
+        log.error("Charts unavailable for %s: %s", user_id, (accounts.get("error") or history.get("error")))
+        return (gr.update(visible=False), gr.update(visible=True), UNAVAILABLE, gr.update(visible=False),
+                *[gr.skip()] * 11)
+    if not history["has_credit_file"]:
+        name = load_user_data(user_id)["user_profile"].get("first_name", user_id)
+        return (gr.update(visible=False), gr.update(visible=True), charts.empty_html(name), gr.update(visible=True),
+                *[gr.skip()] * 11)
+    card_id = charts.highest_card(accounts)
+    card = next((a for a in charts.cards(accounts) if a["account_id"] == card_id), None)
+    return (gr.update(visible=True), gr.update(visible=False), "", gr.update(visible=False),
+            *credit_story(months, request),
+            charts.cards_html(accounts, card_id), gr.update(visible=card is not None),
+            gr.update(choices=charts.card_choices(accounts), value=card_id),
+            gr.update(maximum=card["balance_inr"] if card else 1, value=0),
+            charts.whatif_note(accounts, card_id), charts.debt_html(accounts))
+
+
+def ask_in_chat(question: str) -> tuple:
+    """Put ``question`` in the chat box and switch to the chat tab. The user still presses Enter to send it."""
+    return gr.update(value=question), gr.Tabs(selected="chat")
+
+
+def ask_about_month(day: str | None) -> tuple:
+    """"Ask in chat" for the month picked under the score story (nothing happens if no month is picked)."""
+    return ask_in_chat(charts.month_question(day)) if day else (gr.skip(), gr.skip())
+
+
 def build() -> gr.Blocks:
-    """Create the page: a "Signed in as" line with a Log out button, the memory panel, then the chat interface.
+    """Create the page: a "Signed in as" line with a Log out button, the memory panel, then two tabs: the chat
+    interface and "My credit" (the signed-in user's charts).
 
     Returns:
         A configured ``gr.Blocks`` (not yet launched). Analytics are off, flagging is disabled, and at most 2
@@ -291,19 +392,68 @@ def build() -> gr.Blocks:
         with gr.Accordion("Your memory and past conversations", open=False):
             panel = gr.Markdown()
         logout.click(log_out).then(None, js="() => { window.location.href = '/logout'; }")
-        gr.ChatInterface(
-            fn=respond,
-            chatbot=gr.Chatbot(height=680, show_label=False),  # room for the agent trace above each answer
-            title=TITLE,
-            description=DESCRIPTION,
-            examples=EXAMPLES,
-            cache_examples=False,
-            flagging_mode="never",
-            concurrency_limit=2,
-            autofocus=True,
-            analytics_enabled=False,
-        )
+        with gr.Tabs(selected="chat") as tabs:
+            with gr.Tab("Ask CreditCoach", id="chat"):
+                chat = gr.ChatInterface(
+                    fn=respond,
+                    chatbot=gr.Chatbot(height=680, show_label=False),  # room for the agent trace above each answer
+                    title=TITLE,
+                    description=DESCRIPTION,
+                    examples=EXAMPLES,
+                    cache_examples=False,
+                    flagging_mode="never",
+                    concurrency_limit=2,
+                    autofocus=True,
+                    analytics_enabled=False,
+                )
+            with gr.Tab("My credit", id="credit"):
+                with gr.Column(visible=False) as empty_view:
+                    empty = gr.HTML()
+                    start_ask = gr.Button(f"Ask in chat: {charts.START_QUESTION}", size="sm", variant="primary")
+                with gr.Column(visible=False) as credit_view:
+                    period = gr.Radio(charts.PERIODS, value=12, show_label=False, container=False,
+                                      info="Period for the snapshot and the score story")
+                    snapshot = gr.HTML()
+                    gr.Markdown("### Your score story\nYour score each month, how much it moved, and why. Hover a "
+                                "month for its reason, or pick a reason to highlight its months.")
+                    with gr.Row(equal_height=False):
+                        with gr.Column(scale=3, min_width=320):
+                            story = gr.Plot(show_label=False, container=False)
+                            gr.HTML(charts.STORY_LEGEND)
+                        with gr.Column(scale=1, min_width=240):
+                            reasons = gr.Radio(label="What moved it", info="Pick one to highlight its months",
+                                               choices=[], value="")
+                    with gr.Row(equal_height=False):
+                        month = gr.Dropdown(label="Ask CreditCoach about a month", choices=[], scale=3)
+                        ask = gr.Button("Ask in chat", scale=0, min_width=160, variant="primary",
+                                        elem_classes="cc-ask")
+                    with gr.Accordion("Show the score story as a table", open=False):
+                        table = gr.Dataframe(headers=["Month", "Score", "Change", "Main reason"],
+                                             interactive=False, wrap=True)
+                    with gr.Row(equal_height=False):
+                        with gr.Column(min_width=320):
+                            gr.Markdown("### Card utilization\nBalance ÷ limit for each card. The dashed line is 30%.")
+                            cards = gr.HTML()
+                            with gr.Group(visible=False) as whatif:
+                                card = gr.Dropdown(label="What if I pay down a card?", choices=[])
+                                pay = gr.Slider(0, 1, value=0, step=500, label="Amount to pay (₹)")
+                                note = gr.Markdown(elem_classes="cc-whatif-note")
+                        with gr.Column(min_width=320):
+                            gr.Markdown("### What you owe\nEvery account by balance. Loans don't count toward "
+                                        "utilization.")
+                            debt = gr.HTML()
+
+        story_outputs = [snapshot, story, reasons, month, table]
+        period.change(credit_story, inputs=period, outputs=story_outputs)
+        reasons.change(credit_highlight, inputs=[reasons, period], outputs=story)
+        card.input(credit_card_picked, inputs=card, outputs=[pay, cards, note])
+        pay.change(credit_cards, inputs=[card, pay], outputs=[cards, note], show_progress="hidden")
+        ask.click(ask_about_month, inputs=month, outputs=[chat.textbox, tabs])
+        start_ask.click(lambda: ask_in_chat(charts.START_QUESTION), outputs=[chat.textbox, tabs])
         demo.load(start, outputs=[who, panel])
+        demo.load(load_credit, inputs=period,
+                  outputs=[credit_view, empty_view, empty, start_ask, *story_outputs, cards, whatif, card, pay, note,
+                           debt])
         demo.unload(closed)
     return demo
 
@@ -342,7 +492,7 @@ def main() -> None:
     _, local_url, share_url = demo.launch(share=args.share, auth=auth.check_login,
                                           auth_message="Sign in with your CreditCoach username and password.",
                                           server_name="127.0.0.1", server_port=args.port, theme=gr.themes.Soft(),
-                                          prevent_thread_lock=True)
+                                          css=charts.CSS, prevent_thread_lock=True)
     log.info("CreditCoach running at %s (login required; %d user logins)", local_url, len(auth.logins()))
     if share_url:
         log.info("Public share link (expires in about 1 week, stops when this process stops): %s", share_url)
