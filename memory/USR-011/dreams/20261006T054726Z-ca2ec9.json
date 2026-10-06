@@ -1,0 +1,109 @@
+{
+ "v": 1,
+ "user_id": "USR-011",
+ "created": "2026-10-06T05:47:26.576Z",
+ "model": "openai/gpt-5-mini",
+ "recorded_by": "Sudip Roy",
+ "covers": [
+  "20261003T021235Z-02a909",
+  "20261004T105805Z-7b1fc5",
+  "20261004T113839Z-8e1878"
+ ],
+ "semantic": {
+  "facts": [
+   {
+    "text": "Signed-in user is Sameer (USR-011).",
+    "sources": [
+     "20261003T021235Z-02a909"
+    ]
+   },
+   {
+    "text": "Has at least one credit card.",
+    "sources": [
+     "20261003T021235Z-02a909"
+    ]
+   },
+   {
+    "text": "Has a home loan.",
+    "sources": [
+     "20261003T021235Z-02a909"
+    ]
+   },
+   {
+    "text": "Wants to apply for a personal loan by February 2027.",
+    "sources": [
+     "20261003T021235Z-02a909"
+    ]
+   },
+   {
+    "text": "Wedding is a primary goal for next year.",
+    "sources": [
+     "20261004T105805Z-7b1fc5"
+    ]
+   },
+   {
+    "text": "Travel is a primary goal for next year.",
+    "sources": [
+     "20261004T105805Z-7b1fc5"
+    ]
+   },
+   {
+    "text": "Wedding is planned for February 2027.",
+    "sources": [
+     "20261004T105805Z-7b1fc5"
+    ]
+   },
+   {
+    "text": "Travel is planned for June 2027.",
+    "sources": [
+     "20261004T105805Z-7b1fc5"
+    ]
+   }
+  ],
+  "goal_candidates": [
+   {
+    "target_score": null,
+    "target_date": "2027-02",
+    "purpose": "personal loan",
+    "quote": "How do I improve my credit utilization so that I could opt for personal loan by February 2027?",
+    "session": "20261003T021235Z-02a909"
+   }
+  ]
+ },
+ "procedural": {
+  "preferences": []
+ },
+ "episodic": {
+  "sessions": [
+   {
+    "session": "20261003T021235Z-02a909",
+    "started": "2026-10-03T02:12:35.745Z",
+    "ended": "2026-10-03T02:21:53.970Z",
+    "turns": 14,
+    "logged_out": true,
+    "recorded_by": "Sudip Roy",
+    "summary": "User asked about their credit utilization and why 30% matters, how to improve utilization to qualify for a personal loan by Feb 2027, which banks ignore credit history, and requested other people's credit details (assistant clarified only Sameer's data available); assistant also recapped 2027 goals such as paying off debt and preparing for a big expense."
+   },
+   {
+    "session": "20261004T105805Z-7b1fc5",
+    "started": "2026-10-04T10:58:05.002Z",
+    "ended": "2026-10-04T11:03:45.053Z",
+    "turns": 8,
+    "logged_out": true,
+    "recorded_by": "Sudip Roy",
+    "summary": "User confirmed their two big goals for next year (wedding and travel), gave months for each (wedding: Feb 2027; travel: Jun 2027), and discussed saving plans and monthly saving options."
+   },
+   {
+    "session": "20261004T113839Z-8e1878",
+    "started": "2026-10-04T11:38:39.381Z",
+    "ended": "2026-10-04T11:40:33.340Z",
+    "turns": 2,
+    "logged_out": true,
+    "recorded_by": "Sudip Roy",
+    "summary": "User asked for a summary of their credit history; assistant provided a snapshot including recent score trend, drivers, and account/balance details as of Sep 2026."
+   }
+  ]
+ },
+ "changes": [],
+ "rejected": []
+}
