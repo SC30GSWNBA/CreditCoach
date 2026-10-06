@@ -4,7 +4,7 @@ A chat assistant that helps first-time borrowers understand why their credit sco
 
 All guidance is educational, not financial advice. All user data in this repo is synthetic.
 
-**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, goal memory and the agent trace) is built, with Aman's and Anil's sign-off still to come: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history and account-summary tools (Tasks 13–14) are built and tested, and since Task 15 the chat reads each user's scores and accounts live through them over MCP. Since Tasks 16–17 every conversation is saved to that user's memory, which is shared through git, and answers recall the user's goal and earlier conversations (see [Memory](#memory)). Since Task 18 the chat shows live progress while an answer is being built, then an expandable agent trace of every tool call and the recalled goal. The [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Every Week 1–2 evaluation runs all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
+**Status:** Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). Week 2 (account tools through MCP, goal memory and the agent trace) is built, with Aman's and Anil's sign-off still to come: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history and account-summary tools (Tasks 13–14) are built and tested, and since Task 15 the chat reads each user's scores and accounts live through them over MCP. Since Tasks 16–17 every conversation is saved to that user's memory, which is shared through git, and answers recall the user's goal and earlier conversations (see [Memory](#memory)). Since Task 18 the chat shows live progress while an answer is being built, then an expandable agent trace of every tool call and the recalled goal. Beyond the task plan, a **My credit** tab charts the signed-in user's score story, card utilization (with a what-if pay-down slider, the tasks.md stretch goal) and what they owe, straight from the same two tools. The [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. Every Week 1–2 evaluation runs all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
 ## Quickstart (fresh clone)
 
@@ -65,6 +65,7 @@ CreditCoach/
                       #   server.py: MCP server exposing both (Task 15): python -m creditcoach.tools.server
     app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share]; logins.json;
                       #   trace.py: live progress and the expandable agent trace (Task 18)
+                      #   charts.py: the "My credit" tab: score story, card utilization what-if, what you owe
     evals/            #   golden.py + golden_queries.json: the 50 requirements.md queries with their checks;
                       #   live.py: runs them through the agent and saves every answer (Tasks 5, 10, 15; Week 4)
     memory/           #   per-user memory: store.py (episodes, goal), dream.py (consolidation) (Task 16);
@@ -75,6 +76,7 @@ CreditCoach/
   tests/              # pytest tests (uv run pytest), run by CI (.github/workflows/tests.yml):
                       #   test_score_history.py, test_account_summary.py (Tasks 13–14), test_mcp.py (Task 15),
                       #   test_memory.py (Task 16), test_recall.py (Task 17), test_trace.py (Task 18),
+                      #   test_charts.py: the My credit tab (charts, what-if, data isolation),
                       #   test_golden_queries.py: every requirements.md figure checked against the tools,
                       #   test_llm.py: model client (output-token cap, fallback)
   scripts/
@@ -110,7 +112,7 @@ uv run python scripts/synthetic/step2_accounts_scores.py
 uv run python scripts/synthetic/step3_summary.py
 ```
 
-**Stack:** Python 3.12 · OpenAI GPT-5 / GPT-4 models via OpenRouter · sentence-transformers (local embeddings) · ChromaDB · Gradio. See [docs/team.md](docs/team.md) for the full stack and the reasons behind each choice.
+**Stack:** Python 3.12 · OpenAI GPT-5 / GPT-4 models via OpenRouter · sentence-transformers (local embeddings) · ChromaDB · Gradio · Plotly (My credit charts). See [docs/team.md](docs/team.md) for the full stack and the reasons behind each choice.
 
 ## Memory
 

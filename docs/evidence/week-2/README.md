@@ -28,6 +28,7 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 - Memory shared through git: `memory/` is committed, `scripts/memory_sync.py` turns local chat sessions into a pull request, and `memory_sync.py pull` fetches everyone's, so any teammate can continue a user's history. See [README > Memory](../../../README.md#memory).
 - Live progress while waiting (Task 18): each step with a timer, plus rotating credit tips during the slowest step, because an answer takes about 18 s with GPT-5 (measured in Task 18).
 - All-50-query evaluation (2026-10-02): see below.
+- My credit tab (2026-10-06, `feature/credit-charts`): a second tab in the chat UI charts the signed-in user's own data from the Task 13–14 tools, with no model call: snapshot tiles, the score story (score line, monthly change bars and the reasons behind them), card utilization with a what-if pay-down slider (the tasks.md "what-if simulator" stretch goal; utilization only, never a score estimate), and every account by balance with instant loan apps flagged. "Ask in chat" turns a month into a chat question. Code: [charts.py](../../../creditcoach/app/charts.py); 31 pytest tests in `tests/test_charts.py`, including data isolation and the no-credit-file state. No screenshot yet.
 
 ## Evaluation on all 50 requirements.md queries (2026-10-02)
 
