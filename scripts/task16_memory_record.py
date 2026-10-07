@@ -39,6 +39,7 @@ def main() -> None:
     args = parser.parse_args()
     tmp = Path(tempfile.mkdtemp(prefix="creditcoach-task16-")) / "memory"
     config.MEMORY_DIR = tmp  # everything below writes to a throwaway folder
+    config.MEMORY_BACKEND = "files"  # never the shared Neon database
     from creditcoach.memory import dream, store
 
     checks = []

@@ -97,11 +97,14 @@ def main() -> int:
         from creditcoach.memory import store
 
         users = store.users()
-        sessions = sum(len(list((store.user_dir(u) / "episodes").glob("*.jsonl"))) for u in users)
-        unshared = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", "memory"],
-                                  cwd=config.ROOT, capture_output=True, text=True).stdout.split()
-        print(f"[INFO] Memory - {sessions} sessions for {len(users)} users in memory/"
-              + (f"; {len(unshared)} new files not shared yet (uv run python scripts/memory_sync.py)" if unshared else ""))
+        sessions = store.session_count()
+        if config.MEMORY_BACKEND == "postgres":
+            print(f"[INFO] Memory - {sessions} sessions for {len(users)} users in Neon Postgres")
+        else:
+            unshared = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", "memory"],
+                                      cwd=config.ROOT, capture_output=True, text=True).stdout.split()
+            print(f"[INFO] Memory - {sessions} sessions for {len(users)} users in memory/ (files; set DATABASE_URL for Neon)"
+                  + (f"; {len(unshared)} new files not shared yet (uv run python scripts/memory_sync.py)" if unshared else ""))
     except Exception as exc:
         print(f"[INFO] Memory not readable - {type(exc).__name__}")
 

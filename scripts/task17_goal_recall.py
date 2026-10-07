@@ -56,6 +56,7 @@ SCENARIOS = [
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="creditcoach-task17-")) / "memory"
     config.MEMORY_DIR = tmp
+    config.MEMORY_BACKEND = "files"  # never the shared Neon database
     from creditcoach.app import main as app
     from creditcoach.evals.golden import missing_groups
     from creditcoach.memory import dream, recall, store
