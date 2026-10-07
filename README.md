@@ -68,10 +68,10 @@ CreditCoach/
                       #   charts.py: the "My credit" tab: score story, card utilization what-if, what you owe
     evals/            #   golden.py + golden_queries.json: the 50 requirements.md queries with their checks;
                       #   live.py: runs them through the agent and saves every answer (Tasks 5, 10, 15; Week 4)
-    memory/           #   per-user memory: store.py (episodes, goal), dream.py (consolidation) (Task 16);
+    memory/           #   per-user memory: store.py (episodes, goal), pg.py (Neon Postgres), dream.py (consolidation) (Task 16);
                       #   recall.py: MEMORY in each answer and the save_goal / clear_goal tools (Task 17)
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
-  memory/             # each user's conversations and consolidated memory, committed (see memory/README.md)
+  memory/             # archive of file-based memory from before the move to Neon (see memory/README.md)
   data/               # synthetic dataset: 15 users, accounts, score history (see data/README.md)
   tests/              # pytest tests (uv run pytest), run by CI (.github/workflows/tests.yml):
                       #   test_score_history.py, test_account_summary.py (Tasks 13–14), test_mcp.py (Task 15),
@@ -92,7 +92,8 @@ CreditCoach/
     task15_mcp_round_trip.py # live MCP round trip trace (Task 15; --all: 50 queries; paid model calls)
     task16_memory_record.py  # memory record written and read back, plus a live dream (Task 16)
     task17_goal_recall.py    # goal stated in session 1, recalled unprompted in session 2 (Task 17; paid calls)
-    memory_sync.py           # share your chat memory as a PR (push), or pull everyone's (pull)
+    memory_import.py         # copy file memory (the memory/ archive) into Neon; safe to re-run
+    memory_sync.py           # files backend only: share memory files as a PR (push), or pull everyone's (pull)
     set_login.py             # add or change a chat UI login
   user_interviews/    # 14 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
@@ -118,18 +119,18 @@ uv run python scripts/synthetic/step3_summary.py
 
 CreditCoach remembers each user across sessions, machines and teammates (Task 16; schema in [docs/memory.md](docs/memory.md)):
 
-- **Episodic:** every chat session is saved as it happens to `memory/<user_id>/episodes/`. Each one records the sign-in, every question and reply (with the tools and passages used, but never tool output), errors, and the sign-out or closed tab.
+- **Episodic:** every chat session is saved as it happens, one row per event in Neon Postgres. Each one records the sign-in, every question and reply (with the tools and passages used, but never tool output), errors, and the sign-out or closed tab.
 - **Semantic:** the user's goal (target score, target date, purpose), saved only by an explicit `goal_set` event in the user's own words, plus facts they've shared.
 - **Procedural:** how the user likes to be helped, for example "keep answers short".
-- **Dreaming:** when a user signs in, their earlier sessions are consolidated in the background into a new file in `memory/<user_id>/dreams/`. Duplicates are merged, stale or contradicted items dropped, and each session summarised. Dreaming never changes the goal and never stores a credit figure.
+- **Dreaming:** when a user signs in, their earlier sessions are consolidated in the background into a new dream. Duplicates are merged, stale or contradicted items dropped, and each session summarised. Dreaming never changes the goal and never stores a credit figure.
 
 The chat's **Your memory and past conversations** panel shows the goal, the consolidated memory and earlier sessions, including teammates'. Since Task 17, every answer uses that memory. CreditCoach connects its advice to the stored goal without being asked, picks up where the last conversation ended, and saves a goal you state with its `save_goal` tool, in your own words. It changes a goal only when you explicitly ask.
 
-**Sharing memory.** Every user is synthetic, so memory is committed to the repo. Files are append-only with unique names, so they never conflict. **Don't type real personal information in the chat.**
+**Where memory lives.** Memory is kept in a shared [Neon](https://neon.com) Postgres database (free plan). Every teammate and every deployment reads and writes the same history, with no pull requests. Put the connection string in `.env` as `DATABASE_URL` (ask a teammate for it; in the Neon console it is under **Connect**). Without `DATABASE_URL`, the app falls back to plain files in `memory/`, which tests always use. The files committed in `memory/` are the archive from before the move, and they are already in Neon. Memory is append-only in both: nothing is ever edited or deleted. **Don't type real personal information in the chat.**
 
 ```bash
-uv run python scripts/memory_sync.py              # share your new sessions: commits only memory/ and opens a PR
-uv run python scripts/memory_sync.py pull         # after it merges: pull everyone's sessions (use this instead of git pull)
+uv run python scripts/memory_import.py --dry-run  # files -> Neon: list sessions that aren't in Neon yet
+uv run python scripts/memory_import.py            # copy them (skips anything already there)
 uv run python -m creditcoach.memory.dream --all   # consolidate by hand (normally runs at sign-in)
 ```
 

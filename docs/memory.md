@@ -1,6 +1,6 @@
 # CreditCoach: Memory Schema
 
-*Week 2 · Tasks #16 (schema) and #17 (recall) · Last updated: 2026-10-02 · Status: Draft for team review · Code: `creditcoach/memory/`*
+*Week 2 · Tasks #16 (schema) and #17 (recall) · Last updated: 2026-10-07 (moved to Neon Postgres) · Status: Draft for team review · Code: `creditcoach/memory/`*
 
 CreditCoach remembers each user across sessions, machines and teammates. This document defines what is stored, where, and the rules that keep it trustworthy (Task #16), and how answers use it (Task #17, §7). Task #18 shows it in the agent-trace panel.
 
@@ -16,22 +16,28 @@ Credit figures (scores, balances, limits, utilization) are **never** stored in m
 
 ## 2. Where it lives
 
-Memory is plain files in the repository. Every user is synthetic, so a teammate who pulls sees each user's past conversations, and their app carries on from there.
+Memory lives in a shared **Neon Postgres** database (free plan), so every teammate and every deployment reads and writes the same history as it happens. The connection string is `DATABASE_URL` in `.env`; `CREDITCOACH_MEMORY_BACKEND` (`postgres` or `files`) overrides the choice. The code is `creditcoach/memory/pg.py`, behind the same `store` functions as before.
+
+| Table | Holds | Replaces |
+|---|---|---|
+| `memory_events` | One row per episode event: `id` (insertion order), `v`, `ts` (`timestamptz`), `user_id`, `session`, `type`, `text`, `meta` (JSONB). An episode is every row with the same `session` | `episodes/<session>.jsonl` |
+| `memory_dreams` | One row per dream: `id` (`<timestamp>-<hex>`, as the file name was), `user_id`, `created`, `body` (the whole dream as JSONB). The newest `created` is current | `dreams/<id>.json` |
+
+The tables are created on first use. Both are **append-only**: a trigger refuses every `UPDATE` and `DELETE`, the same guarantee the files gave. The fields and rules in §3 to §5 are unchanged; only the storage moved.
+
+**Why a hosted database now:** the file design existed because a shared SQLite file would conflict on every `git pull` (the kickoff plan in [team.md](team.md) §2). Neon has no such conflicts, needs no pull requests to share sessions, and survives a redeploy (Hugging Face Spaces and Render wipe local disk). Neon's free plan was chosen over Supabase (its free projects pause after a week idle) and MongoDB Atlas (no backups on the free tier). An idle Neon database suspends after 5 minutes, so the first request afterwards waits a moment while it wakes.
+
+**The files backend and the archive.** Without `DATABASE_URL`, memory is written to plain files, as before:
 
 ```
 memory/
   README.md
   USR-001/
-    episodes/
-      20261002T140322Z-a1b2c3.jsonl   # one file per chat session: one JSON event per line
-      20261003T091500Z-d4e5f6.jsonl   # e.g. recorded on a teammate's machine, arrived by git pull
-    dreams/
-      20261003T091502Z-0a1b2c.json    # consolidated memory; the newest file is current
+    episodes/20261002T140322Z-a1b2c3.jsonl   # one file per chat session: one JSON event per line
+    dreams/20261003T091502Z-0a1b2c.json      # consolidated memory; the newest file is current
 ```
 
-**Why files and not a database:** files are append-only and never edited after they're written. A new session is a new episode file, and a new dream is a new dream file, each with a unique name (UTC timestamp and 6 random hex digits). Two people chatting as the same user on different machines never touch the same file, so `git pull` never conflicts and nothing is lost. A shared SQLite file would conflict on every pull, so the SQLite plan from kickoff ([team.md](team.md) §2) is replaced.
-
-**Sharing:** memory reaches GitHub like any other change, through a commit and a pull request (`main` is protected). `uv run python scripts/memory_sync.py` makes that one command: it commits only `memory/` on a new branch and opens the PR. After the PR merges, everyone who pulls sees those sessions.
+Tests and the evidence scripts always use files in a temporary folder, so they never write to the shared database. The files committed in `memory/` are the archive from before the move, and they have been imported into Neon. `uv run python scripts/memory_import.py` copies file sessions into Neon; it skips any session or dream that is already there, so anyone can run it. `scripts/memory_sync.py` (sharing files through pull requests) only applies to the files backend.
 
 ## 3. Episode files (episodic memory)
 
@@ -137,7 +143,7 @@ Evidence: [task-17-goal-recall.md](evidence/week-2/task-17-goal-recall.md), with
 
 ## 8. Privacy
 
-Every user is synthetic, so memory is committed to a public repository on purpose. That also means anything typed into the chat becomes public once a memory PR is merged. **Testers must not type real personal information**: not their own name, phone, PAN, account numbers or real credit details. If something real is typed by mistake, delete that episode file before running `scripts/memory_sync.py`.
+Every user is synthetic. Memory is no longer committed to the public repository; it is in the team's Neon database, which only people with `DATABASE_URL` can read. Keep that string out of git, chats and screenshots (`.env` is git-ignored). The files archive in `memory/` stays public. **Testers must still not type real personal information**: not their own name, phone, PAN, account numbers or real credit details. If something real is typed by mistake, the project owner removes it in the Neon SQL editor: `ALTER TABLE memory_events DISABLE TRIGGER memory_events_append_only;`, `DELETE` the rows for that `session`, then `ENABLE TRIGGER` again.
 
 ## 9. Open questions for team review
 

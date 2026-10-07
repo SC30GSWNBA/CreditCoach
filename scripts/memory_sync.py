@@ -1,4 +1,4 @@
-"""Share chat memory through GitHub: push your new sessions as a pull request, and pull everyone else's.
+"""Files backend only. Share chat memory through GitHub: push your new sessions as a pull request, and pull everyone else's.
 
 ``main`` is protected, so memory reaches GitHub like any other change (docs/memory.md §2).
 
@@ -112,6 +112,9 @@ def pull() -> None:
 
 
 def main() -> None:
+    if config.MEMORY_BACKEND == "postgres":
+        sys.exit("Memory is in Neon Postgres (DATABASE_URL is set), so there is nothing to share through git.\n"
+                 "To copy file sessions into Neon: uv run python scripts/memory_import.py")
     parser = argparse.ArgumentParser(description="Share chat memory through GitHub.")
     parser.add_argument("command", nargs="?", choices=["push", "pull"], default="push")
     parser.add_argument("--dry-run", action="store_true", help="push: only list the files that would be shared")

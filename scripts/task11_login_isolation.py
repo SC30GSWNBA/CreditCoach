@@ -187,6 +187,7 @@ def main() -> None:
     args = parser.parse_args()
     # The checks sign in and chat, which since Task 16 records memory: keep these test sessions out of memory/.
     config.MEMORY_DIR = Path(tempfile.mkdtemp(prefix="creditcoach-task11-")) / "memory"
+    config.MEMORY_BACKEND = "files"  # never the shared Neon database
     passwords = None
     if args.passwords:
         with open(args.passwords, encoding="utf-8") as f:
