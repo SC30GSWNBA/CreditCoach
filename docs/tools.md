@@ -17,7 +17,7 @@ These rules come from requirements.md §6 and the edge cases in §4.7.
 2. **`user_id` comes from the signed-in session, never from the model or the user's text.** The MCP host (Task #15) fills `user_id` from the session before each call. If the model passes any other id, the host refuses the call with `USER_MISMATCH` and the tool doesn't run. This covers "What's Vikram's credit score?" (§4 #49). Inside the tool, every row is filtered by `user_id` and checked again before it's returned, as `user_data.py` does today.
 3. **No credit file is a normal result, not an error.** A user with no accounts and no score history (USR-004, USR-007) gets `ok: true`, `has_credit_file: false`, empty lists and a `note`. The agent must say "no credit history yet", not show an error or invent a score (§4 #14, #20).
 4. **Errors are structured and never partly filled.** A failed call returns the error envelope in §4 and no data. The agent explains the error in plain language and never fills the gap with an estimate.
-5. **"Now" is the dataset's latest month, not today's date.** The dataset is a static snapshot. Both tools return `as_of`, the latest month in `score_history.csv` (today `2026-09-01`). "This month" means that month.
+5. **"Now" is the dataset's latest month, not today's date.** The dataset is a static snapshot (read from `data/*.csv`, or from its copy in Neon when `DATABASE_URL` is set; see `creditcoach/dataset.py`). Both tools return `as_of`, the latest month in `score_history.csv` (today `2026-09-01`). "This month" means that month.
 6. **Read-only.** Neither tool writes anything. Goal memory is a separate component (Task #16).
 7. **Amounts are whole rupees (`int`).** Ratios are decimals from 0 to 1, rounded to 3 places (0.374 = 37.4%).
 

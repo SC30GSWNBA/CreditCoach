@@ -71,7 +71,7 @@ def pool() -> ConnectionPool:
     """
     url = config.DATABASE_URL
     if not url:
-        raise RuntimeError("CREDITCOACH_MEMORY_BACKEND is 'postgres' but DATABASE_URL is not set in .env")
+        raise RuntimeError("a Neon (postgres) backend is selected but DATABASE_URL is not set in .env")
     with _lock:
         if url not in _pools:
             p = ConnectionPool(url, min_size=1, max_size=4, open=True, check=ConnectionPool.check_connection,
@@ -140,6 +140,14 @@ def latest_dream(user_id: str) -> dict | None:
         row = conn.execute("SELECT body FROM memory_dreams WHERE user_id = %s ORDER BY created DESC, id DESC LIMIT 1",
                            (user_id,)).fetchone()
     return row[0] if row else None
+
+
+def stored_ids() -> tuple[set[str], set[str]]:
+    """The session ids and dream ids already stored (read-only; for the archive import's dry run)."""
+    with pool().connection() as conn:
+        sessions = {r[0] for r in conn.execute("SELECT DISTINCT session FROM memory_events").fetchall()}
+        dreams = {r[0] for r in conn.execute("SELECT id FROM memory_dreams").fetchall()}
+    return sessions, dreams
 
 
 def users() -> list[str]:

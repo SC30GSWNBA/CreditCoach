@@ -72,3 +72,5 @@ LOGINS_FILE = ROOT / "creditcoach" / "app" / "logins.json"  # committed; holds p
 MEMORY_DIR = Path(os.getenv("CREDITCOACH_MEMORY_DIR", ROOT / "memory"))  # files backend; committed archive
 DATABASE_URL = os.getenv("DATABASE_URL", "")  # Neon Postgres; never commit it
 MEMORY_BACKEND = os.getenv("CREDITCOACH_MEMORY_BACKEND", "postgres" if DATABASE_URL else "files")
+# Where users, accounts and score history are read from: Neon (a copy loaded by scripts/data_import.py) or data/
+DATA_BACKEND = os.getenv("CREDITCOACH_DATA_BACKEND", "postgres" if DATABASE_URL else "files")

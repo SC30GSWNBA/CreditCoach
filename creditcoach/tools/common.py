@@ -5,8 +5,8 @@ they read only the requested user's rows, return ``{"ok": true, ...}`` on succes
 envelope on failure instead of raising, so the agent (and, from Task 15, the MCP host) can read the error code.
 
 Error codes raised here:
-    UNKNOWN_USER      ``user_id`` is empty, malformed, or not in ``data/users.csv``.
-    DATA_UNAVAILABLE  A dataset file can't be read. Retryable.
+    UNKNOWN_USER      ``user_id`` is empty, malformed, or not in the dataset's users.
+    DATA_UNAVAILABLE  The dataset can't be read (a file, or Neon; see ``creditcoach.dataset``). Retryable.
 
 ``USER_MISMATCH`` (the model asked for a user other than the signed-in one) and the 5-second timeout are
 enforced by the MCP host in Task 15, not by the tools.
@@ -17,7 +17,7 @@ from functools import lru_cache
 
 import pandas as pd
 
-from creditcoach import config
+from creditcoach import dataset
 
 USER_ID = re.compile(r"USR-\d{3}")
 NO_CREDIT_FILE_NOTE = ("This user has no credit file yet: no credit accounts and no credit score. "
@@ -39,20 +39,16 @@ def error(code: str, message: str, retryable: bool = False, **details) -> dict:
 
 @lru_cache(maxsize=1)
 def tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Read users, accounts and score history once per process.
+    """Read users, accounts and score history once per process, from ``data/`` or Neon (``creditcoach.dataset``).
 
     Raises:
-        ToolFailure: ``DATA_UNAVAILABLE`` if a file is missing or unreadable. Nothing is cached in that case,
-            so a later call can succeed once the file is back.
+        ToolFailure: ``DATA_UNAVAILABLE`` if the dataset can't be read. Nothing is cached in that case, so a
+            later call can succeed once the file (or Neon) is back.
     """
     try:
-        users = pd.read_csv(config.DATA_DIR / "users.csv", dtype=str, keep_default_na=False)
-        accounts = pd.read_csv(config.DATA_DIR / "accounts.csv")
-        scores = pd.read_csv(config.DATA_DIR / "score_history.csv", dtype={"date": str})
-    except (OSError, pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
-        raise ToolFailure("DATA_UNAVAILABLE", f"Couldn't read the dataset: {exc.__class__.__name__}.",
-                          retryable=True) from exc
-    return users, accounts, scores
+        return dataset.load()
+    except dataset.DatasetError as exc:
+        raise ToolFailure("DATA_UNAVAILABLE", f"Couldn't read the dataset: {exc}.", retryable=True) from exc
 
 
 def as_of() -> str:
@@ -64,7 +60,7 @@ def check_user(user_id) -> str:
     """Return ``user_id`` if it names a user in the dataset.
 
     Raises:
-        ToolFailure: ``UNKNOWN_USER`` if it is empty, malformed, or not in ``data/users.csv``.
+        ToolFailure: ``UNKNOWN_USER`` if it is empty, malformed, or not in the dataset's users.
     """
     if not isinstance(user_id, str) or not USER_ID.fullmatch(user_id) or user_id not in set(tables()[0].user_id):
         raise ToolFailure("UNKNOWN_USER", f"No user with id {user_id}.", user_id=user_id)

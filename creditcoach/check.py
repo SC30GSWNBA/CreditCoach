@@ -8,7 +8,8 @@ It prints one line per check and exits with code 0 if everything required passed
     [PASS]/[FAIL] Python version is 3.11 or newer.
     [PASS]/[FAIL] Every required package imports.
     [PASS]/[FAIL] OPENROUTER_API_KEY is set in .env (only the first 8 characters are shown).
-    [PASS]/[FAIL] The synthetic dataset in data/ is readable and consistent.
+    [PASS]/[FAIL] The synthetic dataset (data/ or Neon) is readable and consistent.
+    [PASS]/[FAIL] When the dataset is read from Neon: Neon matches data/*.csv exactly.
     [PASS]/[FAIL] Chat UI logins: one per dataset user, each mapped to a different user.
     [INFO]        Whether the vector store has been built (informational; never fails the check).
     [INFO]        How much chat memory is in memory/, and how much isn't shared yet (informational).
@@ -60,18 +61,24 @@ def main() -> int:
     report(key_set, "OPENROUTER_API_KEY set in .env", f"{key[:8]}..." if key_set else "copy .env.example to .env and add your key")
     print(f"       models: chat={config.CHAT_MODEL} small={config.SMALL_MODEL} fallback={config.FALLBACK_MODEL}")
 
-    try:
-        import pandas as pd
+    from creditcoach import dataset
 
-        users = pd.read_csv(config.DATA_DIR / "users.csv", dtype=str, keep_default_na=False)
-        accounts = pd.read_csv(config.DATA_DIR / "accounts.csv")
-        scores = pd.read_csv(config.DATA_DIR / "score_history.csv")
+    where = "Neon" if config.DATA_BACKEND == "postgres" else "data/"
+    try:
+        users, accounts, scores = dataset.load()
         consistent = set(accounts.user_id) | set(scores.user_id) <= set(users.user_id) and scores.score.between(300, 900).all()
         latest = scores[scores.user_id == "USR-001"].iloc[-1]
-        report(consistent, "Dataset readable (data/)", f"{len(users)} users, {len(accounts)} accounts, {len(scores)} score rows; "
+        report(consistent, f"Dataset readable ({where})", f"{len(users)} users, {len(accounts)} accounts, {len(scores)} score rows; "
                f"USR-001 latest score {latest['score']} ({latest['primary_factor_change']})")
     except Exception as exc:
-        report(False, "Dataset readable (data/)", str(exc))
+        report(False, f"Dataset readable ({where})", str(exc))
+    if config.DATA_BACKEND == "postgres":
+        try:
+            stale = dataset.drift()
+            report(not stale, "Neon dataset matches data/*.csv",
+                   f"differs in {', '.join(stale)}; run: uv run python scripts/data_import.py" if stale else "")
+        except Exception as exc:
+            report(False, "Neon dataset matches data/*.csv", str(exc))
 
     try:
         from creditcoach import auth

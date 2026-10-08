@@ -1,6 +1,6 @@
 # CreditCoach: Team, Roles & Tech Stack
 
-*Week 1 · Task #1 (Kickoff) · Last updated: 2026-10-02*
+*Week 1 · Task #1 (Kickoff) · Last updated: 2026-10-08 (memory and dataset in Neon Postgres)*
 
 ## 1. Roles
 
@@ -29,14 +29,14 @@ Each role owns its area end to end across all four weeks: design, build, tests, 
 | Vector store | **ChromaDB** (persistent, local `./.chroma/`) | Zero-ops, runs embedded in Python, and supports metadata filters (e.g., `category=product_risk`). |
 | RAG orchestration | **Plain Python** (no LangChain/LlamaIndex) | The pipeline is small. Fewer abstractions make it easier to debug retrieval misses in Week 4 error analysis. |
 | Tools / MCP | **`mcp` Python SDK v2 (`MCPServer`, called FastMCP in v1)** server exposing `get_score_history` and `get_account_summary` over stdio; the agent connects as an MCP client (Task 15) | Required by Week 2. Each MCP tool is a few lines wrapping the Task 13–14 functions. We use v2 (2.2 at the time of Task 15) rather than pinning v1. |
-| Data | **pandas** reading the synthetic dataset in `data/` (15 users, Indian context: ₹ amounts, 300–900 score range) | Built in Task #6 from the sample workbook and 14 user interviews. See `data/README.md`. |
-| Memory | **Append-only JSON files in `memory/<user_id>/`, committed to git** (Task #16): one episode file per chat session (logins, messages, replies, explicit `goal_set` events, logouts) and consolidated "dream" files with facts, preferences and session summaries. The goal (`target_score`, `target_date`, `purpose`) is replayed from `goal_set` events. Schema: [memory.md](memory.md) | Every user is synthetic, so memory can live in the repo: a teammate who pulls sees each user's past conversations and the app carries on from them. Unique, never-edited files mean `git pull` never conflicts, which a shared SQLite file would. Replaces the SQLite plan from kickoff. |
+| Data | **pandas** over the synthetic dataset (15 users, Indian context: ₹ amounts, 300–900 score range). The app reads a copy in **Neon Postgres** (`dataset_*` tables, loaded by `scripts/data_import.py`); `data/*.csv` stay the reviewed source, and tests read them (`creditcoach/dataset.py`) | Built in Task #6 from the sample workbook and 14 user interviews. See `data/README.md`. Neon gives every teammate and deployment the same copy; `creditcoach.check` fails if it drifts from the CSVs. |
+| Memory | **Append-only tables in Neon Postgres** (since 2026-10-07; Task #16 started with JSON files in `memory/<user_id>/`, kept as the archive and the backend tests use): one episode per chat session (logins, messages, replies, explicit `goal_set` events, logouts) and consolidated "dreams" with facts, preferences and session summaries. The goal (`target_score`, `target_date`, `purpose`) is replayed from `goal_set` events. Schema: [memory.md](memory.md) | Every teammate and deployment reads and writes the same history with no pull requests, and it survives a redeploy. A trigger refuses UPDATE and DELETE, as the never-edited files did. Replaces the SQLite plan from kickoff, then the git-committed files. |
 | Caching | **diskcache** for embeddings and tool lookups, keyed by a hash of the normalized query | Gives a persistent cache hit or miss we can log and badge in the UI (Task #25). |
 | Guardrails | Custom rule layer: regex/keyword pre-check, a small-model classifier (GPT-5 mini / GPT-4.1 mini), and a figure-provenance check against tool output | Maps one-to-one to requirements.md §6. No black-box dependency. |
 | Observability | Structured JSON logs with a per-request `trace_id`, written to SQLite, plus a Gradio "Dashboard" tab | Meets §6 (tool-failure rate, graceful degradation) with no extra infrastructure. |
 | Evals | **pytest** with custom scorers over the 6 sample queries (requirements.md §3) and the 44 additional queries (§4). The 50 queries are one golden set: `creditcoach/evals/golden.py` reads the text from requirements.md and the checks from `golden_queries.json` | One command (Task #27). The golden set already drives the Week 1–2 evaluations, and `tests/test_golden_queries.py` checks every expected figure against the tools in CI. |
 | UI | **Gradio** `ChatInterface`, `launch(share=True)`, with one login per dataset user (`creditcoach/auth.py`); a "My credit" tab draws the score story with **Plotly** (`creditcoach/app/charts.py`) | Gives the shareable link Task #11 requires. Each login sees only its own user's data, so any teammate can demo any of the 15 users. |
-| Secrets | `.env` (git-ignored) with `OPENROUTER_API_KEY`, loaded by `python-dotenv`. `.env.example` is committed with a placeholder value. Chat UI passwords are committed only as salted PBKDF2 hashes (`creditcoach/app/logins.json`) and shared privately | Keys and passwords are never committed. |
+| Secrets | `.env` (git-ignored) with `OPENROUTER_API_KEY` and the Neon `DATABASE_URL`, loaded by `python-dotenv`. `.env.example` is committed with a placeholder value. Chat UI passwords are committed only as salted PBKDF2 hashes (`creditcoach/app/logins.json`) and shared privately | Keys and passwords are never committed. |
 
 ### Repo layout
 
