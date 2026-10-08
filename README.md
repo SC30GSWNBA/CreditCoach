@@ -61,6 +61,7 @@ CreditCoach/
     rag/              #   corpus loader, ingestion (chunk, embed, store in .chroma/), retrieval (search + rerank)
     agent/            #   pipeline.py: question -> retrieval -> both tools prefetched over MCP -> agent loop -> grounded answer;
                       #   mcp_host.py: MCP client that runs tool calls for the signed-in user only (Task 15)
+    dataset.py        #   reads users, accounts and score history from Neon or data/ (same DataFrames either way)
     tools/            #   data tools from docs/tools.md: score_history.py (Task 13), account_summary.py (Task 14); common.py (errors, data);
                       #   server.py: MCP server exposing both (Task 15): python -m creditcoach.tools.server
     app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share]; logins.json;
@@ -72,13 +73,14 @@ CreditCoach/
                       #   recall.py: MEMORY in each answer and the save_goal / clear_goal tools (Task 17)
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
   memory/             # archive of file-based memory from before the move to Neon (see memory/README.md)
-  data/               # synthetic dataset: 15 users, accounts, score history (see data/README.md)
+  data/               # synthetic dataset: 15 users, accounts, score history (see data/README.md); a copy is in Neon
   tests/              # pytest tests (uv run pytest), run by CI (.github/workflows/tests.yml):
                       #   test_score_history.py, test_account_summary.py (Tasks 13–14), test_mcp.py (Task 15),
                       #   test_memory.py (Task 16), test_recall.py (Task 17), test_trace.py (Task 18),
                       #   test_charts.py: the My credit tab (charts, what-if, data isolation),
                       #   test_golden_queries.py: every requirements.md figure checked against the tools,
-                      #   test_llm.py: model client (output-token cap, fallback)
+                      #   test_llm.py: model client (output-token cap, fallback),
+                      #   test_dataset.py: dataset loader (backend choice, Neon unreachable)
   scripts/
     synthetic/        #   step1-3: build data/ from the interviews and the sample
     task05_prompt_tests.py   # system prompt test runs (Task 5; --all: rule checks on all 50 answers)
@@ -93,6 +95,7 @@ CreditCoach/
     task16_memory_record.py  # memory record written and read back, plus a live dream (Task 16)
     task17_goal_recall.py    # goal stated in session 1, recalled unprompted in session 2 (Task 17; paid calls)
     memory_import.py         # copy file memory (the memory/ archive) into Neon; safe to re-run
+    data_import.py           # load data/*.csv into Neon (replaces the copy there); run after rebuilding the dataset
     memory_sync.py           # files backend only: share memory files as a PR (push), or pull everyone's (pull)
     set_login.py             # add or change a chat UI login
   user_interviews/    # 14 interview responses (dummy participants) used to build data/
@@ -111,9 +114,12 @@ CreditCoach/
 uv run python scripts/synthetic/step1_profiles.py
 uv run python scripts/synthetic/step2_accounts_scores.py
 uv run python scripts/synthetic/step3_summary.py
+uv run python scripts/data_import.py   # then refresh the copy in Neon, and restart the app
 ```
 
-**Stack:** Python 3.12 · OpenAI GPT-5 / GPT-4 models via OpenRouter · sentence-transformers (local embeddings) · ChromaDB · Gradio · Plotly (My credit charts). See [docs/team.md](docs/team.md) for the full stack and the reasons behind each choice.
+**Where the dataset lives.** With `DATABASE_URL` set, the app and the tools read users, accounts and score history from three tables in the same Neon database as memory (`dataset_users`, `dataset_accounts`, `dataset_score_history`). That copy is loaded from `data/*.csv`, which stay the reviewed source: change the data by rebuilding the CSVs in a pull request, then run `scripts/data_import.py`. Don't edit the Neon tables directly. `uv run python -m creditcoach.check` fails if Neon and the CSVs differ. Without `DATABASE_URL`, or with `CREDITCOACH_DATA_BACKEND=files`, everything reads the CSVs, and tests always do, so the golden queries are checked against the committed data.
+
+**Stack:** Python 3.12 · OpenAI GPT-5 / GPT-4 models via OpenRouter · sentence-transformers (local embeddings) · ChromaDB · Neon Postgres (memory and the dataset copy) · Gradio · Plotly (My credit charts). See [docs/team.md](docs/team.md) for the full stack and the reasons behind each choice.
 
 ## Memory
 

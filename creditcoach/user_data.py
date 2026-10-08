@@ -21,7 +21,7 @@ from functools import lru_cache
 
 import pandas as pd
 
-from creditcoach import config
+from creditcoach import dataset
 
 # Profile answers from users.csv that help explain a user's credit. Leaves out survey bookkeeping
 # (source, age band, knowledge score) and fields with no bearing on credit coaching.
@@ -30,16 +30,13 @@ PROFILE_FIELDS = ["first_name", "age", "years_working", "credit_cards", "pays_ca
 
 
 class UnknownUserError(KeyError):
-    """Raised when a user id is not in ``data/users.csv``."""
+    """Raised when a user id is not in the dataset's users."""
 
 
 @lru_cache(maxsize=1)
 def _tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Read the three dataset files once per process: users, accounts, score history."""
-    users = pd.read_csv(config.DATA_DIR / "users.csv", dtype=str, keep_default_na=False)
-    accounts = pd.read_csv(config.DATA_DIR / "accounts.csv")
-    scores = pd.read_csv(config.DATA_DIR / "score_history.csv")
-    return users, accounts, scores
+    """Read the dataset once per process (users, accounts, score history), from ``data/`` or Neon."""
+    return dataset.load()
 
 
 def user_ids() -> list[str]:

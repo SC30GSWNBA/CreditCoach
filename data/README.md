@@ -23,6 +23,8 @@ Step 2 refuses to write data unless all of these hold:
 
 ## Files
 
+With `DATABASE_URL` set, the app reads a copy of these three files from Neon Postgres (`dataset_users`, `dataset_accounts`, `dataset_score_history`, next to memory). The CSVs stay the source: after rebuilding them, run `uv run python scripts/data_import.py` to replace the copy, which it then checks row for row against the CSVs. See README > Where the dataset lives.
+
 | File | One row per | Columns |
 |---|---|---|
 | `users.csv` | user (15) | `user_id`, `first_name`, `gender`, `age`, `age_band`, `years_working`, `credit_cards`, `checks_score`, `learns_from`, `self_reported_score`, `knowledge_score` (0–6, Q7–Q12), `unexplained_drop`, `pays_card`, `card_usage`, `knows_apr`, `late_payments_12m`, `loans`, `risky_product_exposure`, `invests_in`, `emergency_fund`, `emi_pct`, `invest_pct`, `goals_2yr`, `source` |

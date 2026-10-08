@@ -71,7 +71,7 @@ def pool() -> ConnectionPool:
     """
     url = config.DATABASE_URL
     if not url:
-        raise RuntimeError("CREDITCOACH_MEMORY_BACKEND is 'postgres' but DATABASE_URL is not set in .env")
+        raise RuntimeError("a Neon (postgres) backend is selected but DATABASE_URL is not set in .env")
     with _lock:
         if url not in _pools:
             p = ConnectionPool(url, min_size=1, max_size=4, open=True, check=ConnectionPool.check_connection,

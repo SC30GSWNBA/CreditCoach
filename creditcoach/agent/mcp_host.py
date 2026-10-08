@@ -29,7 +29,7 @@ from contextlib import AsyncExitStack
 from dataclasses import dataclass
 
 from mcp import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.client.stdio import StdioServerParameters, get_default_environment, stdio_client
 
 from creditcoach import config
 from creditcoach.tools.common import error
@@ -37,7 +37,16 @@ from creditcoach.tools.common import error
 log = logging.getLogger(__name__)
 
 TIMEOUT_SECONDS = 5.0
-SERVER = StdioServerParameters(command=sys.executable, args=["-m", "creditcoach.tools.server"], cwd=str(config.ROOT))
+
+
+def server_params() -> StdioServerParameters:
+    """How to start the tool server, reading the dataset from the same backend as this process.
+
+    Built when a session opens, not at import, so a backend set at run time (tests force "files") reaches the
+    server too; on its own the server would pick Neon whenever ``.env`` has ``DATABASE_URL``.
+    """
+    return StdioServerParameters(command=sys.executable, args=["-m", "creditcoach.tools.server"], cwd=str(config.ROOT),
+                                 env={**get_default_environment(), "CREDITCOACH_DATA_BACKEND": config.DATA_BACKEND})
 
 
 @dataclass
@@ -73,7 +82,7 @@ class ToolCall:
 class McpHost:
     """An MCP client session for one signed-in user. Use as ``async with McpHost(user_id) as host``."""
 
-    def __init__(self, user_id: str, timeout: float = TIMEOUT_SECONDS, server: StdioServerParameters = SERVER):
+    def __init__(self, user_id: str, timeout: float = TIMEOUT_SECONDS, server: StdioServerParameters | None = None):
         self.user_id = user_id
         self.timeout = timeout
         self.server = server
@@ -83,7 +92,7 @@ class McpHost:
     async def __aenter__(self) -> "McpHost":
         self._stack = AsyncExitStack()
         try:
-            read, write = await self._stack.enter_async_context(stdio_client(self.server))
+            read, write = await self._stack.enter_async_context(stdio_client(self.server or server_params()))
             self._session = await self._stack.enter_async_context(ClientSession(read, write))
             await self._session.initialize()
             listed = (await self._session.list_tools()).tools
