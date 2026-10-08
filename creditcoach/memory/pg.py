@@ -142,6 +142,14 @@ def latest_dream(user_id: str) -> dict | None:
     return row[0] if row else None
 
 
+def stored_ids() -> tuple[set[str], set[str]]:
+    """The session ids and dream ids already stored (read-only; for the archive import's dry run)."""
+    with pool().connection() as conn:
+        sessions = {r[0] for r in conn.execute("SELECT DISTINCT session FROM memory_events").fetchall()}
+        dreams = {r[0] for r in conn.execute("SELECT id FROM memory_dreams").fetchall()}
+    return sessions, dreams
+
+
 def users() -> list[str]:
     """User ids with any stored memory."""
     with pool().connection() as conn:
