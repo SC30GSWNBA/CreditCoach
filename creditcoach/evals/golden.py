@@ -343,3 +343,33 @@ def unsourced_numbers(text: str, sources: str) -> list[str]:
     allowed = _one_step(first & found | numbers(sources))
     canon = lambda n: n.rstrip("0").rstrip(".") if "." in n else n  # noqa: E731
     return sorted((n for n in found if float(n) > 12 and n not in allowed and canon(n) not in allowed), key=float)
+
+
+def untraced_numbers(text: str, sources: str, known: frozenset[str] = frozenset(), steps: int = 4) -> list[str]:
+    """Numbers in an answer that can't be traced to its sources, following the answer's own working.
+
+    Like ``unsourced_numbers``, but a calculation may chain through up to ``steps`` numbers the answer states
+    ("30% of ₹75,000 is ₹22,500, so pay ₹36,500, leaving ₹38,250 overall"), and a year up to 5 after a year in the
+    sources passes ("by 2027" when the data is from 2026). The chat's confidence line uses it
+    (``creditcoach.app.confidence``): on the 50 saved Task 15 answers it leaves 2 to review where
+    ``unsourced_numbers`` leaves 12.
+
+    Args:
+        text: The answer.
+        sources: Everything the answer's figures may come from.
+        known: Numbers that count as sourced whatever the sources say.
+        steps: How many stated numbers a calculation may chain through.
+    """
+    found, given = numbers(text), numbers(sources) | known
+    canon = lambda n: n.rstrip("0").rstrip(".") if "." in n else n  # noqa: E731
+    stated: set[str] = set()
+    for _ in range(steps):
+        allowed = _one_step(given | stated)
+        new = {n for n in found if n in allowed or canon(n) in allowed} - stated
+        if not new:
+            break
+        stated |= new
+    years = [float(n) for n in given if 2000 <= float(n) <= 2100]
+    later_year = lambda v: 2000 <= v <= 2100 and any(0 <= v - y <= 5 for y in years)  # noqa: E731
+    return sorted((n for n in found if float(n) > 12 and n not in allowed and canon(n) not in allowed
+                   and not later_year(float(n))), key=float)

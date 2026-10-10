@@ -22,6 +22,10 @@ spinner and timer, and a rotating credit tip during the slowest step. When the a
 into an expandable "Agent trace" listing every tool call with a one-line result and the recalled goal
 (``creditcoach.app.trace``).
 
+Confidence line: under each answer, "Confidence: N%" with the reason, from fixed checks on the
+finished answer and no extra model call: the data tools returned data, every figure traces to the user's data or the
+library, the library covers the topic, and nothing reads as a promise (``creditcoach.app.confidence``).
+
 My credit tab: next to the chat, a tab charts the signed-in user's own data (``creditcoach.app.charts``): snapshot
 tiles, "Your score story" (score line, monthly change bars and the reasons behind them, with a reason picker that
 highlights its months), card utilization with a what-if pay-down slider, and every account by balance. It reads the
@@ -63,7 +67,7 @@ import gradio as gr  # noqa: E402
 
 from creditcoach import auth, config  # noqa: E402
 from creditcoach.agent.pipeline import answer  # noqa: E402
-from creditcoach.app import charts  # noqa: E402
+from creditcoach.app import charts, confidence  # noqa: E402
 from creditcoach.app.trace import Trace  # noqa: E402
 from creditcoach.memory import dream, store  # noqa: E402
 from creditcoach.rag.retrieve import retrieve  # noqa: E402
@@ -77,7 +81,8 @@ TITLE = "CreditCoach"
 DESCRIPTION = (
     "Plain-language answers about your credit score, grounded in your own score history and accounts and in "
     "CreditCoach's credit-education library. Your score history and accounts are read live through CreditCoach's "
-    "data tools. CreditCoach remembers your goal and earlier conversations (see the panel above): tell it your goal "
+    "data tools. Each answer ends with a confidence percentage: an automatic check of how well it is backed by your "
+    "data and the library, not a guarantee that it is right. CreditCoach remembers your goal and earlier conversations (see the panel above): tell it your goal "
     "and it will plan around it next time. Not financial advice."
 )
 EXAMPLES = [
@@ -95,12 +100,18 @@ def format_reply(a) -> str:
         a: An ``agent.pipeline.Answer``.
 
     Returns:
-        The answer text, followed by a "Sources from the CreditCoach library" list (passage titles and ids)
-        and a small line with the tools called, the model name and timings.
+        The answer text, followed by its confidence line (``app.confidence``; left out if it can't be worked
+        out), a "Sources from the CreditCoach library" list (passage titles and ids) and a small line with the
+        tools called, the model name and timings.
     """
+    try:
+        trust = confidence.line(confidence.assess(a)) + "\n\n"
+    except Exception:  # the answer matters more than its label
+        log.exception("Couldn't work out the confidence line")
+        trust = ""
     sources = "\n".join(f"{i}. {p.title} (`{p.id}`)" for i, p in enumerate(a.passages, 1))
     tools = ", ".join(f"{c.tool}" + ("" if c.ok else f" ({c.code})") for c in a.tool_calls) or "none"
-    return (f"{a.text}\n\n---\n**Sources from the CreditCoach library**\n{sources}\n\n"
+    return (f"{a.text}\n\n---\n{trust}**Sources from the CreditCoach library**\n{sources}\n\n"
             f"<sub>data tools: {tools} · {a.model} · retrieval {a.retrieval_seconds:.1f}s · "
             f"answer {a.generation_seconds:.1f}s</sub>")
 
