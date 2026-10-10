@@ -95,6 +95,9 @@ class Answer:
         tool_calls: Every tool call the model made through MCP, in order, with its result.
         retrieval_seconds: Time spent searching the corpus.
         generation_seconds: Time from the end of retrieval to the final answer (model turns and tool calls).
+        sources: Everything the model was given for this turn apart from the system prompt: the profile, memory
+            and passages, the session's earlier turns, the question and every tool result. The chat's confidence
+            line traces the answer's figures to it (``app.confidence``).
     """
     question: str
     user_id: str | None
@@ -104,6 +107,7 @@ class Answer:
     tool_calls: list[ToolCall] = field(default_factory=list)
     retrieval_seconds: float = 0.0
     generation_seconds: float = 0.0
+    sources: str = ""
 
 
 def build_context(passages: list[Result], user_id: str | None = None, memory: str | None = None) -> str:
@@ -241,7 +245,8 @@ def answer(question: str, k: int = 3, user_id: str | None = None, session: store
         (text, model), calls = chat(messages), []
     _report(progress, "answer", status="done", model=model)
     return Answer(question=question, user_id=user_id, text=text, model=model, passages=passages, tool_calls=calls,
-                  retrieval_seconds=t1 - t0, generation_seconds=time.perf_counter() - t1)
+                  retrieval_seconds=t1 - t0, generation_seconds=time.perf_counter() - t1,
+                  sources="\n".join(m["content"] for m in messages[1:] if m.get("content")))
 
 
 def transcript(a: Answer) -> str:

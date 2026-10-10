@@ -22,6 +22,7 @@ Example:
 """
 
 import json
+import re
 import time
 from dataclasses import asdict
 from datetime import date
@@ -59,6 +60,9 @@ SPECS = [
             "required": ["quote"]}}},
 ]
 NAMES = {s["function"]["name"] for s in SPECS}
+# Where the chat UI's footer starts under a reply (``app.main.format_reply``): the confidence line, or the sources
+# in replies from before it existed.
+FOOTER = re.compile(r"\n\n---\n\*\*(?:Confidence|Sources)")
 
 
 def _norm(text: str) -> str:
@@ -124,7 +128,7 @@ def _text(content) -> str:
 def history_messages(history: list | None, limit: int = 8) -> list[dict]:
     """This session's earlier chat turns from Gradio, as model messages.
 
-    Replies lose their sources footer, and agent-trace steps (messages with a metadata title, Task 18) are left out:
+    Replies lose their footer (the confidence line and the sources), and agent-trace steps (messages with a metadata title, Task 18) are left out:
     they describe how an answer was built, not what was said.
     """
     out = []
@@ -134,7 +138,7 @@ def history_messages(history: list | None, limit: int = 8) -> list[dict]:
         role, content = h.get("role"), _text(h.get("content"))
         if role not in ("user", "assistant") or not content.strip():
             continue
-        out.append({"role": role, "content": content.split("\n\n---\n**Sources")[0][:2000]})
+        out.append({"role": role, "content": FOOTER.split(content)[0][:2000]})
     return out[-limit:]
 
 
