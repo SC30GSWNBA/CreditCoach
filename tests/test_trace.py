@@ -129,7 +129,7 @@ def test_quote_is_not_shown_in_the_save_goal_step():
 # ---- The streaming chat handler ----
 
 def fake_answer(fail=False):
-    def answer(question, user_id=None, session=None, history=None, progress=None):
+    def answer(question, user_id=None, session=None, history=None, progress=None, **kwargs):
         progress("retrieval", {"status": "start"})
         progress("retrieval", {"status": "done", "passages": PASSAGES, "seconds": 0.1})
         progress("model", {"round": 1})

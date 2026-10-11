@@ -22,6 +22,11 @@ spinner and timer, and a rotating credit tip during the slowest step. When the a
 into an expandable "Agent trace" listing every tool call with a one-line result and the recalled goal
 (``creditcoach.app.trace``).
 
+Guardrails and cache (Tasks 20, 22, 25): the message's personal identifiers are masked before anything else sees
+it, every answer passes through the guardrail layer (``creditcoach.guardrails``), and a question the same user
+asks again is served from the cache (``creditcoach.cache``). A badge row above each answer says what the guardrail
+layer did and whether the cache was used (``creditcoach.app.badges``), and the agent trace has a step for each.
+
 Confidence line: under each answer, "Confidence: N%" with the reason, from fixed checks on the
 finished answer and no extra model call: the data tools returned data, every figure traces to the user's data or the
 library, the library covers the topic, and nothing reads as a promise (``creditcoach.app.confidence``).
@@ -65,9 +70,9 @@ os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")  # before importing g
 
 import gradio as gr  # noqa: E402
 
-from creditcoach import auth, config  # noqa: E402
+from creditcoach import auth, config, guardrails  # noqa: E402
 from creditcoach.agent.pipeline import answer  # noqa: E402
-from creditcoach.app import charts, confidence  # noqa: E402
+from creditcoach.app import badges, charts, confidence  # noqa: E402
 from creditcoach.app.trace import Trace  # noqa: E402
 from creditcoach.memory import dream, store  # noqa: E402
 from creditcoach.rag.retrieve import retrieve  # noqa: E402
@@ -100,7 +105,8 @@ def format_reply(a) -> str:
         a: An ``agent.pipeline.Answer``.
 
     Returns:
-        The answer text, followed by its confidence line (``app.confidence``; left out if it can't be worked
+        The badge row (``app.badges``: what the guardrail layer did and whether the cache was used; Task 25), the
+        answer text, followed by its confidence line (``app.confidence``; left out if it can't be worked
         out), a "Sources from the CreditCoach library" list (passage titles and ids) and a small line with the
         tools called, the model name and timings.
     """
@@ -111,7 +117,12 @@ def format_reply(a) -> str:
         trust = ""
     sources = "\n".join(f"{i}. {p.title} (`{p.id}`)" for i, p in enumerate(a.passages, 1))
     tools = ", ".join(f"{c.tool}" + ("" if c.ok else f" ({c.code})") for c in a.tool_calls) or "none"
-    return (f"{a.text}\n\n---\n{trust}**Sources from the CreditCoach library**\n{sources}\n\n"
+    try:
+        top = badges.row(a)
+    except Exception:  # the answer matters more than its badges
+        log.exception("Couldn't work out the badges")
+        top = ""
+    return (f"{top + chr(10) * 2 if top else ''}{a.text}\n\n---\n{trust}**Sources from the CreditCoach library**\n{sources}\n\n"
             f"<sub>data tools: {tools} · {a.model} · retrieval {a.retrieval_seconds:.1f}s · "
             f"answer {a.generation_seconds:.1f}s</sub>")
 
@@ -138,7 +149,9 @@ def remember(request: gr.Request, user_id: str, type_: str, text: str = "", meta
 
 def answer_meta(a) -> dict:
     """What an episode keeps about a reply: model, tools (no tool output: figures always come live), passages."""
-    return {"model": a.model, "passages": [p.id for p in a.passages],
+    guard = {"guardrail": {"action": a.guardrail.action, "rules": a.guardrail.rules}} if getattr(a, "guardrail", None) else {}
+    served = {"cache": a.cache["status"]} if getattr(a, "cache", None) and a.cache["status"] != "off" else {}
+    return {"model": a.model, "passages": [p.id for p in a.passages], **guard, **served,
             "tools": [{"tool": c.tool, "arguments": c.arguments, "ok": c.ok, "code": c.code} for c in a.tool_calls],
             "seconds": round(a.retrieval_seconds + a.generation_seconds, 1)}
 
@@ -175,7 +188,7 @@ def respond(message: str, history: list, request: gr.Request) -> Iterator[str | 
     if not message or not message.strip():
         yield "Please type a question about your credit."
         return
-    question = message.strip()
+    question = guardrails.mask(message.strip())  # S3: identifiers never reach memory, the trace or the model
     remember(request, user_id, "user_message", question)
     session = session_for(request, user_id)
     events: queue.Queue = queue.Queue()
@@ -183,7 +196,7 @@ def respond(message: str, history: list, request: gr.Request) -> Iterator[str | 
 
     def work():
         try:
-            outcome["answer"] = answer(question, user_id=user_id, session=session, history=history,
+            outcome["answer"] = answer(question, user_id=user_id, session=session, history=history, use_cache=True,
                                        progress=lambda step, details: events.put((step, details)))
         except Exception as exc:  # reported below, on the request's own thread
             outcome["error"] = exc
@@ -503,7 +516,7 @@ def main() -> None:
     _, local_url, share_url = demo.launch(share=args.share, auth=auth.check_login,
                                           auth_message="Sign in with your CreditCoach username and password.",
                                           server_name="127.0.0.1", server_port=args.port, theme=gr.themes.Soft(),
-                                          css=charts.CSS, prevent_thread_lock=True)
+                                          css=charts.CSS + badges.CSS, prevent_thread_lock=True)
     log.info("CreditCoach running at %s (login required; %d user logins)", local_url, len(auth.logins()))
     if share_url:
         log.info("Public share link (expires in about 1 week, stops when this process stops): %s", share_url)

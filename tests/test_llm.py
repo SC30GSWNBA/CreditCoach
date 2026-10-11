@@ -41,3 +41,20 @@ def test_a_failed_chat_model_falls_back_with_the_same_cap(monkeypatch):
     assert llm.chat([{"role": "user", "content": "hi"}]) == ("ok", config.FALLBACK_MODEL)
     assert [r["model"] for r in fake.requests] == [config.CHAT_MODEL, config.FALLBACK_MODEL]
     assert all(r["max_tokens"] == config.MAX_OUTPUT_TOKENS for r in fake.requests)
+
+
+def test_track_collects_tokens_and_cost_for_each_call(monkeypatch):  # Task 23
+    class Metered(FakeClient):
+        def create(self, **kwargs):
+            response = super().create(**kwargs)
+            response.usage = SimpleNamespace(prompt_tokens=120, completion_tokens=30, cost=0.0042)
+            return response
+    fake = Metered()
+    monkeypatch.setattr(llm, "get_client", lambda: fake)
+    with llm.track() as calls:
+        llm.chat([{"role": "user", "content": "hi"}])
+        llm.chat([{"role": "user", "content": "hi"}], model=config.SMALL_MODEL)
+    llm.chat([{"role": "user", "content": "hi"}])  # outside the block: not collected
+    assert calls == [{"model": config.CHAT_MODEL, "prompt_tokens": 120, "completion_tokens": 30, "cost": 0.0042},
+                     {"model": config.SMALL_MODEL, "prompt_tokens": 120, "completion_tokens": 30, "cost": 0.0042}]
+    assert fake.requests[0]["extra_body"]["usage"] == {"include": True}

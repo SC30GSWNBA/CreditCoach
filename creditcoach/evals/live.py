@@ -29,6 +29,7 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
+from creditcoach import cache
 from creditcoach.agent import pipeline
 from creditcoach.agent.mcp_host import McpHost
 from creditcoach.evals import golden
@@ -108,7 +109,8 @@ def run(mode: str, ids: list[int] | None = None, workers: int = 4) -> list[dict]
     for q in (q for q in queries if mode == "tools" and q.fault):  # one at a time: the fault patches the pipeline
         original, pipeline.McpHost = pipeline.McpHost, TimingOutAccounts
         try:
-            records.append(_ask(q, mode))
+            with cache.disabled():  # a cached account summary would hide the injected timeout
+                records.append(_ask(q, mode))
         finally:
             pipeline.McpHost = original
     return sorted(records, key=lambda r: r["id"])

@@ -13,6 +13,7 @@ It prints one line per check and exits with code 0 if everything required passed
     [PASS]/[FAIL] Chat UI logins: one per dataset user, each mapped to a different user.
     [INFO]        Whether the vector store has been built (informational; never fails the check).
     [INFO]        How much chat memory is in memory/, and how much isn't shared yet (informational).
+    [INFO]        Where the cache is kept: Redis, the app's own memory, or off (informational).
 
 See README > Troubleshooting for how to fix each failure.
 """
@@ -23,7 +24,8 @@ import sys
 
 from creditcoach import config
 
-REQUIRED_PACKAGES = ["openai", "dotenv", "pandas", "openpyxl", "chromadb", "sentence_transformers", "gradio", "mcp"]
+REQUIRED_PACKAGES = ["openai", "dotenv", "pandas", "openpyxl", "chromadb", "sentence_transformers", "gradio", "mcp",
+                     "nemoguardrails", "redis"]
 
 
 def main() -> int:
@@ -114,6 +116,22 @@ def main() -> int:
                   + (f"; {len(unshared)} new files not shared yet (uv run python scripts/memory_sync.py)" if unshared else ""))
     except Exception as exc:
         print(f"[INFO] Memory not readable - {type(exc).__name__}")
+
+    try:  # informational: the cache is optional, and a Redis that is down only means every lookup is a miss
+        from creditcoach import cache
+
+        if not cache.enabled():
+            print("[INFO] Cache - off (CREDITCOACH_CACHE=off)")
+        elif not config.REDIS_URL:
+            print("[INFO] Cache - in the app's own memory, lost on restart (set REDIS_URL for Redis)")
+        else:
+            import redis
+
+            redis.Redis.from_url(config.REDIS_URL, socket_connect_timeout=2).ping()
+            print("[INFO] Cache - Redis reachable")
+    except Exception as exc:
+        print(f"[INFO] Cache - Redis not reachable ({type(exc).__name__}); answers still work, uncached. "
+              "Start it with: brew services start redis")
 
     print("\nAll checks passed. Ready to build." if ok else "\nSome checks failed. See README > Troubleshooting.")
     return 0 if ok else 1

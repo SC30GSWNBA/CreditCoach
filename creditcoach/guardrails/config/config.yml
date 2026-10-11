@@ -1,0 +1,22 @@
+# NeMo Guardrails configuration for CreditCoach. The rules are in docs/guardrails.md; the flows are in rails.co;
+# the actions they execute are registered in creditcoach/guardrails/rails.py.
+#
+# No model is configured here on purpose: CreditCoach's own pipeline writes the answer (it needs the MCP tool
+# loop), and the one model check, "review wording", calls SMALL_MODEL through creditcoach.llm so it shares the
+# OpenRouter key, the fallback model and the token cap with every other call.
+colang_version: "1.0"
+models: []
+
+rails:
+  input:
+    flows:
+      - mask identifiers        # S3
+      - detect attack attempt   # S1, S2
+      - detect product mention  # G2
+  output:
+    flows:
+      - check guarantee         # G1
+      - check figures           # G3
+      - check product answer    # G2
+      - check disclosure        # S2, S4
+      - review wording          # G1, G2 (model check: projections, product-related answers, flagged attack attempts)

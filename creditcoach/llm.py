@@ -12,13 +12,44 @@ Example:
     >>> message, model_used = chat_with_tools(messages, tools)   # message.tool_calls, if the model wants tools
 """
 
+import contextvars
 import logging
+from contextlib import contextmanager
 
 from openai import OpenAI
 
 from creditcoach import config
 
 log = logging.getLogger(__name__)
+
+_usage: contextvars.ContextVar[list | None] = contextvars.ContextVar("llm_usage", default=None)
+
+
+@contextmanager
+def track():
+    """Collect what every model call in the enclosed code used: model, tokens and cost in US dollars as OpenRouter
+    reports it (Task 23). Yields the list, which fills as calls finish.
+
+    Example:
+        >>> with llm.track() as calls:
+        ...     llm.chat([{"role": "user", "content": "hi"}])
+        >>> calls[0]["cost"], calls[0]["prompt_tokens"], calls[0]["completion_tokens"]
+    """
+    calls: list[dict] = []
+    token = _usage.set(calls)
+    try:
+        yield calls
+    finally:
+        _usage.reset(token)
+
+
+def _record(model: str, response) -> None:
+    calls, usage = _usage.get(), getattr(response, "usage", None)
+    if calls is None or usage is None:
+        return
+    calls.append({"model": model, "prompt_tokens": getattr(usage, "prompt_tokens", 0) or 0,
+                  "completion_tokens": getattr(usage, "completion_tokens", 0) or 0,
+                  "cost": float(getattr(usage, "cost", 0) or 0)})
 
 
 def get_client() -> OpenAI:
@@ -35,7 +66,7 @@ def get_client() -> OpenAI:
     return OpenAI(base_url=config.OPENROUTER_BASE_URL, api_key=config.OPENROUTER_API_KEY)
 
 
-def _complete(messages: list[dict], model: str | None = None, **kwargs):
+def _complete(messages: list[dict], model: str | None = None, effort: str | None = None, **kwargs):
     """Run one chat completion, falling back once to ``FALLBACK_MODEL`` if the first model fails.
 
     Returns:
@@ -45,11 +76,12 @@ def _complete(messages: list[dict], model: str | None = None, **kwargs):
     primary = model or config.CHAT_MODEL
     for candidate in (primary, config.FALLBACK_MODEL):
         try:
-            extra = {}
-            if candidate.startswith("openai/gpt-5") and config.REASONING_EFFORT:
-                extra["extra_body"] = {"reasoning": {"effort": config.REASONING_EFFORT}}
+            extra = {"extra_body": {"usage": {"include": True}}}  # OpenRouter then returns the call's cost
+            if candidate.startswith("openai/gpt-5") and (effort or config.REASONING_EFFORT):
+                extra["extra_body"]["reasoning"] = {"effort": effort or config.REASONING_EFFORT}
             kwargs.setdefault("max_tokens", config.MAX_OUTPUT_TOKENS)
             response = client.chat.completions.create(model=candidate, messages=messages, timeout=90, **extra, **kwargs)
+            _record(candidate, response)
             return response.choices[0].message, candidate
         except Exception as exc:
             if candidate == config.FALLBACK_MODEL:
@@ -59,7 +91,7 @@ def _complete(messages: list[dict], model: str | None = None, **kwargs):
     raise AssertionError("unreachable")
 
 
-def chat(messages: list[dict], model: str | None = None) -> tuple[str, str]:
+def chat(messages: list[dict], model: str | None = None, effort: str | None = None) -> tuple[str, str]:
     """Send a conversation to the chat model and return its reply, falling back once if it fails.
 
     For GPT-5-family models, ``REASONING_EFFORT`` from the config is passed to OpenRouter to control
@@ -69,6 +101,8 @@ def chat(messages: list[dict], model: str | None = None) -> tuple[str, str]:
         messages: OpenAI-style chat messages, e.g. ``[{"role": "system", "content": ...},
             {"role": "user", "content": ...}]``.
         model: OpenRouter model ID to try first. Defaults to ``config.CHAT_MODEL``.
+        effort: Reasoning effort for this call instead of ``REASONING_EFFORT`` (the guardrail review uses
+            "minimal", for speed).
 
     Returns:
         A tuple ``(reply_text, model_used)``. ``model_used`` shows whether the fallback model answered.
@@ -77,7 +111,7 @@ def chat(messages: list[dict], model: str | None = None) -> tuple[str, str]:
         RuntimeError: If no API key is configured.
         openai.OpenAIError: If both the primary and the fallback model fail.
     """
-    message, model_used = _complete(messages, model)
+    message, model_used = _complete(messages, model, effort)
     return message.content or "", model_used
 
 
@@ -92,4 +126,4 @@ def chat_with_tools(messages: list[dict], tools: list[dict] | None, model: str |
     Returns:
         ``(message, model_used)``: the SDK message, whose ``tool_calls`` is set when the model wants tools run.
     """
-    return _complete(messages, model, **({"tools": tools, "tool_choice": "auto"} if tools else {}))
+    return _complete(messages, model, None, **({"tools": tools, "tool_choice": "auto"} if tools else {}))

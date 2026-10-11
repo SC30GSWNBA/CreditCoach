@@ -143,7 +143,7 @@ Evidence: [task-17-goal-recall.md](evidence/week-2/task-17-goal-recall.md), with
 
 ## 8. Privacy
 
-Every user is synthetic. Memory is no longer committed to the public repository; it is in the team's Neon database, which only people with `DATABASE_URL` can read. Keep that string out of git, chats and screenshots (`.env` is git-ignored). The files archive in `memory/` stays public. **Testers must still not type real personal information**: not their own name, phone, PAN, account numbers or real credit details. If something real is typed by mistake, the project owner removes it in the Neon SQL editor: `ALTER TABLE memory_events DISABLE TRIGGER memory_events_append_only;`, `DELETE` the rows for that `session`, then `ENABLE TRIGGER` again.
+Every user is synthetic. Memory is no longer committed to the public repository; it is in the team's Neon database, which only people with `DATABASE_URL` can read. Keep that string out of git, chats and screenshots (`.env` is git-ignored). The files archive in `memory/` stays public. Since Task 20 the chat UI masks personal identifiers (PAN, Aadhaar, card and account numbers, phone, email, OTP and passwords) before a message is written to memory, so an episode holds a placeholder such as `[PAN removed]` ([guardrails.md](guardrails.md) rule S3). The masking is pattern-based and doesn't cover names or addresses, so **testers must still not type real personal information**: not their own name, phone, PAN, account numbers or real credit details. If something real is typed by mistake, the project owner removes it in the Neon SQL editor: `ALTER TABLE memory_events DISABLE TRIGGER memory_events_append_only;`, `DELETE` the rows for that `session`, then `ENABLE TRIGGER` again.
 
 ## 9. Open questions for team review
 

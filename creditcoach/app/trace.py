@@ -7,6 +7,9 @@ with metadata, which the chat window shows as one collapsible "Agent trace" bloc
                           recalling memory, checking score history or accounts, writing the answer. While the model
                           writes (the slowest step), a short credit tip from the library rotates under it, so the
                           wait is visibly busy rather than blank.
+    Guardrails and cache  Since Task 25 the trace also has a step for the guardrail check (what the input rails
+                          noticed, what was wrong with a draft, whether it was rewritten or blocked) and, when a
+                          stored answer is reused, a single "Answered from the cache" step.
     After the answer      The block collapses to "Agent trace · N steps · Xs" and can be expanded: every tool call
                           with its arguments and a one-line result, the recalled goal, and the passages used.
 
@@ -155,6 +158,30 @@ class Trace:
             s.ended, s.log = now, summarise(call)
             if not call.ok:
                 s.title = "⚠️ " + s.title.split(" ", 1)[1]
+        elif step == "cache" and details.get("status") == "hit":
+            r = details.get("report", {})
+            s = self._open("cache", "⚡ Answered from the cache")
+            s.ended = now
+            s.log = (f"You asked this before ({r.get('how', 'same question')}; stored {r.get('age_seconds', 0)} s ago). "
+                     "Your score history and accounts were checked and haven't changed, so the stored answer is "
+                     f"still right. Time saved: about {r.get('saved_seconds', 0):.0f} s.")
+        elif step == "guardrail" and details.get("status") == "start":
+            self._close_waiting("answer")
+            self._open("guardrail", "🛡️ Checking the answer against the guardrails")
+        elif step == "guardrail":
+            d = details["decision"]
+            s = next((s for s in self.steps if s.id == "guardrail"), None) or self._open("guardrail", "")
+            rules = ", ".join(dict.fromkeys(f.rule for f in d.findings))
+            s.ended = now
+            s.title = {"passed": "🛡️ Guardrails: passed", "reframed": "🛡️ Guardrails: answer rewritten",
+                       "blocked": "🛡️ Guardrails: answer blocked"}[d.action]
+            s.log = "\n".join(
+                [f"• Input: {f.detail}" + (f" ({', '.join(f.matched)})" if f.matched else "") for f in d.screen.findings]
+                + [f"• Draft: {f.detail}" for f in d.findings]
+                + ([f"• The model rewrote the draft and the rewrite passed (rules: {rules})."] if d.action == "reframed" else [])
+                + ([f"• The rewrite still broke a rule, so a fixed safe message was shown (rules: {rules})."] if d.action == "blocked" else [])
+                + (["• Wording reviewed for promises and endorsements."] if d.reviewed else [])
+            ) or "No rule was triggered."
         elif step == "answer":
             self.finish()
 
@@ -186,7 +213,8 @@ class Trace:
         elif self.failed:
             title = f"🧭 Agent trace · stopped after {total:.1f}s"
         else:
-            title = f"🧭 Agent trace · {len(self.steps)} steps, {tools} tool call{'s' if tools != 1 else ''} · {total:.1f}s"
+            title = (f"🧭 Agent trace · {len(self.steps)} step{'s' if len(self.steps) != 1 else ''}, "
+                     f"{tools} tool call{'s' if tools != 1 else ''} · {total:.1f}s")
         out = [gr.ChatMessage(role="assistant", content="", metadata={
             "id": TRACE_ID, "title": title, "status": "done" if self.ended else "pending",
             **({"duration": round(total, 1)} if self.ended else {})})]

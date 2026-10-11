@@ -13,7 +13,7 @@ Run:
 import argparse
 import sys
 
-from creditcoach import config, dataset
+from creditcoach import cache, config, dataset
 from creditcoach.memory import pg
 
 
@@ -50,6 +50,8 @@ def main() -> None:
         sys.exit(f"Imported, but Neon differs from the CSVs in {', '.join(stale)}")
     print(f"\nImported {', '.join(f'{len(f)} {t}' for t, f in zip(dataset.TABLES, files))} rows. "
           "Neon matches the CSVs.")
+    cleared = cache.clear("tool") + cache.clear("answer")  # cached lookups and answers were built on the old data
+    print(f"Cleared {cleared} cached tool results and answers.")
 
 
 if __name__ == "__main__":
