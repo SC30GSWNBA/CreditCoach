@@ -38,19 +38,26 @@ same two tools the chat uses, directly and only for the signed-in user, with no 
 pressing "Ask in chat" fills the chat box with a question about that month and switches to the chat tab; it
 doesn't send until the user presses Enter.
 
-Per-user logins: every visitor signs in as one of the 15 dataset users (``creditcoach.auth``; usernames
-``creditcoach_user1`` to ``creditcoach_user15`` map to USR-001 to USR-015). Answers use that user's own
-profile, score history and accounts from ``data/``, and nobody else's: the user id comes from the signed-in
-session, never from the message, and the MCP host runs every tool call for that user only.
+Per-user logins: every visitor signs in as one dataset user (``creditcoach.auth``). Usernames
+``creditcoach_user1`` to ``creditcoach_user15`` are the team's logins for USR-001 to USR-015; people who sign up get
+``creditcoach_user16`` onwards. Answers use that user's own profile, score history and accounts, and nobody else's:
+the user id comes from the signed-in session, never from the message, and the MCP host runs every tool call for
+that user only.
+
+Welcome page and sign-up: the app opens on a welcome page with "Log in" and "Sign up" (``creditcoach.app.welcome``),
+served next to this UI by ``creditcoach.app.server``. Signing up answers the interview questions and creates a
+practice profile and a login in Neon (``creditcoach.signup``). A signed-up user may ask 5 questions a week
+(``creditcoach.app.limits``); each of their answers ends with how many are left. The team logins have no limit.
 
 How to run:
     uv run python -m creditcoach.app                 # local only: http://127.0.0.1:7860
     uv run python -m creditcoach.app --share         # also create a public gradio.live link (about 1 week)
     uv run python -m creditcoach.app --port 7861     # use a different local port
 
-Login is always required, locally and on a share link. The logins are committed as password hashes in
-``creditcoach/app/logins.json``; the passwords are shared with the team privately. A share link is public
-and every answer uses your OpenRouter key, so stop the app (Ctrl+C) when you're done; the link closes with it.
+Login is always required, locally and on a share link. The team's logins are committed as password hashes in
+``creditcoach/app/logins.json``; the passwords are shared with the team privately. A share link is public, anyone
+with it can sign up, and every answer uses your OpenRouter key, so stop the app (Ctrl+C) when you're done; the link
+closes with it.
 
 Startup: the embedding and reranker models are loaded before the UI opens (about 15 s), so the first user
 gets a fast answer. The local URL and any share link are written to the log. Gradio's usage analytics are
@@ -72,7 +79,7 @@ import gradio as gr  # noqa: E402
 
 from creditcoach import auth, config, guardrails  # noqa: E402
 from creditcoach.agent.pipeline import answer  # noqa: E402
-from creditcoach.app import badges, charts, confidence  # noqa: E402
+from creditcoach.app import badges, charts, confidence, limits, server  # noqa: E402
 from creditcoach.app.trace import Trace  # noqa: E402
 from creditcoach.memory import dream, store  # noqa: E402
 from creditcoach.rag.retrieve import retrieve  # noqa: E402
@@ -178,16 +185,29 @@ def respond(message: str, history: list, request: gr.Request) -> Iterator[str | 
 
     Yields:
         The live trace (a list of chat messages), then the trace and the formatted reply. Instead: a prompt to type
-        a question if the message was empty, a request to sign in again if the session has no known user, or the
-        trace and an apology if the answer service failed.
+        a question if the message was empty, a request to sign in again if the session has no known user, the date
+        the next questions unlock if a signed-up user has used this week's (``app.limits``), or the trace and an
+        apology if the answer service failed.
     """
-    user_id = auth.user_id_for(getattr(request, "username", None))
+    username = getattr(request, "username", None)
+    user_id = auth.user_id_for(username)
     if user_id is None:
         yield "Please sign in again to continue."
         return
     if not message or not message.strip():
         yield "Please type a question about your credit."
         return
+    grant = None  # stays None for the team logins, which have no weekly limit
+    if limits.applies(username):
+        try:
+            grant = limits.take(user_id)
+        except Exception:
+            log.exception("Couldn't check the weekly allowance for %s", user_id)
+            yield limits.UNAVAILABLE
+            return
+        if not grant.ok:
+            yield limits.used_up(grant)
+            return
     question = guardrails.mask(message.strip())  # S3: identifiers never reach memory, the trace or the model
     remember(request, user_id, "user_message", question)
     session = session_for(request, user_id)
@@ -221,13 +241,19 @@ def respond(message: str, history: list, request: gr.Request) -> Iterator[str | 
         exc = outcome["error"]
         log.error("Failed to answer for %s", user_id, exc_info=exc)
         remember(request, user_id, "error", f"{type(exc).__name__}: answer service failed")
+        if grant:
+            try:
+                limits.give_back(user_id)  # a failed answer doesn't use up a question
+            except Exception:
+                log.exception("Couldn't hand back a question to %s", user_id)
         trace.finish(failed=True)
         yield trace.messages() + [gr.ChatMessage(role="assistant", content=APOLOGY)]
         return
     a = outcome["answer"]
     remember(request, user_id, "assistant_message", a.text, answer_meta(a))
     trace.finish()
-    yield trace.messages() + [gr.ChatMessage(role="assistant", content=format_reply(a))]
+    left = limits.footer(grant) if grant else ""
+    yield trace.messages() + [gr.ChatMessage(role="assistant", content=format_reply(a) + left)]
 
 
 def final_reply(message: str, history: list, request) -> str:
@@ -512,17 +538,7 @@ def main() -> None:
                   config.LOGINS_FILE)
         sys.exit(1)
     warm_up()
-    demo = build()
-    _, local_url, share_url = demo.launch(share=args.share, auth=auth.check_login,
-                                          auth_message="Sign in with your CreditCoach username and password.",
-                                          server_name="127.0.0.1", server_port=args.port, theme=gr.themes.Soft(),
-                                          css=charts.CSS + badges.CSS, prevent_thread_lock=True)
-    log.info("CreditCoach running at %s (login required; %d user logins)", local_url, len(auth.logins()))
-    if share_url:
-        log.info("Public share link (expires in about 1 week, stops when this process stops): %s", share_url)
-    elif args.share:
-        log.warning("Could not create a share link; the app is available locally only.")
-    demo.block_thread()
+    server.run(build(), port=args.port, share=args.share, css=charts.CSS + badges.CSS)
 
 
 if __name__ == "__main__":

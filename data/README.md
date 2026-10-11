@@ -33,6 +33,17 @@ With `DATABASE_URL` set, the app reads a copy of these three files from Neon Pos
 
 `accounts.csv` and `score_history.csv` follow the sample workbook's columns, with amounts in ₹ (`_inr` instead of `_usd`). The Week 2 tools (`get_score_history`, `get_account_summary`), specified in [docs/tools.md](../docs/tools.md), serve them (Tasks 13–14). Since Task 15 the chat reads scores and accounts only through those tools, over MCP, and `creditcoach/user_data.py` supplies just the signed-in user's profile from `users.csv`. Both return the signed-in user's own rows and never another user's. The tools add fields that module doesn't have yet, such as each month's score change, account totals, and utilization computed from balance ÷ limit to 3 places. The `users.csv` answers use the questionnaire's wording. For USR-001, fields the persona doesn't state are left blank.
 
+## Sign-up Users
+
+People who sign up in the app (README > Sign-up) answer the same interview questions and get a practice profile generated the same way, by `creditcoach/signup/generate.py`. Their rows are **in Neon only**, after the rows from these files, with `source` = `Sign-up`; these CSVs stay the 15 original users. `scripts/data_import.py` keeps sign-up rows when it reloads the CSVs, and the row-for-row check leaves them out.
+
+A sign-up follows the table below and the score bounds further down, with three differences:
+- **The story comes from the answers,** not from the per-user scenario table: no cards and no loans gives no credit file, loans without a card gives a loan-only file, card usage above 30% gives a utilization spike in the last three months, above 70% gives the debt-stress story, and one or two late payments (or "I sometimes miss or pay late") add one or two `Late payment (30+ days)` months.
+- **The self-reported score is the latest month,** not the first: Excellent 800–845, Good 740–790, Average/fair 660–720, Below average/poor 560–640, don't know 690–740. Late payments can still leave the latest month below the band.
+- **Answers the interviews never gave:** "4 or more" cards gives four cards, a buy-now-pay-later plan gives a `Buy Now Pay Later` account (₹2,000–30,000), and a current payday loan gives an `Instant Loan App` account.
+
+Score history covers the same 12 months as everyone else's, so the tools' latest month doesn't move when someone signs up.
+
 ## How Interview Answers Become Accounts and Scores
 
 | Interview answer | Generated data |

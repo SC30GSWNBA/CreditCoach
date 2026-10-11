@@ -36,7 +36,7 @@ Tasks.md asks for "RAG embeddings and frequent score-factor lookups". The embedd
 | Tool | 5 minutes | These are the user's credit figures. Five minutes keeps a burst of questions fast without serving figures that could be a data import behind. `scripts/data_import.py` also clears this layer and the answers. |
 | Answer | 1 hour | Long enough for a user to come back to a question in one sitting. It is also re-checked against the live figures before every use (§3), so the limit is not what keeps it correct. |
 
-**How large.** Measured in Redis after the evidence run: an embedding is about 8 KB as JSON, a retrieval result about 5 KB, a tool result about 1 KB, and an answer about 13 KB with its sources, plus 4 KB in the user's index. Answers are capped at 20 per user, oldest first, so with 15 users the answer layer tops out at about 5 MB. For a larger deployment, set Redis's `maxmemory` with the `allkeys-lru` policy; every entry can be recomputed, so eviction is always safe.
+**How large.** Measured in Redis after the evidence run: an embedding is about 8 KB as JSON, a retrieval result about 5 KB, a tool result about 1 KB, and an answer about 13 KB with its sources, plus 4 KB in the user's index. Answers are capped at 20 per user, oldest first, so with the 15 dataset users the answer layer tops out at about 5 MB, and at about 22 MB if all 50 sign-up places (`CREDITCOACH_SIGNUP_MAX`) are also taken. For a larger deployment, set Redis's `maxmemory` with the `allkeys-lru` policy; every entry can be recomputed, so eviction is always safe.
 
 ## 3. The answer cache: when a stored answer may be served
 

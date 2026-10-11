@@ -85,9 +85,9 @@ def main() -> int:
     try:
         from creditcoach import auth
 
-        mapped = [e["user_id"] for e in auth.logins().values()]
+        mapped = [e["user_id"] for e in {**auth.logins(), **auth.signup_logins()}.values()]  # team + sign-ups
         one_each = sorted(mapped) == sorted(users.user_id)
-        report(one_each, "Chat UI logins (creditcoach/app/logins.json)",
+        report(one_each, "Chat UI logins (creditcoach/app/logins.json, plus sign-ups in Neon)",
                f"{len(mapped)} logins for {len(set(mapped))} of {len(users)} users" + ("" if one_each else
                "; every user needs exactly one login (scripts/set_login.py)"))
     except Exception as exc:

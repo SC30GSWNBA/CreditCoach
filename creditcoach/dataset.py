@@ -8,6 +8,8 @@ Two backends, chosen by ``config.DATA_BACKEND`` at call time (like memory's ``co
               ``dataset_accounts`` and ``dataset_score_history``, loaded from the CSVs by ``scripts/data_import.py``.
 
 Neon is a copy of the CSVs, not a second source: to change the data, regenerate the CSVs and re-run the import.
+The one exception is people who sign up in the app (``creditcoach.signup``): their rows exist only in Neon, after
+the CSVs' rows, with ``source = 'Sign-up'``. The import keeps them and ``drift()`` leaves them out.
 Postgres hands each table back as CSV (``COPY ... TO STDOUT``), parsed with the same ``read_csv`` options as the
 files, so ``load()`` returns identical DataFrames from either backend and the tools can't tell them apart.
 ``drift()`` names the tables where Neon and the CSVs differ (used by ``creditcoach.check`` and the import).
@@ -26,6 +28,7 @@ import pandas as pd
 from creditcoach import config
 
 TABLES = ("users", "accounts", "score_history")
+SIGNUP_SOURCE = "Sign-up"  # users.source for people who signed up in the app; their rows are in Neon only
 READ_OPTIONS = {"users": {"dtype": str, "keep_default_na": False},
                 "accounts": {},
                 "score_history": {"dtype": {"date": str}}}
@@ -141,10 +144,21 @@ def load() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     raise ValueError(f"unknown data backend {config.DATA_BACKEND!r} (use 'postgres' or 'files')")
 
 
+def without_signups(frames: tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]) -> tuple:
+    """``(users, accounts, scores)`` without the rows of people who signed up in the app."""
+    users = frames[0]
+    signed_up = set(users.user_id[users.source == SIGNUP_SOURCE])
+    if not signed_up:
+        return frames
+    return tuple(f[~f.user_id.isin(signed_up)].reset_index(drop=True) for f in frames)
+
+
 def drift() -> list[str]:
     """Tables whose Neon copy differs from the CSV in any row, column, value or order. Empty means in sync.
+
+    Sign-up users are in Neon only, by design, so their rows are left out of the comparison.
 
     Raises:
         DatasetError: Either side couldn't be read.
     """
-    return [t for t, f, p in zip(TABLES, read_files(), read_postgres()) if not f.equals(p)]
+    return [t for t, f, p in zip(TABLES, read_files(), without_signups(read_postgres())) if not f.equals(p)]

@@ -8,12 +8,18 @@ Offline checks (free, no API calls):
                   contains that user's rows only: the
                   right number of accounts and score months, and no other user's id, account id or name.
     3. Session    The chat handler takes the user from the signed-in session only: a message claiming to be
-                  another user doesn't change whose data is used, and an unknown session gets no data.
+                  another user doesn't change whose data is used, and an unknown session gets no data. Since the
+                  welcome page replaced Gradio's login page, also: the chat UI can't be opened without a session
+                  cookie, a cookie altered to name another user is refused, and a login ticket works once.
 
 Live checks (--live, needs --passwords and OPENROUTER_API_KEY; about 5 paid API calls):
-    4. The app is started locally with login required, and questions are sent through a real signed-in
-       session, including requests for another user's data. Each answer is checked for other users'
-       account ids, names and balance or limit amounts.
+    4. The app is started locally the way ``python -m creditcoach.app`` starts it, each user logs in on the
+       welcome page, and questions are sent through that signed-in session, including requests for another
+       user's data. Each answer is checked for other users' account ids, names and balance or limit amounts.
+
+Scope: the 15 dataset users in ``data/`` and their committed logins. The script reads ``data/*.csv`` even when the app
+reads Neon, so people who signed up in the app (``creditcoach.signup``; their rows are in Neon only) don't change
+its counts. Their logins and data go through the same ``auth`` and tool code checked here.
 
 Writes:
     docs/evidence/week-1/task-11-user-logins.md
@@ -38,6 +44,7 @@ from types import SimpleNamespace
 from creditcoach import auth, config
 from creditcoach.agent import pipeline
 from creditcoach.app import main as app
+from creditcoach.app import server, sessions
 from creditcoach.tools.account_summary import get_account_summary
 from creditcoach.tools.score_history import get_score_history
 from creditcoach.user_data import load_user_data, user_ids
@@ -141,6 +148,7 @@ def check_session() -> list[tuple[str, bool, str]]:
     finally:
         app.answer = real_answer
     return [
+        *check_entrance(),
         ("Signed-in user decides whose data is used", seen[:1] == ["USR-001"], f"creditcoach_user1 -> {seen[:1]}"),
         ("Message claiming another user is ignored", seen[1:2] == ["USR-001"], f"still {seen[1:2]}"),
         ("Unknown or missing session gets no data", len(seen) == 2 and "sign in" in unknown + missing,
@@ -148,19 +156,62 @@ def check_session() -> list[tuple[str, bool, str]]:
     ]
 
 
+def check_entrance() -> list[tuple[str, bool, str]]:
+    """Check the way in: the chat UI is served only to a browser holding a session cookie we issued."""
+    from starlette.testclient import TestClient
+
+    client = TestClient(server.create(app.build()), follow_redirects=False)
+    cookie = sessions.cookie_for("creditcoach_user1")
+
+    def page(value: str | None):
+        client.cookies.clear()
+        if value:
+            client.cookies.set(sessions.COOKIE, value)
+        r = client.get(server.APP_PATH + "/")
+        return r.status_code, r.headers.get("location", "")
+
+    nobody, forged, mine = page(None), page(cookie.replace("user1|", "user2|")), page(cookie)
+    ticket = sessions.issue_ticket("creditcoach_user1")
+    first, again = sessions.redeem_ticket(ticket), sessions.redeem_ticket(ticket)
+    return [
+        ("Chat UI without a session goes to the welcome page", nobody == (307, "/welcome/"), f"{nobody[0]} -> {nobody[1]}"),
+        ("A cookie altered to name another user is refused", forged == (307, "/welcome/"), f"{forged[0]} -> {forged[1]}"),
+        ("A valid session cookie opens the chat UI", mine[0] == 200, f"status {mine[0]}"),
+        ("A login ticket works once", (first, again) == ("creditcoach_user1", None), f"first {first}, again {again}"),
+    ]
+
+
 def run_live(passwords: dict[str, str]) -> list[dict]:
-    """Start the app with login required and ask the LIVE_CASES through real signed-in sessions."""
+    """Start the app as ``creditcoach.app`` does, log in on the welcome page, and ask the LIVE_CASES."""
+    import threading
+    import time
+
+    import httpx
+    import uvicorn
     from gradio_client import Client
 
-    demo = app.build()
-    _, local_url, _ = demo.launch(auth=auth.check_login, server_name="127.0.0.1", server_port=7871,
-                                  prevent_thread_lock=True, quiet=True)
+    base = "http://127.0.0.1:7871"
+    web = uvicorn.Server(uvicorn.Config(server.create(app.build()), host="127.0.0.1", port=7871, log_level="warning"))
+    threading.Thread(target=web.run, daemon=True).start()
+    while not web.started:
+        time.sleep(0.05)
+    entrance = Client(base + "/welcome/", verbose=False)
+
+    def log_in(username: str, password: str) -> Client | None:
+        """Log in on the welcome page; return a client holding the session cookie, or None if refused."""
+        _, ticket = entrance.predict(username, password, api_name="/log_in")
+        if not ticket:
+            return None
+        entered = httpx.get(base + "/auth/enter", params={"t": ticket})
+        cookie = entered.cookies.get(sessions.COOKIE)
+        return Client(base + server.APP_PATH + "/", headers={"Cookie": f"{sessions.COOKIE}={cookie}"}, verbose=False)
+
     results = []
     try:
         clients: dict[str, Client] = {}
         for username, question, expected in LIVE_CASES:
             if username not in clients:
-                clients[username] = Client(local_url, auth=(username, passwords[username]), verbose=False)
+                clients[username] = log_in(username, passwords[username])
             reply = clients[username].predict(question, api_name="/respond")
             if not isinstance(reply, str):  # since Task 18 the final output is the agent trace plus the answer
                 reply = json.dumps(reply, ensure_ascii=False)
@@ -168,14 +219,9 @@ def run_live(passwords: dict[str, str]) -> list[dict]:
             results.append({"username": username, "user_id": own, "question": question, "expected": expected,
                             "reply": reply, "leaks": leaks(reply, own, question)})
             print(f"[live] {username} ({own}): leaks={results[-1]['leaks'] or 'none'}")
-        try:
-            Client(local_url, auth=("creditcoach_user1", "wrong-password"), verbose=False)
-            wrong_refused = False
-        except Exception:
-            wrong_refused = True
-        results.append({"wrong_password_refused": wrong_refused})
+        results.append({"wrong_password_refused": log_in("creditcoach_user1", "wrong-password") is None})
     finally:
-        demo.close()
+        web.should_exit = True
     return results
 
 
@@ -188,6 +234,7 @@ def main() -> None:
     # The checks sign in and chat, which since Task 16 records memory: keep these test sessions out of memory/.
     config.MEMORY_DIR = Path(tempfile.mkdtemp(prefix="creditcoach-task11-")) / "memory"
     config.MEMORY_BACKEND = "files"  # never the shared Neon database
+    config.DATA_BACKEND = "files"  # the 15 dataset users in data/, whoever has signed up in Neon since
     passwords = None
     if args.passwords:
         with open(args.passwords, encoding="utf-8") as f:
@@ -206,7 +253,8 @@ def main() -> None:
     lines = [
         "# Task 11 Follow-up: Per-User Logins and Data Isolation",
         "",
-        f"*{date.today().isoformat()} · Code: `creditcoach/auth.py`, `creditcoach/user_data.py`, `creditcoach/app/main.py` · "
+        f"*{date.today().isoformat()} · Code: `creditcoach/auth.py`, `creditcoach/user_data.py`, `creditcoach/app/main.py`, "
+        "`creditcoach/app/sessions.py`, `creditcoach/app/server.py` · "
         "Script: `uv run python scripts/task11_login_isolation.py`" + (" --passwords <file> --live" if args.live else "") + "*",
         "",
         f"**What changed:** every visitor signs in as one of the {len(user_ids())} dataset users (`creditcoach_user1` → "
@@ -215,8 +263,9 @@ def main() -> None:
         "clone can check logins but no password is in git.",
         "",
         "**How one user is kept out of another's data:**",
-        "1. The user id comes only from the signed-in Gradio session (`request.username` → `auth.user_id_for`), never "
-        "from the message text.",
+        "1. The user id comes only from the signed-in session (`request.username` → `auth.user_id_for`), never "
+        "from the message text. The session is a signed cookie set after a correct login on the welcome page "
+        "(`creditcoach/app/sessions.py`); the chat UI is not served without it.",
         "2. Since Task 15 the model gets the user's profile from `user_data.load_user_data` and their scores and "
         "accounts only through MCP tool calls. The MCP host fills `user_id` from the session and refuses any call "
         "for another user (`USER_MISMATCH`), and both the profile loader and the tools filter by that id and check "
@@ -255,8 +304,9 @@ def main() -> None:
     ]
     if args.live:
         lines += ["", "## 4. Live: real sign-ins through the running app", "",
-                  "The app was started locally with login required. Each question was sent through a signed-in session "
-                  "with `gradio_client`, the same path the browser uses. A wrong password was "
+                  "The app was started locally the way `python -m creditcoach.app` starts it. Each user logged in on the "
+                  "welcome page, and each question was sent through that signed-in session with `gradio_client`, the "
+                  "same path the browser uses. A wrong password was "
                   f"{'refused' if wrong_refused else 'ACCEPTED'} at sign-in.", ""]
         for i, r in enumerate(live_cases, 1):
             reply = r["reply"].split("\n---\n")[0].strip()
