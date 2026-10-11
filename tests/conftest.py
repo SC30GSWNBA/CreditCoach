@@ -34,3 +34,10 @@ def no_live_guardrail_review(monkeypatch):
         raise AssertionError("checks.model_review was called without a stub")
 
     monkeypatch.setattr(checks, "model_review", unstubbed)
+
+
+@pytest.fixture(autouse=True)
+def no_mail_account(monkeypatch):
+    """No test can send a real email, whatever mail account the developer's ``.env`` holds."""
+    for name in ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD"):
+        monkeypatch.setattr(config, name, "")

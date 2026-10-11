@@ -38,6 +38,16 @@ Cache (Task 22; environment variable -> default):
     CREDITCOACH_CACHE_CONFIRM  "on"  "off" stops the semantic answer cache asking ``SMALL_MODEL`` whether a reworded
                                      question is the same; only exact and same-words matches are then served.
 
+Sign-up and the weekly allowance (environment variable -> default):
+    CREDITCOACH_SIGNUP_MAX         50  How many people may sign up in total. Sign-up closes when it is reached.
+    CREDITCOACH_INVITE_CODE        ""  When set, the sign-up form asks for this code and refuses anyone without it.
+    CREDITCOACH_WEEKLY_QUESTIONS   5   Questions a signed-up user may ask per week. The 15 team logins have no limit.
+    CREDITCOACH_SESSION_SECRET     ""  Signs the sign-in cookie. Blank means a new random secret each start, which
+                                       signs everyone out on restart.
+    SMTP_HOST, SMTP_PORT (587), SMTP_USER, SMTP_PASSWORD, SMTP_FROM
+                                       Mail account for the optional "email me my login" backup at sign-up. Without
+                                       it the option isn't offered. Never commit the password.
+
 Example:
     >>> from creditcoach import config
     >>> config.CHAT_MODEL
@@ -85,3 +95,14 @@ CACHE = os.getenv("CREDITCOACH_CACHE", "on")
 CACHE_CONFIRM = os.getenv("CREDITCOACH_CACHE_CONFIRM", "on") != "off"
 # Where users, accounts and score history are read from: Neon (a copy loaded by scripts/data_import.py) or data/
 DATA_BACKEND = os.getenv("CREDITCOACH_DATA_BACKEND", "postgres" if DATABASE_URL else "files")
+
+# Sign-up (creditcoach.signup) and the weekly allowance (creditcoach.app.limits)
+SIGNUP_MAX = int(os.getenv("CREDITCOACH_SIGNUP_MAX", "50"))
+INVITE_CODE = os.getenv("CREDITCOACH_INVITE_CODE", "")
+WEEKLY_QUESTIONS = int(os.getenv("CREDITCOACH_WEEKLY_QUESTIONS", "5"))
+SESSION_SECRET = os.getenv("CREDITCOACH_SESSION_SECRET", "")
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")  # never commit it
+SMTP_FROM = os.getenv("SMTP_FROM", "")

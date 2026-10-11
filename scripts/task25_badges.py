@@ -61,14 +61,14 @@ def main() -> None:
     config.LOGINS_FILE.write_text(json.dumps({USERNAME: auth.make_entry(USER_ID, password)}), encoding="utf-8")
     auth.logins.cache_clear()
     from creditcoach.agent import pipeline
-    from creditcoach.app import badges, charts
+    from creditcoach.app import badges, charts, theme
     from creditcoach.app import main as app
 
     cache.clear("answer", USER_ID)  # so question 3 is a real miss and question 4 a real hit
     app.warm_up()
     demo = app.build()
     _, url, _ = demo.launch(auth=auth.check_login, server_name="127.0.0.1", server_port=PORT, theme=gr.themes.Soft(),
-                            css=charts.CSS + badges.CSS, prevent_thread_lock=True, quiet=True)
+                            css=theme.CSS + charts.CSS + badges.CSS, prevent_thread_lock=True, quiet=True)
     IMG.mkdir(parents=True, exist_ok=True)
     shots, captured = [], []
     real_answer = app.answer

@@ -5,6 +5,10 @@ run this again. Each run replaces all three tables in one transaction, so reader
 never a mix, and running it twice changes nothing. Afterwards it reads Neon back and checks it matches the CSVs
 row for row. A running app keeps the data it loaded at start-up; restart it to pick up the new copy.
 
+People who signed up in the app (``creditcoach.signup``) exist only in Neon. Their rows are kept: they are set aside,
+the CSVs are loaded, and they are put back after the CSVs' rows, in the order they signed up. The comparison with
+the CSVs leaves them out.
+
 Run:
     uv run python scripts/data_import.py --dry-run   # compare Neon with the CSVs, write nothing
     uv run python scripts/data_import.py
@@ -15,6 +19,28 @@ import sys
 
 from creditcoach import cache, config, dataset
 from creditcoach.memory import pg
+from creditcoach.signup import store as signups
+
+
+def reload(conn) -> None:
+    """Replace the CSVs' rows in Neon, keeping sign-up users. Runs inside the caller's transaction."""
+    conn.execute("SELECT pg_advisory_xact_lock(hashtext('creditcoach_dataset_import'))")
+    conn.execute(signups.LOCK)  # nobody can sign up while their rows are set aside
+    conn.execute("CREATE TEMP TABLE kept_users ON COMMIT DROP AS SELECT * FROM dataset_users WHERE source = %s",
+                 (dataset.SIGNUP_SOURCE,))
+    for table in ("accounts", "score_history"):
+        conn.execute(f"CREATE TEMP TABLE kept_{table} ON COMMIT DROP AS SELECT t.* FROM dataset_{table} t "
+                     "WHERE t.user_id IN (SELECT user_id FROM kept_users)")
+    conn.execute("TRUNCATE dataset_score_history, dataset_accounts, dataset_users RESTART IDENTITY")
+    for table in dataset.TABLES:  # users first: the other two reference it
+        columns = ", ".join(dataset.COLUMNS[table])
+        not_null = f", FORCE_NOT_NULL ({columns})" if table == "users" else ""  # blank answers stay ''
+        with conn.cursor().copy(f"COPY dataset_{table} ({columns}) FROM STDIN "
+                                f"WITH (FORMAT csv, HEADER{not_null})") as copy:
+            copy.write((config.DATA_DIR / f"{table}.csv").read_bytes())
+    for table in dataset.TABLES:  # sign-ups go back after the CSVs' rows, in their old order
+        columns = ", ".join(dataset.COLUMNS[table])
+        conn.execute(f"INSERT INTO dataset_{table} ({columns}) SELECT {columns} FROM kept_{table} ORDER BY pos")
 
 
 def main() -> None:
@@ -28,22 +54,19 @@ def main() -> None:
     with pg.pool().connection() as conn:
         dataset.create_schema(conn)
         counts = {t: conn.execute(f"SELECT count(*) FROM dataset_{t}").fetchone()[0] for t in dataset.TABLES}
+        signed_up = conn.execute("SELECT count(*) FROM dataset_users WHERE source = %s",
+                                 (dataset.SIGNUP_SOURCE,)).fetchone()[0]
     for table, frame in zip(dataset.TABLES, files):
         print(f"  data/{table + '.csv':<18} {len(frame):>4} rows   Neon {counts[table]:>4} rows")
+    if signed_up:
+        print(f"  Neon also holds {signed_up} sign-up user(s), which are kept and not compared with the CSVs.")
     if args.dry_run:
         stale = dataset.drift() if counts["users"] else list(dataset.TABLES)
         print(f"\nNeon {'differs in ' + ', '.join(stale) if stale else 'already matches the CSVs'}. Nothing written.")
         return
 
     with pg.pool().connection() as conn, conn.transaction():
-        conn.execute("SELECT pg_advisory_xact_lock(hashtext('creditcoach_dataset_import'))")
-        conn.execute("TRUNCATE dataset_score_history, dataset_accounts, dataset_users RESTART IDENTITY")
-        for table in dataset.TABLES:  # users first: the other two reference it
-            columns = ", ".join(dataset.COLUMNS[table])
-            not_null = f", FORCE_NOT_NULL ({columns})" if table == "users" else ""  # blank answers stay ''
-            with conn.cursor().copy(f"COPY dataset_{table} ({columns}) FROM STDIN "
-                                    f"WITH (FORMAT csv, HEADER{not_null})") as copy:
-                copy.write((config.DATA_DIR / f"{table}.csv").read_bytes())
+        reload(conn)
 
     stale = dataset.drift()
     if stale:

@@ -1,6 +1,6 @@
 # Task 25 Evidence: Guardrail and Cache Badges in the Chat UI
 
-*2026-10-10 · Code: `creditcoach/app/badges.py` (the badges), `creditcoach/app/main.py` (above each answer), `creditcoach/app/trace.py` (guardrail and cache steps in the agent trace) · Tests: `tests/test_badges.py` · Script: `uv run --with playwright python scripts/task25_badges.py`*
+*2026-10-11 · Code: `creditcoach/app/badges.py` (the badges), `creditcoach/app/main.py` (above each answer), `creditcoach/app/trace.py` (guardrail and cache steps in the agent trace) · Tests: `tests/test_badges.py` · Script: `uv run --with playwright python scripts/task25_badges.py`*
 
 **Definition of Done:** the UI visibly shows guardrail refusals/reframes and cache hits.
 
@@ -43,7 +43,7 @@ The real app, run locally and driven in headless Chrome, signed in as Aravind (U
 Asked: *"Should I take out this payday loan to pay off my credit card?"* A predatory product is asked about: the answer refuses to endorse it.
 
 Badges shown: `🛡️ Guardrails: high-risk product, not endorsed` · `Cache miss · answered live
-· saved for next time`. Answer arrived in **15.2 s**.
+· saved for next time`. Answer arrived in **26.3 s**.
 
 ![1. Guardrail refusal](img/task-25-guardrail-refusal.png)
 
@@ -52,7 +52,7 @@ Badges shown: `🛡️ Guardrails: high-risk product, not endorsed` · `Cache mi
 Asked: *"Can you guarantee my score will hit 720 if I do what you said?"* A guarantee is asked for: the answer was checked for promises.
 
 Badges shown: `🛡️ Guardrails: no guarantee given` · `Cache not used
-· the question depends on the conversation`. Answer arrived in **9.9 s**.
+· the question depends on the conversation`. Answer arrived in **12.7 s**.
 
 ![2. Guarantee declined](img/task-25-guardrail-no-guarantee.png)
 
@@ -61,7 +61,7 @@ Badges shown: `🛡️ Guardrails: no guarantee given` · `Cache not used
 Asked: *"Why did my credit score drop 20 points this month?"* First time this question is asked: answered live and stored.
 
 Badges shown: `🛡️ Guardrails: passed` · `Cache miss · answered live
-· saved for next time`. Answer arrived in **6.9 s**.
+· saved for next time`. Answer arrived in **12.3 s**.
 
 ![3. Cache miss](img/task-25-cache-miss.png)
 
@@ -69,7 +69,7 @@ Badges shown: `🛡️ Guardrails: passed` · `Cache miss · answered live
 
 Asked: *"Why did my credit score drop 20 points this month?"* The same question again: served from the cache, with the time saved.
 
-Badges shown: `🛡️ Guardrails: passed` · `⚡ Cache hit · saved 7 s
+Badges shown: `🛡️ Guardrails: passed` · `⚡ Cache hit · saved 12 s
 · same question`. Answer arrived in **0.1 s**.
 
 ![4. Cache hit](img/task-25-cache-hit.png)
@@ -80,11 +80,11 @@ Asked: *"Should I take out this payday loan to pay off my credit card?"* The fir
 
 Badges shown: `🛡️ Guardrails: answer rewritten
 · it went soft on a high-risk product` · `⚠️ High-risk product asked about` · `Cache miss · answered live
-· saved for next time`. Answer arrived in **16.1 s**. The draft broke G2.
+· saved for next time`. Answer arrived in **18.8 s**. The draft broke G2.
 
 ![5. Guardrail reframe](img/task-25-guardrail-rewritten.png)
 
-In screenshot 4 the same question as screenshot 3 comes back in 0.1 s instead of 6.9 s. That time includes the browser and Gradio's streaming, which is why it is longer than the 0.01 s measured for the pipeline alone in Task 23.
+In screenshot 4 the same question as screenshot 3 comes back in 0.1 s instead of 12.3 s. That time includes the browser and Gradio's streaming, which is why it is longer than the 0.01 s measured for the pipeline alone in Task 23.
 
 In screenshot 5 the model's first draft was replaced by a hand-written one that endorses the loan, because the model, following its prompt, no longer produces such a draft on its own. The guardrail check, the model's rewrite and the re-check are live.
 

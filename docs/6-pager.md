@@ -92,7 +92,7 @@ We will not predict a specific future score. We may describe typical impact rang
 
 We will not recommend specific branded financial products, even non-predatory ones, because we cannot evaluate their fit for a real individual.
 
-We will not build accounts, authentication, or multi-user production infrastructure. Users are identified by a simulated user ID for the demo.
+We will not build verified identities, account management, or multi-user production infrastructure. Users are identified by a user ID, never by name. *(Updated after Week 3: we added a minimal self-service sign-up so new people can test CreditCoach. An account is a user ID, a password shown once, and a practice profile generated from the person's answers to our interview questions; it is not tied to a real person or to real credit data, and each signed-up user is limited to 5 questions a week. See PR/FAQ I13 and the [User Guide](user-guide.md).)*
 
 We will not optimize for breadth of topics. Our users are Indian consumers, so we explain scores on the 300–900 range used by Indian credit bureaus. Home loans beyond the basics, business credit, and scoring systems outside India are out of scope. Our library and evals focus on the first-time borrower's core questions.
 

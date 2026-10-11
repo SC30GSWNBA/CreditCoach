@@ -5,7 +5,9 @@ a salted hash goes into ``creditcoach/app/logins.json``. Commit that file, then 
 team privately.
 
 Rules enforced:
-    - The user id must exist in ``data/users.csv``.
+    - The user id must exist in ``data/users.csv``: this file holds the team's logins for the 15 dataset users.
+      People who sign up in the app get their login in Neon instead (``creditcoach.signup``), with a password
+      that is shown to them once and can't be changed here.
     - A user id has only one username: setting a new username for a user replaces the old one.
 
 Run:
@@ -16,8 +18,7 @@ import getpass
 import json
 import sys
 
-from creditcoach import auth, config
-from creditcoach.user_data import user_ids
+from creditcoach import auth, config, dataset
 
 
 def main() -> int:
@@ -26,7 +27,7 @@ def main() -> int:
         print(__doc__)
         return 2
     user_id, username = sys.argv[1], sys.argv[2]
-    if user_id not in user_ids():
+    if user_id not in set(dataset.read_files()[0].user_id):  # the CSV, so a sign-up user in Neon is refused too
         print(f"Unknown user id {user_id!r}; see data/users.csv.")
         return 1
     password = getpass.getpass(f"Password for {username} ({user_id}): ")
