@@ -23,12 +23,13 @@ Example:
     ...     print(r.rank, r.id, r.score)
 """
 
+import hashlib
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from functools import lru_cache
 
-from creditcoach import config
+from creditcoach import cache, config
 
 
 @dataclass
@@ -110,9 +111,31 @@ def normalize_query(query: str) -> str:
     return BUREAU_NAMES.sub(lambda m: f"{m.group(0)} (credit)", query)
 
 
+def embed(query: str) -> list[float]:
+    """The normalised embedding of a query, from the cache when the same text was embedded before (Task 22).
+
+    The key holds the embedding model, so changing ``EMBEDDING_MODEL`` never reuses another model's vectors.
+    """
+    key = cache.key("embedding", config.EMBEDDING_MODEL, query)
+    vector = cache.get("embedding", key)
+    if vector is None:
+        vector = _model().encode([query], normalize_embeddings=True)[0].tolist()
+        cache.put("embedding", key, vector)
+    return vector
+
+
+@lru_cache(maxsize=1)
+def corpus_version() -> str:
+    """A fingerprint of the corpus files, so cached retrieval results and answers die when the corpus changes."""
+    digest = hashlib.sha256()
+    for path in sorted(config.CORPUS_DIR.glob("*.md")):
+        digest.update(path.name.encode() + path.read_bytes())
+    return digest.hexdigest()[:16]
+
+
 def _dense(query: str, n: int, where: dict | None) -> list[Result]:
     """Vector search: embed the query and return the ``n`` most similar chunks, ranked by cosine similarity."""
-    embedding = _model().encode([query], normalize_embeddings=True).tolist()
+    embedding = [embed(query)]
     r = _collection().query(query_embeddings=embedding, n_results=n, where=where)
     return [Result(rank=i + 1, id=cid, score=round(1 - dist, 4), title=meta["title"], category=meta["category"],
                    text=doc, metadata=meta)
@@ -148,6 +171,11 @@ def retrieve(query: str, k: int = 3, where: dict | None = None, *, rerank: bool 
         RuntimeError: If the vector store hasn't been built, or was built with a different embedding model.
     """
     query = normalize_query(query)
+    cache_key = cache.key("retrieval", corpus_version(), config.EMBEDDING_MODEL, config.RERANKER_MODEL, query, k, where,
+                    rerank, fusion, max_per_doc, candidates)
+    cached = cache.get("retrieval", cache_key)
+    if cached is not None:
+        return [Result(**r) for r in cached]
     pool = _dense(query, max(candidates, k), where)
     if rerank and pool:
         ce_scores = _reranker().predict([(query, r.text) for r in pool])
@@ -169,6 +197,7 @@ def retrieve(query: str, k: int = 3, where: dict | None = None, *, rerank: bool 
             break
     for i, r in enumerate(out):
         r.rank = i + 1
+    cache.put("retrieval", cache_key, [asdict(r) for r in out])
     return out
 
 

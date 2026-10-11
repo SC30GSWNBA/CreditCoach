@@ -1,0 +1,1393 @@
+{
+ "created": "2026-10-10T19:40:17",
+ "store": "Redis 8.10.2 (localhost:6379/0)",
+ "model": "openai/gpt-5",
+ "small_model": "openai/gpt-5-mini",
+ "reasoning_effort": "low",
+ "ttl": {
+  "embedding": 604800,
+  "retrieval": 86400,
+  "tool": 300,
+  "answer": 3600
+ },
+ "records": [
+  {
+   "phase": "1 first time",
+   "expect": "uncached",
+   "query": 1,
+   "user_id": "USR-001",
+   "question": "Why did my credit score drop 20 points this month?",
+   "seconds": 11.485,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "nothing stored for this user",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4813,
+     "completion_tokens": 713,
+     "cost": 0.00781825
+    }
+   ],
+   "cost": 0.007818,
+   "prompt_tokens": 4813,
+   "completion_tokens": 713,
+   "tool_lookups": [
+    "miss",
+    "miss"
+   ],
+   "answer_chars": 1481,
+   "wrong_hit": false
+  },
+  {
+   "phase": "1 first time",
+   "expect": "uncached",
+   "query": 2,
+   "user_id": "USR-001",
+   "question": "What's my current credit utilization ratio?",
+   "seconds": 5.548,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "closest stored question is 0.433 similar, below 0.9",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4799,
+     "completion_tokens": 485,
+     "cost": 0.00552075
+    }
+   ],
+   "cost": 0.005521,
+   "prompt_tokens": 4799,
+   "completion_tokens": 485,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 927,
+   "wrong_hit": false
+  },
+  {
+   "phase": "1 first time",
+   "expect": "uncached",
+   "query": 3,
+   "user_id": "USR-001",
+   "question": "I want to buy a car in 12 months — what should I focus on?",
+   "seconds": 14.392,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "closest stored question is 0.194 similar, below 0.9",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4749,
+     "completion_tokens": 1571,
+     "cost": 0.01819025
+    },
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 1142,
+     "completion_tokens": 39,
+     "cost": 0.0003635
+    }
+   ],
+   "cost": 0.018554,
+   "prompt_tokens": 5891,
+   "completion_tokens": 1610,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 2301,
+   "wrong_hit": false
+  },
+  {
+   "phase": "1 first time",
+   "expect": "uncached",
+   "query": 4,
+   "user_id": "USR-001",
+   "question": "Should I take out this payday loan to pay off my credit card?",
+   "seconds": 10.617,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "closest stored question is 0.306 similar, below 0.9",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4651,
+     "completion_tokens": 1041,
+     "cost": 0.01103975
+    },
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 1064,
+     "completion_tokens": 39,
+     "cost": 0.000344
+    }
+   ],
+   "cost": 0.011384,
+   "prompt_tokens": 5715,
+   "completion_tokens": 1080,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 2227,
+   "wrong_hit": false
+  },
+  {
+   "phase": "1 first time",
+   "expect": "uncached",
+   "query": 6,
+   "user_id": "USR-001",
+   "question": "Can you guarantee my score will hit 720 if I do what you said?",
+   "seconds": 22.231,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "closest stored question is 0.324 similar, below 0.9",
+   "guardrail": "reframed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4751,
+     "completion_tokens": 1081,
+     "cost": 0.01156475
+    },
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 877,
+     "completion_tokens": 39,
+     "cost": 0.00029725
+    },
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4996,
+     "completion_tokens": 837,
+     "cost": 0.011735
+    },
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 938,
+     "completion_tokens": 39,
+     "cost": 0.0003125
+    }
+   ],
+   "cost": 0.02391,
+   "prompt_tokens": 11562,
+   "completion_tokens": 1996,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1540,
+   "wrong_hit": false
+  },
+  {
+   "phase": "1 first time",
+   "expect": "uncached",
+   "query": 9,
+   "user_id": "USR-003",
+   "question": "Why did my score dip the last two months? I've always paid on time.",
+   "seconds": 7.876,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "nothing stored for this user",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4670,
+     "completion_tokens": 637,
+     "cost": 0.0086075
+    }
+   ],
+   "cost": 0.008608,
+   "prompt_tokens": 4670,
+   "completion_tokens": 637,
+   "tool_lookups": [
+    "miss",
+    "miss"
+   ],
+   "answer_chars": 1189,
+   "wrong_hit": false
+  },
+  {
+   "phase": "1 first time",
+   "expect": "uncached",
+   "query": 29,
+   "user_id": "USR-012",
+   "question": "Can I take another instant loan app loan to pay this month's card bill?",
+   "seconds": 9.636,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "nothing stored for this user",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4536,
+     "completion_tokens": 691,
+     "cost": 0.009124
+    },
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 819,
+     "completion_tokens": 39,
+     "cost": 0.00028275
+    }
+   ],
+   "cost": 0.009407,
+   "prompt_tokens": 5355,
+   "completion_tokens": 730,
+   "tool_lookups": [
+    "miss",
+    "miss"
+   ],
+   "answer_chars": 1344,
+   "wrong_hit": false
+  },
+  {
+   "phase": "1 first time",
+   "expect": "uncached",
+   "query": 31,
+   "user_id": "USR-001",
+   "question": "What is a payday loan and how does it work?",
+   "seconds": 11.653,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "closest stored question is 0.554 similar, below 0.9",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4682,
+     "completion_tokens": 1020,
+     "cost": 0.0108685
+    },
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 909,
+     "completion_tokens": 43,
+     "cost": 0.00031325
+    }
+   ],
+   "cost": 0.011182,
+   "prompt_tokens": 5591,
+   "completion_tokens": 1063,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1788,
+   "wrong_hit": false
+  },
+  {
+   "phase": "1 first time",
+   "expect": "uncached",
+   "query": 33,
+   "user_id": "USR-001",
+   "question": "Is a balance transfer a good idea for my 79% card?",
+   "seconds": 9.646,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "closest stored question is 0.458 similar, below 0.9",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4817,
+     "completion_tokens": 1027,
+     "cost": 0.01096325
+    }
+   ],
+   "cost": 0.010963,
+   "prompt_tokens": 4817,
+   "completion_tokens": 1027,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1870,
+   "wrong_hit": false
+  },
+  {
+   "phase": "1 first time",
+   "expect": "uncached",
+   "query": 42,
+   "user_id": "USR-009",
+   "question": "When exactly will my score be back to 811?",
+   "seconds": 12.929,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "nothing stored for this user",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4688,
+     "completion_tokens": 1200,
+     "cost": 0.014692
+    },
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 872,
+     "completion_tokens": 39,
+     "cost": 0.000296
+    }
+   ],
+   "cost": 0.014988,
+   "prompt_tokens": 5560,
+   "completion_tokens": 1239,
+   "tool_lookups": [
+    "miss",
+    "miss"
+   ],
+   "answer_chars": 1485,
+   "wrong_hit": false
+  },
+  {
+   "phase": "2 repeated",
+   "expect": "should hit",
+   "query": 1,
+   "user_id": "USR-001",
+   "question": "Why did my credit score drop 20 points this month?",
+   "seconds": 0.015,
+   "status": "hit",
+   "how": "exact",
+   "similarity": 1.0,
+   "matched_question": "Why did my credit score drop 20 points this month?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [],
+   "cost": 0,
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1481,
+   "wrong_hit": false
+  },
+  {
+   "phase": "2 repeated",
+   "expect": "should hit",
+   "query": 2,
+   "user_id": "USR-001",
+   "question": "What's my current credit utilization ratio?",
+   "seconds": 0.013,
+   "status": "hit",
+   "how": "exact",
+   "similarity": 1.0,
+   "matched_question": "What's my current credit utilization ratio?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [],
+   "cost": 0,
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 927,
+   "wrong_hit": false
+  },
+  {
+   "phase": "2 repeated",
+   "expect": "should hit",
+   "query": 3,
+   "user_id": "USR-001",
+   "question": "I want to buy a car in 12 months — what should I focus on?",
+   "seconds": 0.011,
+   "status": "hit",
+   "how": "exact",
+   "similarity": 1.0,
+   "matched_question": "I want to buy a car in 12 months — what should I focus on?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [],
+   "cost": 0,
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 2301,
+   "wrong_hit": false
+  },
+  {
+   "phase": "2 repeated",
+   "expect": "should hit",
+   "query": 4,
+   "user_id": "USR-001",
+   "question": "Should I take out this payday loan to pay off my credit card?",
+   "seconds": 0.009,
+   "status": "hit",
+   "how": "exact",
+   "similarity": 1.0,
+   "matched_question": "Should I take out this payday loan to pay off my credit card?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [],
+   "cost": 0,
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 2227,
+   "wrong_hit": false
+  },
+  {
+   "phase": "2 repeated",
+   "expect": "should hit",
+   "query": 6,
+   "user_id": "USR-001",
+   "question": "Can you guarantee my score will hit 720 if I do what you said?",
+   "seconds": 0.009,
+   "status": "hit",
+   "how": "exact",
+   "similarity": 1.0,
+   "matched_question": "Can you guarantee my score will hit 720 if I do what you said?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "reframed",
+   "answer_model": "openai/gpt-5",
+   "calls": [],
+   "cost": 0,
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1540,
+   "wrong_hit": false
+  },
+  {
+   "phase": "2 repeated",
+   "expect": "should hit",
+   "query": 9,
+   "user_id": "USR-003",
+   "question": "Why did my score dip the last two months? I've always paid on time.",
+   "seconds": 0.009,
+   "status": "hit",
+   "how": "exact",
+   "similarity": 1.0,
+   "matched_question": "Why did my score dip the last two months? I've always paid on time.",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [],
+   "cost": 0,
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1189,
+   "wrong_hit": false
+  },
+  {
+   "phase": "2 repeated",
+   "expect": "should hit",
+   "query": 29,
+   "user_id": "USR-012",
+   "question": "Can I take another instant loan app loan to pay this month's card bill?",
+   "seconds": 0.008,
+   "status": "hit",
+   "how": "exact",
+   "similarity": 1.0,
+   "matched_question": "Can I take another instant loan app loan to pay this month's card bill?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [],
+   "cost": 0,
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1344,
+   "wrong_hit": false
+  },
+  {
+   "phase": "2 repeated",
+   "expect": "should hit",
+   "query": 31,
+   "user_id": "USR-001",
+   "question": "What is a payday loan and how does it work?",
+   "seconds": 0.008,
+   "status": "hit",
+   "how": "exact",
+   "similarity": 1.0,
+   "matched_question": "What is a payday loan and how does it work?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [],
+   "cost": 0,
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1788,
+   "wrong_hit": false
+  },
+  {
+   "phase": "2 repeated",
+   "expect": "should hit",
+   "query": 33,
+   "user_id": "USR-001",
+   "question": "Is a balance transfer a good idea for my 79% card?",
+   "seconds": 0.008,
+   "status": "hit",
+   "how": "exact",
+   "similarity": 1.0,
+   "matched_question": "Is a balance transfer a good idea for my 79% card?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [],
+   "cost": 0,
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1870,
+   "wrong_hit": false
+  },
+  {
+   "phase": "2 repeated",
+   "expect": "should hit",
+   "query": 42,
+   "user_id": "USR-009",
+   "question": "When exactly will my score be back to 811?",
+   "seconds": 0.007,
+   "status": "hit",
+   "how": "exact",
+   "similarity": 1.0,
+   "matched_question": "When exactly will my score be back to 811?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [],
+   "cost": 0,
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1485,
+   "wrong_hit": false
+  },
+  {
+   "phase": "3 reworded",
+   "expect": "may hit",
+   "query": 1,
+   "user_id": "USR-001",
+   "question": "My credit score dropped 20 points this month. Why?",
+   "seconds": 0.028,
+   "status": "hit",
+   "how": "same words",
+   "similarity": 0.985,
+   "matched_question": "Why did my credit score drop 20 points this month?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [],
+   "cost": 0,
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1481,
+   "wrong_hit": false
+  },
+  {
+   "phase": "3 reworded",
+   "expect": "may hit",
+   "query": 2,
+   "user_id": "USR-001",
+   "question": "What is my credit utilization ratio right now?",
+   "seconds": 1.526,
+   "status": "hit",
+   "how": "model-confirmed",
+   "similarity": 0.976,
+   "matched_question": "What's my current credit utilization ratio?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 148,
+     "completion_tokens": 19,
+     "cost": 7.5e-05
+    }
+   ],
+   "cost": 7.5e-05,
+   "prompt_tokens": 148,
+   "completion_tokens": 19,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 927,
+   "wrong_hit": false
+  },
+  {
+   "phase": "3 reworded",
+   "expect": "may hit",
+   "query": 3,
+   "user_id": "USR-001",
+   "question": "I'd like to buy a car in 12 months. What should I focus on?",
+   "seconds": 1.397,
+   "status": "hit",
+   "how": "model-confirmed",
+   "similarity": 0.979,
+   "matched_question": "I want to buy a car in 12 months — what should I focus on?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 166,
+     "completion_tokens": 19,
+     "cost": 7.95e-05
+    }
+   ],
+   "cost": 7.9e-05,
+   "prompt_tokens": 166,
+   "completion_tokens": 19,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 2301,
+   "wrong_hit": false
+  },
+  {
+   "phase": "3 reworded",
+   "expect": "may hit",
+   "query": 4,
+   "user_id": "USR-001",
+   "question": "Should I take a payday loan to pay off my credit card?",
+   "seconds": 1.269,
+   "status": "hit",
+   "how": "model-confirmed",
+   "similarity": 0.962,
+   "matched_question": "Should I take out this payday loan to pay off my credit card?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 159,
+     "completion_tokens": 19,
+     "cost": 7.775e-05
+    }
+   ],
+   "cost": 7.8e-05,
+   "prompt_tokens": 159,
+   "completion_tokens": 19,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 2227,
+   "wrong_hit": false
+  },
+  {
+   "phase": "3 reworded",
+   "expect": "may hit",
+   "query": 6,
+   "user_id": "USR-001",
+   "question": "Can you guarantee that my score will reach 720 if I follow your advice?",
+   "seconds": 1.16,
+   "status": "hit",
+   "how": "model-confirmed",
+   "similarity": 0.935,
+   "matched_question": "Can you guarantee my score will hit 720 if I do what you said?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "reframed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 164,
+     "completion_tokens": 19,
+     "cost": 7.9e-05
+    }
+   ],
+   "cost": 7.9e-05,
+   "prompt_tokens": 164,
+   "completion_tokens": 19,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1540,
+   "wrong_hit": false
+  },
+  {
+   "phase": "3 reworded",
+   "expect": "may hit",
+   "query": 9,
+   "user_id": "USR-003",
+   "question": "Why has my score dipped over the last two months? I have always paid on time.",
+   "seconds": 1.117,
+   "status": "hit",
+   "how": "model-confirmed",
+   "similarity": 0.954,
+   "matched_question": "Why did my score dip the last two months? I've always paid on time.",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 166,
+     "completion_tokens": 19,
+     "cost": 7.95e-05
+    }
+   ],
+   "cost": 7.9e-05,
+   "prompt_tokens": 166,
+   "completion_tokens": 19,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1189,
+   "wrong_hit": false
+  },
+  {
+   "phase": "3 reworded",
+   "expect": "may hit",
+   "query": 29,
+   "user_id": "USR-012",
+   "question": "Is it OK to take another instant loan app loan to pay this month's card bill?",
+   "seconds": 1.551,
+   "status": "hit",
+   "how": "model-confirmed",
+   "similarity": 0.964,
+   "matched_question": "Can I take another instant loan app loan to pay this month's card bill?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 164,
+     "completion_tokens": 19,
+     "cost": 7.9e-05
+    }
+   ],
+   "cost": 7.9e-05,
+   "prompt_tokens": 164,
+   "completion_tokens": 19,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1344,
+   "wrong_hit": false
+  },
+  {
+   "phase": "3 reworded",
+   "expect": "may hit",
+   "query": 31,
+   "user_id": "USR-001",
+   "question": "How does a payday loan work?",
+   "seconds": 1.357,
+   "status": "hit",
+   "how": "model-confirmed",
+   "similarity": 0.968,
+   "matched_question": "What is a payday loan and how does it work?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 150,
+     "completion_tokens": 19,
+     "cost": 7.55e-05
+    }
+   ],
+   "cost": 7.6e-05,
+   "prompt_tokens": 150,
+   "completion_tokens": 19,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1788,
+   "wrong_hit": false
+  },
+  {
+   "phase": "3 reworded",
+   "expect": "may hit",
+   "query": 33,
+   "user_id": "USR-001",
+   "question": "Would a balance transfer be a good idea for my 79% card?",
+   "seconds": 0.047,
+   "status": "hit",
+   "how": "same words",
+   "similarity": 0.991,
+   "matched_question": "Is a balance transfer a good idea for my 79% card?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [],
+   "cost": 0,
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1870,
+   "wrong_hit": false
+  },
+  {
+   "phase": "3 reworded",
+   "expect": "may hit",
+   "query": 42,
+   "user_id": "USR-009",
+   "question": "When exactly is my score going to be back at 811?",
+   "seconds": 1.436,
+   "status": "hit",
+   "how": "model-confirmed",
+   "similarity": 0.988,
+   "matched_question": "When exactly will my score be back to 811?",
+   "stored": null,
+   "not_stored_because": null,
+   "miss_reason": null,
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 156,
+     "completion_tokens": 19,
+     "cost": 7.7e-05
+    }
+   ],
+   "cost": 7.7e-05,
+   "prompt_tokens": 156,
+   "completion_tokens": 19,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1485,
+   "wrong_hit": false
+  },
+  {
+   "phase": "4 look-alike",
+   "expect": "must miss",
+   "query": 1,
+   "user_id": "USR-001",
+   "question": "Why did my credit score drop 20 points last month?",
+   "seconds": 11.623,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "time words differ from the closest stored question (0.996 similar)",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4813,
+     "completion_tokens": 775,
+     "cost": 0.00843825
+    }
+   ],
+   "cost": 0.008438,
+   "prompt_tokens": 4813,
+   "completion_tokens": 775,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1323,
+   "wrong_hit": false
+  },
+  {
+   "phase": "4 look-alike",
+   "expect": "must miss",
+   "query": 2,
+   "user_id": "USR-001",
+   "question": "What should my credit utilization ratio be?",
+   "seconds": 7.961,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "closest stored question (0.924 similar) was not confirmed as the same",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 147,
+     "completion_tokens": 19,
+     "cost": 7.475e-05
+    },
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4759,
+     "completion_tokens": 676,
+     "cost": 0.00882075
+    }
+   ],
+   "cost": 0.008896,
+   "prompt_tokens": 4906,
+   "completion_tokens": 695,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1181,
+   "wrong_hit": false
+  },
+  {
+   "phase": "4 look-alike",
+   "expect": "must miss",
+   "query": 3,
+   "user_id": "USR-001",
+   "question": "I want to buy a car in 6 months — what should I focus on?",
+   "seconds": 13.441,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "numbers differ from the closest stored question (0.915 similar)",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4623,
+     "completion_tokens": 1407,
+     "cost": 0.01624875
+    },
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 1176,
+     "completion_tokens": 39,
+     "cost": 0.000372
+    }
+   ],
+   "cost": 0.016621,
+   "prompt_tokens": 5799,
+   "completion_tokens": 1446,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 2582,
+   "wrong_hit": false
+  },
+  {
+   "phase": "4 look-alike",
+   "expect": "must miss",
+   "query": 6,
+   "user_id": "USR-001",
+   "question": "Can you guarantee my score will hit 750 if I do what you said?",
+   "seconds": 7.944,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "closest stored question is 0.785 similar, below 0.9",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4751,
+     "completion_tokens": 647,
+     "cost": 0.00823275
+    },
+    {
+     "model": "openai/gpt-5-mini",
+     "prompt_tokens": 872,
+     "completion_tokens": 39,
+     "cost": 0.000296
+    }
+   ],
+   "cost": 0.008529,
+   "prompt_tokens": 5623,
+   "completion_tokens": 686,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 1406,
+   "wrong_hit": false
+  },
+  {
+   "phase": "4 look-alike",
+   "expect": "must miss",
+   "query": 33,
+   "user_id": "USR-001",
+   "question": "Is a balance transfer a good idea for my 19% card?",
+   "seconds": 12.997,
+   "status": "miss",
+   "how": null,
+   "similarity": null,
+   "matched_question": null,
+   "stored": true,
+   "not_stored_because": null,
+   "miss_reason": "closest stored question is 0.862 similar, below 0.9",
+   "guardrail": "passed",
+   "answer_model": "openai/gpt-5",
+   "calls": [
+    {
+     "model": "openai/gpt-5",
+     "prompt_tokens": 4817,
+     "completion_tokens": 1625,
+     "cost": 0.01852725
+    }
+   ],
+   "cost": 0.018527,
+   "prompt_tokens": 4817,
+   "completion_tokens": 1625,
+   "tool_lookups": [
+    "hit",
+    "hit"
+   ],
+   "answer_chars": 2081,
+   "wrong_hit": false
+  }
+ ],
+ "counters": {
+  "retrieval": {
+   "miss": 18,
+   "store": 18,
+   "hit_rate": 0.0
+  },
+  "embedding": {
+   "hit": 28,
+   "miss": 25,
+   "store": 25,
+   "hit_rate": 0.528
+  },
+  "tool": {
+   "hit": 62,
+   "store": 8,
+   "miss": 8,
+   "hit_rate": 0.886
+  },
+  "answer": {
+   "hit": 20,
+   "miss": 15,
+   "store": 15,
+   "hit_rate": 0.571
+  }
+ },
+ "layers": {
+  "embedding": {
+   "uncached": [
+    19.843459012918174,
+    5.743124987930059,
+    5.135749990586191,
+    4.74624999333173,
+    5.016583018004894,
+    5.127665994223207,
+    5.080499977339059,
+    5.343915952835232,
+    4.8335830215364695,
+    4.778624977916479,
+    4.872959048952907,
+    4.896458005532622,
+    4.797125002369285,
+    4.972708004061133,
+    4.713500034995377,
+    5.029749998357147,
+    4.019749991130084,
+    4.088625020813197,
+    4.207500023767352,
+    3.808540990576148,
+    3.946457989513874,
+    3.7161250365898013,
+    4.012332996353507,
+    3.5757500445470214,
+    3.5983750130981207,
+    3.317457973025739,
+    3.563542035408318,
+    3.3622499904595315,
+    3.261582984123379,
+    3.4022079780697823
+   ],
+   "cached": [
+    0.29208295745775104,
+    0.27879199478775263,
+    0.3237080527469516,
+    0.29916601488366723,
+    0.3186250105500221,
+    0.2726670354604721,
+    0.3392079961486161,
+    0.3488339716568589,
+    0.23158302064985037,
+    0.20875001791864634,
+    0.21566601935774088,
+    0.18387503223493695,
+    0.20662503084167838,
+    0.2414159826003015,
+    0.2597079728730023,
+    0.2596669946797192,
+    0.25937502505257726,
+    0.2684580394998193,
+    0.25350000942125916,
+    0.2495829830877483,
+    0.25266699958592653,
+    0.24512503296136856,
+    0.2580410218797624,
+    0.1853749854490161,
+    0.1989590236917138,
+    0.22825004998594522,
+    0.20150002092123032,
+    0.20000000949949026,
+    0.2009579911828041,
+    0.19070901907980442
+   ]
+  },
+  "retrieval": {
+   "uncached": [
+    23.6337500391528,
+    19.437082984950393,
+    20.045000012032688,
+    20.87241702247411,
+    19.865207956172526,
+    20.01645800191909,
+    19.47158295661211,
+    21.05516701703891,
+    20.280707976780832,
+    20.004540972877294,
+    20.670333004090935,
+    19.324583001434803,
+    22.341708012390882,
+    22.7628750144504,
+    22.156916034873575,
+    19.72020900575444,
+    23.34845799487084,
+    20.974124956410378,
+    20.779124984983355,
+    20.964625000488013,
+    23.8282079808414,
+    21.599375002551824,
+    20.334541040938348,
+    20.30379098141566,
+    20.76050004689023,
+    19.66262498172,
+    19.848499970976263,
+    20.34191699931398,
+    20.208915986586362,
+    21.180375013500452
+   ],
+   "cached": [
+    0.1676660031080246,
+    0.1556670176796615,
+    0.1490419963374734,
+    0.1431250129826367,
+    0.1966250129044056,
+    0.23687497014179826,
+    0.23049995070323348,
+    0.18337497022002935,
+    0.16912503633648157,
+    0.14304200885817409,
+    0.149125000461936,
+    0.16562500968575478,
+    0.15195802552625537,
+    0.16095797764137387,
+    0.17445802222937346,
+    0.15300000086426735,
+    0.16662495909258723,
+    0.14491600450128317,
+    0.14195800758898258,
+    0.1409579999744892,
+    0.13983302051201463,
+    0.1413749996572733,
+    0.15466701006516814,
+    0.14083296991884708,
+    0.14058296801522374,
+    0.14020904200151563,
+    0.14037499204277992,
+    0.1403330243192613,
+    0.14045799616724253,
+    0.14120800187811255
+   ]
+  },
+  "tool": {
+   "uncached": [
+    2089.1391659970395,
+    1805.1222499925643,
+    2020.8997079753317,
+    1692.7843749872409,
+    1695.3511669998989,
+    1829.5989580219612,
+    1816.4921670104377,
+    1835.2287909947336,
+    1865.5022499733604,
+    1691.1269170232117
+   ],
+   "cached": [
+    0.28970796847715974,
+    0.26766699738800526,
+    0.3719579544849694,
+    0.3286250284872949,
+    0.33666600938886404,
+    0.32245798502117395,
+    0.33670797711238265,
+    0.32833300065249205,
+    0.31174998730421066,
+    0.3105420037172735,
+    0.31099998159334064,
+    0.31895795837044716,
+    0.30858401441946626,
+    0.28370798099786043,
+    0.2852499601431191,
+    0.28600002406165004,
+    0.29375002486631274,
+    0.305499997921288,
+    0.28516596648842096,
+    0.2934169606305659,
+    0.28145802207291126,
+    0.2851669560186565,
+    0.28433301486074924,
+    0.28320797719061375,
+    0.2620000159367919,
+    0.264250033069402,
+    0.26699999580159783,
+    0.280165986623615,
+    0.5762079963460565,
+    0.26283401530236006
+   ]
+  }
+ },
+ "data_backend": "postgres"
+}

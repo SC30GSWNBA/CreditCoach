@@ -10,6 +10,9 @@ for. It does the jobs ``docs/tools.md`` gives to "the host":
     Retry          A retryable error is retried once (§4).
     Log            Every call is recorded as a ``ToolCall`` (tool, arguments, ok, error code, latency, attempts)
                    and logged as one JSON line, for the Week 4 tool-failure rate.
+    Cache          A successful result is kept for a few minutes under the signed-in user's own key (Task 22,
+                   ``creditcoach.cache``), so repeated lookups skip the server. Errors are never cached, and the
+                   user check above always runs first.
 
 Host-side error codes, added to the spec's codes: ``UNKNOWN_TOOL`` (the model named a tool that doesn't exist)
 and ``INVALID_ARGUMENTS`` (the model's arguments weren't valid JSON or failed the server's validation).
@@ -31,7 +34,7 @@ from dataclasses import dataclass
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, get_default_environment, stdio_client
 
-from creditcoach import config
+from creditcoach import cache, config
 from creditcoach.tools.common import error
 
 log = logging.getLogger(__name__)
@@ -60,6 +63,7 @@ class ToolCall:
         result: The tool's result: the spec's success object or the error envelope.
         seconds: Time from the host receiving the call to having the result, across all attempts.
         attempts: 1, or 2 when a retryable error was retried; 0 if the call never reached the server.
+        cached: True if the result came from the cache instead of the server.
     """
     tool: str
     arguments: dict
@@ -67,6 +71,7 @@ class ToolCall:
     result: dict
     seconds: float
     attempts: int
+    cached: bool = False
 
     @property
     def ok(self) -> bool:
@@ -77,6 +82,21 @@ class ToolCall:
     def code(self) -> str | None:
         """The error code, or None on success."""
         return None if self.ok else self.result.get("error", {}).get("code")
+
+
+def tool_key(user_id: str, name: str, args: dict) -> str:
+    """The cache key for one tool call: the signed-in user, the tool, its arguments, and where the data is read from."""
+    return cache.key("tool", name, args, config.DATA_BACKEND, scope=user_id)
+
+
+def cached_call(user_id: str, name: str, args: dict) -> ToolCall | None:
+    """A recent successful result for this call, as a ``ToolCall``, without starting the MCP server; else None."""
+    start = time.perf_counter()
+    result = cache.get("tool", tool_key(user_id, name, args), tool=name, user_id=user_id)
+    if result is None:
+        return None
+    return ToolCall(tool=name, arguments=args, user_id=user_id, result=result, seconds=time.perf_counter() - start,
+                    attempts=0, cached=True)
 
 
 class McpHost:
@@ -130,16 +150,23 @@ class McpHost:
         """
         start = time.perf_counter()
         args, result, attempts = self._check(name, arguments)
+        cached = False
+        if result is None:
+            key = tool_key(self.user_id, name, args)
+            result = cache.get("tool", key, tool=name, user_id=self.user_id)
+            cached = result is not None
         if result is None:
             for attempts in (1, 2):
                 result = await self._send(name, {**args, "user_id": self.user_id})
                 if result.get("ok") or not result["error"].get("retryable"):
                     break
-        call = ToolCall(tool=name, arguments=args,
-                        user_id=self.user_id, result=result, seconds=time.perf_counter() - start, attempts=attempts)
+            if result.get("ok"):
+                cache.put("tool", key, result, tool=name, user_id=self.user_id)
+        call = ToolCall(tool=name, arguments=args, user_id=self.user_id, result=result,
+                        seconds=time.perf_counter() - start, attempts=attempts, cached=cached)
         self.calls.append(call)
         log.info("tool_call %s", json.dumps({"tool": name, "user_id": self.user_id, "arguments": call.arguments,
-                                              "ok": call.ok, "code": call.code, "attempts": attempts,
+                                              "ok": call.ok, "code": call.code, "attempts": attempts, "cached": cached,
                                               "ms": round(call.seconds * 1000)}, ensure_ascii=False))
         return result
 

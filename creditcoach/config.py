@@ -30,6 +30,14 @@ Memory storage (environment variable -> default):
     CREDITCOACH_MEMORY_BACKEND  "postgres" if DATABASE_URL is set, else "files". Tests and evidence scripts force
                                 "files" so they never write to the shared database.
 
+Cache (Task 22; environment variable -> default):
+    REDIS_URL                  ""    Redis connection string, e.g. ``redis://localhost:6379/0``. When set, the cache
+                                     is kept in Redis. Without it the cache lives in the app's own memory and is
+                                     lost on restart.
+    CREDITCOACH_CACHE          "on"  "off" turns every cache layer off. Tests turn it off by default.
+    CREDITCOACH_CACHE_CONFIRM  "on"  "off" stops the semantic answer cache asking ``SMALL_MODEL`` whether a reworded
+                                     question is the same; only exact and same-words matches are then served.
+
 Example:
     >>> from creditcoach import config
     >>> config.CHAT_MODEL
@@ -72,5 +80,8 @@ LOGINS_FILE = ROOT / "creditcoach" / "app" / "logins.json"  # committed; holds p
 MEMORY_DIR = Path(os.getenv("CREDITCOACH_MEMORY_DIR", ROOT / "memory"))  # files backend; committed archive
 DATABASE_URL = os.getenv("DATABASE_URL", "")  # Neon Postgres; never commit it
 MEMORY_BACKEND = os.getenv("CREDITCOACH_MEMORY_BACKEND", "postgres" if DATABASE_URL else "files")
+REDIS_URL = os.getenv("REDIS_URL", "")  # never commit one that holds a password
+CACHE = os.getenv("CREDITCOACH_CACHE", "on")
+CACHE_CONFIRM = os.getenv("CREDITCOACH_CACHE_CONFIRM", "on") != "off"
 # Where users, accounts and score history are read from: Neon (a copy loaded by scripts/data_import.py) or data/
 DATA_BACKEND = os.getenv("CREDITCOACH_DATA_BACKEND", "postgres" if DATABASE_URL else "files")

@@ -1,0 +1,50 @@
+# CreditCoach guardrail flows (Colang 1.0). Rule IDs are the ones in docs/guardrails.md.
+#
+# Each flow runs one check and keeps what it found in a context variable. The flows never talk to the user:
+# creditcoach/guardrails/rails.py reads the variables and decides whether the answer passes, is rewritten once,
+# or is replaced by a fixed safe message.
+#
+# Context set by the caller: $question, $sources, $user_id, $products_asked, $attack_noticed.
+
+# ---- Input rails: the question, before retrieval and the model ----
+
+# S3: remove PAN, Aadhaar, card, account, phone, email, UPI, CVV/OTP/PIN and passwords.
+define flow mask identifiers
+  $masking = execute mask_identifiers(text=$user_message)
+  $user_message = $masking["text"]
+  $s3 = $masking["findings"]
+
+# S1, S2: an instruction to drop the rules, or a request for the hidden prompt.
+define flow detect attack attempt
+  $s1_s2 = execute detect_attack_attempt(text=$user_message)
+
+# G2: the question mentions a predatory product, so the turn is product-related.
+define flow detect product mention
+  $products_asked = execute detect_products(text=$user_message)
+
+# ---- Output rails: the draft answer, before the user sees it ----
+
+# G1: no sentence promises a score outcome, and no bare yes/no answers a question about a future score.
+define flow check guarantee
+  $g1 = execute check_guarantee(answer=$bot_message, question=$question)
+
+# G3: every figure traces to this turn's tool output or the library.
+define flow check figures
+  $g3 = execute check_figures(answer=$bot_message, sources=$sources)
+
+# G2: a product-related answer flags the risk and offers a safer alternative.
+define flow check product answer
+  $products_named = execute detect_products(text=$bot_message)
+  if $products_asked or $products_named
+    $g2 = execute check_product_answer(answer=$bot_message, asked=$products_asked, named=$products_named)
+
+# S2, S4: the answer doesn't repeat the system prompt or name another user.
+define flow check disclosure
+  $s2_s4 = execute check_disclosure(answer=$bot_message, user_id=$user_id)
+
+# G1, G2: where wording decides, ask the small model. Only for projections, product-related answers, and
+# questions the input rails flagged as an attack attempt.
+define flow review wording
+  $projection = execute asks_projection(question=$question, answer=$bot_message)
+  if $projection or $products_asked or $products_named or $attack_noticed
+    $reviewed = execute review_wording(question=$question, answer=$bot_message, projection=$projection, asked=$products_asked, named=$products_named, attack=$attack_noticed)

@@ -372,6 +372,8 @@ Both tools share one error shape:
 
 **Prefetch (2026-10-02):** for every signed-in question, the host calls `get_score_history(period="last_12_months")` and `get_account_summary()` over MCP before the model's first turn, and passes both results to the model as tool results (`PREFETCH` in `creditcoach/agent/pipeline.py`). The model can still call either tool for other periods. The 50-query run showed the model skipping the tools on plan, product and goal questions; prefetching removes that failure and saves a model turn. A prefetched call follows the same rules, timeout, retry and error envelope as any other.
 
+**Cache (Task 22):** the host keeps a successful result for 5 minutes under the signed-in user's own key and serves a repeated call from it without reaching the server; the log line and the `ToolCall` say `cached`. The `user_id` check (§1 rule 2) runs before the cache is read, and errors are never cached. See [caching.md](caching.md) §4 for how this meets the "live tool call" requirement.
+
 ## 5. Test Cases for Tasks #13 and #14
 
 Each task's Definition of Done asks for a known case and an error case. These are the minimum; the implementing task may add more. T1–T8 and T15 for `get_score_history` are automated in `tests/test_score_history.py` (Task 13), and T9–T15 for `get_account_summary` in `tests/test_account_summary.py` (Task 14). The latter also checks that every complete JSON example in §3 is exactly what the tool returns, so this spec and the code can't drift apart.
