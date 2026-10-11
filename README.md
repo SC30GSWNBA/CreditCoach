@@ -12,7 +12,7 @@ Week 2 (account tools through MCP, goal memory and the agent trace) is built, wi
 
 Week 3 has started: the guardrail rules are written down (Task 19, [docs/guardrails.md](docs/guardrails.md)), since Task 20 every question and every answer passes through a guardrail layer built with NVIDIA NeMo Guardrails, Task 21 tested it live and red-teamed it, since Task 22 repeated lookups and repeated questions are served from a Redis cache, Task 23 measured it (median 11.05 s uncached against 0.009 s cached), since Task 25 the chat shows a guardrail badge and a cache badge above every answer, and all 6 sample queries pass end to end against the expected-answers table ([Task 24](docs/evidence/week-3/task-24-sample-queries.md)) (see [Caching](#caching), [Guardrails](#guardrails) and the [Week 3 tracker](docs/evidence/week-3/README.md)). Every Week 1–2 evaluation, and the Task 20 guardrail run, uses all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
-After Week 3, beyond the task plan: the app opens on a welcome page with **Log in** and **Sign up**, so new people can test CreditCoach without borrowing one of the 15 dataset users. Signing up answers the interview questions and creates a practice profile and a login in Neon; a signed-up user may ask 5 questions a week, and the 15 team logins and the committed dataset are unchanged (see [Sign-up](#sign-up) and the [User Guide](docs/user-guide.md)).
+After Week 3, beyond the task plan: the app opens on a welcome page with **Log in** and **Sign up**, so new people can test CreditCoach without borrowing one of the 15 dataset users. Signing up answers the interview questions and creates a practice profile and a login in Neon; a signed-up user may ask 5 questions a week, and the 15 team logins and the committed dataset are unchanged (see [Sign-up](#sign-up) and the [User Guide](docs/user-guide.md)). The signed-in pages were restyled to match the welcome page.
 
 ## Quickstart (fresh clone)
 
@@ -85,6 +85,7 @@ CreditCoach/
                       #   confidence.py: the confidence percentage under each answer (fixed checks, no model call)
                       #   badges.py: the guardrail and cache badges above each answer (Task 25)
                       #   welcome.py: the first page, with Log in and Sign up; sessions.py: the sign-in cookie;
+                      #   theme.py: the look of the signed-in pages, matching the welcome page
                       #   server.py: serves the welcome page and the chat UI together; limits.py: 5 questions a week
     evals/            #   golden.py + golden_queries.json: the 50 requirements.md queries with their checks;
                       #   live.py: runs them through the agent and saves every answer (Tasks 5, 10, 15; Week 4);
@@ -202,7 +203,7 @@ Repeated work is served from a cache instead of being done again (Task 22; desig
 | Tool | A user's score-history or account lookup | 5 minutes |
 | Answer | A finished answer, when the same user asks the same question again | 1 hour |
 
-The answer layer is the one you can see, and the chat marks it with a badge above the answer ("⚡ Cache hit · saved 7 s", "Cache miss · answered live" or "Cache not used" with the reason): a repeated question comes back in about 0.01 s instead of about 11 s, with no model call ([miss then hit](docs/evidence/week-3/task-22-cache-log.md); [measured](docs/evidence/week-3/task-23-cache-latency.md): median 11.05 s uncached against 0.009 s cached, and $0.012 of model cost against none). A stored answer is served only to the user who asked, only for the same question (exact, the same words reordered, or a rewording a small model confirms), and only after that user's live figures are checked to be unchanged. Questions that differ in a number, a "not" or a time word ("this month" and "last month") are never matched, however similar they look.
+The answer layer is the one you can see, and the chat marks it with a badge above the answer ("⚡ Cache hit · saved 12 s", "Cache miss · answered live" or "Cache not used" with the reason): a repeated question comes back in about 0.01 s instead of about 11 s, with no model call ([miss then hit](docs/evidence/week-3/task-22-cache-log.md); [measured](docs/evidence/week-3/task-23-cache-latency.md): median 11.05 s uncached against 0.009 s cached, and $0.012 of model cost against none). A stored answer is served only to the user who asked, only for the same question (exact, the same words reordered, or a rewording a small model confirms), and only after that user's live figures are checked to be unchanged. Questions that differ in a number, a "not" or a time word ("this month" and "last month") are never matched, however similar they look.
 
 The cache is kept in Redis when `REDIS_URL` is set in `.env`:
 

@@ -79,7 +79,7 @@ import gradio as gr  # noqa: E402
 
 from creditcoach import auth, config, guardrails  # noqa: E402
 from creditcoach.agent.pipeline import answer  # noqa: E402
-from creditcoach.app import badges, charts, confidence, limits, server  # noqa: E402
+from creditcoach.app import badges, charts, confidence, limits, server, theme  # noqa: E402
 from creditcoach.app.trace import Trace  # noqa: E402
 from creditcoach.memory import dream, store  # noqa: E402
 from creditcoach.rag.retrieve import retrieve  # noqa: E402
@@ -437,8 +437,8 @@ def build() -> gr.Blocks:
     """
     with gr.Blocks(title=TITLE, analytics_enabled=False) as demo:  # don't send usage telemetry from a finance app
         with gr.Row():
-            who = gr.Markdown()
-            logout = gr.Button("Log out", size="sm", scale=0)
+            who = gr.Markdown(elem_classes="cc-who")
+            logout = gr.Button("Log out", size="sm", scale=0, elem_classes="cc-logout")
         with gr.Accordion("Your memory and past conversations", open=False):
             panel = gr.Markdown()
         logout.click(log_out).then(None, js="() => { window.location.href = '/logout'; }")
@@ -538,7 +538,7 @@ def main() -> None:
                   config.LOGINS_FILE)
         sys.exit(1)
     warm_up()
-    server.run(build(), port=args.port, share=args.share, css=charts.CSS + badges.CSS)
+    server.run(build(), port=args.port, share=args.share, css=theme.CSS + charts.CSS + badges.CSS)
 
 
 if __name__ == "__main__":
