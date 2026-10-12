@@ -134,7 +134,7 @@ CreditCoach/
     set_login.py             # add or change a chat UI login
   user_interviews/    # 14 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
-  docs/               # team.md, 6-pager.md, pr-faq.md, user-guide.md, tools.md, memory.md, guardrails.md, caching.md, research/, evidence/week-1/ to week-3/
+  docs/               # team.md, hld.html, 6-pager.md, pr-faq.md, user-guide.md, tools.md, memory.md, guardrails.md, caching.md, research/, evidence/week-1/ to week-3/
   tasks.md            # 4-week task plan with Definition of Done per task
   requirements.md     # product requirements, persona, sample and additional queries, guardrails
   credit_score_factors_guide.pdf   # seed document for the RAG corpus
@@ -306,7 +306,7 @@ git push -u origin week1/task-05-system-prompt
 
 ## Engineering Roadmap
 
-A technical review after Week 1 found gaps in testing, tooling and robustness. This section tracks them alongside the [4-week plan](tasks.md). Items tied to a later task are built as part of that task. **Items 1 and 2 are started (Task 13), item 5 is started (the 50-query golden set and the Week 3 red-team set), item 7 is partly addressed (Task 23's token and cost tracking), and item 11 is partly addressed (Task 18's live progress); the rest aren't started yet.**
+A technical review after Week 1 found gaps in testing, tooling and robustness. This section tracks them alongside the [4-week plan](tasks.md). Items tied to a later task are built as part of that task. **Items 1 and 2 are started (Task 13), item 5 is started (the 50-query golden set and the Week 3 red-team set), item 7 is partly addressed (Task 23's token and cost tracking), item 9's diagram is done ([docs/hld.html](docs/hld.html)), and item 11 is partly addressed (Task 18's live progress); the rest aren't started yet.**
 
 ### 1. Before Week 2: what technical reviewers check first
 
@@ -325,7 +325,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 |---|---|---|
 | 7 | **No observability.** `llm.chat()` ignores `response.usage`, so tokens, cost and latency per call aren't recorded. | Log usage and latency for every call. Add tracing (Langfuse, LangSmith or OpenTelemetry) before the Week 2 tools arrive, because debugging tool calls without traces is painful. Task 26's trace IDs build on this.<br><br>**Partly addressed (Task 23):** `llm.track()` collects each call's model, tokens and cost, and the cache, guardrail and tool layers each log one JSON line per event. Still to do: record usage for every request (not only inside `track()`), and tracing with a shared trace ID (Task 26). |
 | 8 | **Fragile LLM client.** It catches a broad `except Exception` and tries the fallback model once. It has no retries, and it creates a new client on every call. | Catch specific exceptions, retry rate limits (429) and server errors (5xx) with backoff (for example `tenacity`), and reuse one client. Task 32 covers wider timeout handling. |
-| 9 | **No architecture or design doc for Week 2.** The chat history was passed in but unused (used since Task 17). | Add a diagram of the pipeline and agent loop. The tool contracts are in [docs/tools.md](docs/tools.md) (Task 12), and the agent loop over MCP is described in `pipeline.py` and `mcp_host.py` (Task 15). Memory and recall are specified in [docs/memory.md](docs/memory.md) (Tasks 16–17). Still to write: one diagram of how retrieval, the MCP tools and memory meet in `pipeline.py`. |
+| 9 | **No architecture or design doc for Week 2.** The chat history was passed in but unused (used since Task 17). | Add a diagram of the pipeline and agent loop. The tool contracts are in [docs/tools.md](docs/tools.md) (Task 12), and the agent loop over MCP is described in `pipeline.py` and `mcp_host.py` (Task 15). Memory and recall are specified in [docs/memory.md](docs/memory.md) (Tasks 16–17). **Done:** the high-level design ([docs/hld.html](docs/hld.html)) is one swimlane diagram of how the chat UI, guardrails, cache, retrieval, the MCP tools, memory, the models and Neon meet in `pipeline.py`. |
 | 10 | **Prompts aren't versioned.** `system_prompt.md` has no version, and answers don't record which prompt produced them. | Add a prompt version or hash to each `Answer` and to eval results, so a change in behaviour can be traced to a prompt change. |
 | 11 | **No streaming.** The UI shows the whole answer at once, after about 18 s with GPT-5 (18.5 s in the Task 18 run: 0.1 s retrieval, the rest almost all the model). | Stream tokens into the chat window so answers start appearing right away.<br><br>**Partly addressed (Task 18):** while the user waits, the chat shows each step live with timers and rotating credit tips. The answer's words still arrive all at once. |
 
@@ -361,6 +361,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 - [tasks.md](tasks.md): 4-week plan and Definition of Done
 - [requirements.md](requirements.md): persona, the 6 sample queries and 44 additional queries with expected behavior, constraints, guardrails
 - [docs/team.md](docs/team.md): team, roles, and tech stack
+- [docs/hld.html](docs/hld.html): high-level design: one swimlane diagram that follows a question through the chat UI, guardrails, cache, RAG, the MCP tools, memory, the models and Neon, with the details of each below it. Download or clone, then open it in a browser (GitHub shows only its source)
 - [docs/6-pager.md](docs/6-pager.md): narrative memo
 - [docs/pr-faq.md](docs/pr-faq.md): press release and FAQ
 - [docs/user-guide.md](docs/user-guide.md): for people using CreditCoach: creating an account, saving the login, the 5 questions a week, and account FAQs

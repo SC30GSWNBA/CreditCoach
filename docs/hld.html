@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CreditCoach high-level design. Open this file in a browser; GitHub shows only its source. -->
+<title>CreditCoach High-Level Design</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: a short header, then one wide swimlane board that scrolls sideways with its lane names pinned,
+   then the fine print lane by lane in a two-column ledger. */
+:root {
+  --bg: #F2F5F3; --surface: #FFFFFF; --ink: #15211C; --ink-2: #44524C; --muted: #6C7A74; --rule: #CCD6D1;
+  --accent: #0B6B57; --on-accent: #FFFFFF; --hit: #A85F00; --fix: #C22A4C;
+  --h0: #3D4A45; --h1: #1971C2; --h2: #5B6964; --h3: #C22A4C; --h4: #A85F00;
+  --h5: #2B8A3E; --h6: #0B7285; --h7: #7A3FBF; --h8: #D4480F; --h9: #3B5BDB;
+  --display: "Bricolage Grotesque", "IBM Plex Sans", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0F1513; --surface: #18201D; --ink: #E6EDE9; --ink-2: #B4C0BA; --muted: #8A9891; --rule: #2C3833;
+  --accent: #4CCBA9; --on-accent: #06221B; --hit: #F0B254; --fix: #FF8CA3;
+  --h0: #A9B6B0; --h1: #74B8F5; --h2: #98A6A0; --h3: #FF8CA3; --h4: #F0B254;
+  --h5: #7BD88F; --h6: #63D2E3; --h7: #C39BF5; --h8: #FF9E6B; --h9: #93A8FF; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0F1513; --surface: #18201D; --ink: #E6EDE9; --ink-2: #B4C0BA; --muted: #8A9891; --rule: #2C3833;
+  --accent: #4CCBA9; --on-accent: #06221B; --hit: #F0B254; --fix: #FF8CA3;
+  --h0: #A9B6B0; --h1: #74B8F5; --h2: #98A6A0; --h3: #FF8CA3; --h4: #F0B254;
+  --h5: #7BD88F; --h6: #63D2E3; --h7: #C39BF5; --h8: #FF9E6B; --h9: #93A8FF; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 36px 56px; display: flex; flex-direction: column; gap: 28px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.5rem); line-height: 1.1; letter-spacing: -0.01em; }
+h2 { font-size: 1.35rem; }
+h3 { font-size: 1.02rem; }
+p { margin: 0; }
+.lede { max-width: 65ch; color: var(--ink-2); font-size: 1.05rem; }
+header { display: flex; flex-direction: column; gap: 12px; }
+.eyebrow { font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+code { font-family: var(--mono); font-size: .86em; }
+
+.key { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: .86rem; color: var(--ink-2); align-items: center; }
+.key span { display: inline-flex; align-items: center; gap: 8px; }
+.key svg { flex: none; }
+.dot { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: .72rem; font-weight: 600; display: inline-grid; place-items: center; }
+
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.scroller { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--bg); }
+.scroller:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.board { display: flex; width: max-content; }
+.lanes { position: sticky; left: 0; z-index: 2; flex: none; width: 150px; background: var(--bg); border-right: 1px solid var(--rule); }
+.lane-head { display: flex; align-items: center; padding-inline: 12px; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); box-sizing: border-box; }
+.lane { box-sizing: border-box; border-top: 1px solid var(--rule); padding: 14px 12px; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.lane b { font-size: .8rem; letter-spacing: .07em; text-transform: uppercase; color: var(--hue); line-height: 1.2; }
+.lane i { font-family: var(--display); font-style: normal; font-weight: 600; font-size: 1rem; line-height: 1.2; }
+.lane span { font-size: .76rem; color: var(--muted); line-height: 1.3; }
+.l0 { --hue: var(--h0) } .l1 { --hue: var(--h1) } .l2 { --hue: var(--h2) } .l3 { --hue: var(--h3) } .l4 { --hue: var(--h4) }
+.l5 { --hue: var(--h5) } .l6 { --hue: var(--h6) } .l7 { --hue: var(--h7) } .l8 { --hue: var(--h8) } .l9 { --hue: var(--h9) }
+svg.hld { flex: none; display: block; max-width: none; font-family: var(--body); }
+.hld .sep { stroke: var(--rule); stroke-width: 1; }
+.hld .phase { fill: var(--surface); stroke: var(--rule); }
+.hld .phase-t { fill: var(--ink-2); font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.hld .bx rect { fill: color-mix(in srgb, var(--hue) 9%, var(--surface)); stroke: color-mix(in srgb, var(--hue) 60%, var(--surface)); stroke-width: 1.2; }
+.hld .t { fill: var(--ink); font-size: 12.5px; font-weight: 600; }
+.hld .b { fill: var(--ink-2); font-size: 11.5px; }
+.hld .step { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
+.hld .step-t { fill: var(--on-accent); font-size: 11px; font-weight: 600; }
+.hld .e { stroke-linejoin: round; }
+.hld .e-main { stroke: var(--ink); stroke-width: 2.2; }
+.hld .e-side { stroke: var(--muted); stroke-width: 1.3; stroke-dasharray: 4 4; }
+.hld .e-hit { stroke: var(--hit); stroke-width: 2.4; stroke-dasharray: 9 5; }
+.hld .e-fix { stroke: var(--fix); stroke-width: 1.8; stroke-dasharray: 6 4; }
+.hld .mk-main { fill: var(--ink); } .hld .mk-side { fill: var(--muted); } .hld .mk-hit { fill: var(--hit); } .hld .mk-fix { fill: var(--fix); }
+.hld .el { font-size: 10.5px; fill: var(--ink-2); paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; }
+.hld .el-main { fill: var(--ink); font-weight: 600; }
+.hld .el-hit { fill: var(--hit); font-weight: 600; }
+.hld .el-fix { fill: var(--fix); font-weight: 600; }
+figcaption { font-size: .86rem; color: var(--muted); max-width: 80ch; }
+.hint { font-size: .86rem; color: var(--muted); }
+
+.print { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 40px; }
+.print section { min-width: 0; display: flex; flex-direction: column; gap: 10px; border-top: 2px solid var(--hue, var(--rule)); padding-top: 12px; }
+.print section.wide { grid-column: 1 / -1; }
+.print p, .print li { color: var(--ink-2); font-size: .92rem; }
+.print ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .86rem; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-weight: 600; color: var(--muted); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; padding: 0 12px 6px 0; }
+td { padding: 6px 12px 6px 0; border-top: 1px solid var(--rule); vertical-align: top; color: var(--ink-2); }
+td:first-child { color: var(--ink); font-weight: 500; white-space: nowrap; }
+footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 14px; }
+@media (max-width: 760px) {
+  .print { grid-template-columns: minmax(0, 1fr); }
+  .lanes { width: 106px; }
+  .lane { padding: 10px 8px; } .lane b { font-size: .68rem; } .lane i { font-size: .86rem; } .lane span { font-size: .68rem; }
+  .lane-head { padding-inline: 8px; }
+}
+</style>
+<style>body { margin: 0 } img { max-width: 100% }</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">High-level design</span>
+    <h1>How CreditCoach answers one question</h1>
+    <p class="lede">CreditCoach is a chat assistant that explains your credit score using your own account data and a library of credit lessons. This board follows a single question from your keyboard to a checked, sourced answer. Each row is one part of the system; read left to right and follow the numbers.</p>
+  </header>
+
+  <div class="key" aria-label="How to read the diagram">
+    <span><span class="dot">1</span> The order things happen</span>
+    <span><svg width="38" height="10" viewBox="0 0 38 10" aria-hidden="true"><path d="M0 5H30" fill="none" stroke="var(--ink)" stroke-width="2.2"/><path d="M29 1l8 4-8 4z" fill="var(--ink)"/></svg> The question's journey</span>
+    <span><svg width="38" height="10" viewBox="0 0 38 10" aria-hidden="true"><path d="M0 5H30" fill="none" stroke="var(--muted)" stroke-width="1.3" stroke-dasharray="4 4"/><path d="M29 1l8 4-8 4z" fill="var(--muted)"/></svg> A helper is read or written</span>
+    <span><svg width="38" height="10" viewBox="0 0 38 10" aria-hidden="true"><path d="M0 5H30" fill="none" stroke="var(--hit)" stroke-width="2.4" stroke-dasharray="9 5"/><path d="M29 1l8 4-8 4z" fill="var(--hit)"/></svg> Shortcut when the answer is already cached</span>
+    <span><svg width="38" height="10" viewBox="0 0 38 10" aria-hidden="true"><path d="M0 5H30" fill="none" stroke="var(--fix)" stroke-width="1.8" stroke-dasharray="6 4"/><path d="M29 1l8 4-8 4z" fill="var(--fix)"/></svg> Draft sent back for a rewrite</span>
+  </div>
+
+  <figure>
+    <p class="hint">Scroll sideways to follow the journey. The row names stay pinned on the left.</p>
+    <div class="scroller" tabindex="0" role="group" aria-label="CreditCoach swimlane diagram, scrolls sideways">
+      <div class="board">
+        <div class="lanes"><div class="lane-head" style="height:46px">Who does it</div><div class="lane l0" style="height:149.0px"><b>You</b><i>The person asking</i><span>Your browser</span></div><div class="lane l1" style="height:277.0px"><b>Front end</b><i>What you see</i><span>Gradio pages</span></div><div class="lane l2" style="height:260.0px"><b>Back end</b><i>The conductor</i><span>FastAPI + the Python pipeline</span></div><div class="lane l3" style="height:340.5px"><b>Guardrails</b><i>The safety inspector</i><span>NVIDIA NeMo Guardrails</span></div><div class="lane l4" style="height:227.0px"><b>Cache</b><i>The sticky notes</i><span>Redis</span></div><div class="lane l5" style="height:266.5px"><b>RAG pipeline</b><i>The librarian</i><span>ChromaDB + two local models</span></div><div class="lane l6" style="height:274.5px"><b>Tools + MCP</b><i>The records clerk</i><span>MCP host and MCP server</span></div><div class="lane l7" style="height:260.0px"><b>Memory</b><i>The diary</i><span>Episodes, goal, dreams</span></div><div class="lane l8" style="height:260.0px"><b>LLMs</b><i>The writers</i><span>GPT-5 family via OpenRouter</span></div><div class="lane l9" style="height:196.5px"><b>Neon database</b><i>The filing cabinet</i><span>Postgres in the cloud</span></div></div>
+        <svg class="hld" role="img" width="2600" height="2565" viewBox="0 0 2600 2565" aria-label="Swimlane diagram of CreditCoach: a question travels from the user through the front end, back end, guardrails, cache, RAG pipeline, MCP tools, memory, language models and the Neon database, and comes back as a checked, sourced answer.">
+<defs><marker id="m-main" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-main" d="M0 0L10 5L0 10z"/></marker><marker id="m-side" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-side" d="M0 0L10 5L0 10z"/></marker><marker id="m-hit" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-hit" d="M0 0L10 5L0 10z"/></marker><marker id="m-fix" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-fix" d="M0 0L10 5L0 10z"/></marker></defs>
+<rect class="phase" x="13" y="8" width="414" height="26" rx="13"/><text class="phase-t" x="220.0" y="25.5" text-anchor="middle">Before you ask: getting in</text>
+<rect class="phase" x="445" y="8" width="630" height="26" rx="13"/><text class="phase-t" x="760.0" y="25.5" text-anchor="middle">Your question arrives</text>
+<rect class="phase" x="1093" y="8" width="630" height="26" rx="13"/><text class="phase-t" x="1408.0" y="25.5" text-anchor="middle">Gathering the facts</text>
+<rect class="phase" x="1741" y="8" width="630" height="26" rx="13"/><text class="phase-t" x="2056.0" y="25.5" text-anchor="middle">Writing and checking the answer</text>
+<rect class="phase" x="2389" y="8" width="198" height="26" rx="13"/><text class="phase-t" x="2488.0" y="25.5" text-anchor="middle">Saving and showing</text>
+<line class="sep" x1="0" x2="2600" y1="46" y2="46"/>
+<line class="sep" x1="0" x2="2600" y1="195.0" y2="195.0"/>
+<line class="sep" x1="0" x2="2600" y1="472.0" y2="472.0"/>
+<line class="sep" x1="0" x2="2600" y1="732.0" y2="732.0"/>
+<line class="sep" x1="0" x2="2600" y1="1072.5" y2="1072.5"/>
+<line class="sep" x1="0" x2="2600" y1="1299.5" y2="1299.5"/>
+<line class="sep" x1="0" x2="2600" y1="1566.0" y2="1566.0"/>
+<line class="sep" x1="0" x2="2600" y1="1840.5" y2="1840.5"/>
+<line class="sep" x1="0" x2="2600" y1="2100.5" y2="2100.5"/>
+<line class="sep" x1="0" x2="2600" y1="2360.5" y2="2360.5"/>
+<line class="sep" x1="0" x2="2600" y1="2557.0" y2="2557.0"/>
+<path class="e e-side" d="M112.0 163.8L112.0 242.8" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-side" d="M112.0 424.2L112.0 504.0" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-side" d="M112.0 700.0L112.0 2384.5" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-side" d="M197.0 602.0L220.0 602.0L220.0 333.5L243.0 333.5" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-side" d="M328.0 402.5L328.0 1652.8" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-side" d="M413.0 345.5L427.0 345.5L427.0 1958.5L413.0 1958.5" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-side" d="M328.0 2060.0L328.0 2172.0" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-side" d="M413.0 1982.5L445.0 1982.5L445.0 2458.8L413.0 2458.8" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-main" d="M544.0 163.8L544.0 267.8" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-main" d="M544.0 399.2L544.0 496.0" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-side" d="M544.0 708.0L544.0 2408.2" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-main" d="M629.0 602.0L652.0 602.0L652.0 902.2L675.0 902.2" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-main" d="M760.0 1032.0L760.0 1864.5" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-side" d="M760.0 2076.5L760.0 2415.5" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-main" d="M845.0 1970.5L868.0 1970.5L868.0 1186.0L891.0 1186.0" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-hit" d="M976.0 1097.2L976.0 732.0L2380.0 732.0L2380.0 614.0L2403.0 614.0" fill="none" marker-end="url(#m-hit)"/>
+<path class="e e-side" d="M1061.0 1198.0L1093.0 1198.0L1093.0 2230.5L1061.0 2230.5" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-main" d="M1061.0 1178.0L1075.0 1178.0L1075.0 1420.8L1107.0 1420.8" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-side" d="M1061.0 1444.8L1107.0 1444.8" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-side" d="M1192.0 1323.5L1192.0 1238.5" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-side" d="M1192.0 1542.0L1192.0 2155.5" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-main" d="M1277.0 1432.8L1300.0 1432.8L1300.0 1703.2L1323.0 1703.2" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-side" d="M1408.0 1604.5L1408.0 1230.0" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-main" d="M1493.0 1703.2L1539.0 1703.2" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-side" d="M1624.0 1816.5L1624.0 2391.8" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-main" d="M1709.0 1703.2L1732.0 1703.2L1732.0 602.0L1755.0 602.0" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-main" d="M1925.0 602.0L1939.0 602.0L1939.0 2218.5L1971.0 2218.5" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-side" d="M2056.0 2124.5L2056.0 2054.0" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-side" d="M1971.0 2244.5L1957.0 2244.5L1957.0 1840.5L1408.0 1840.5L1408.0 1802.0" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-main" d="M2141.0 2218.5L2155.0 2218.5L2155.0 890.2L2187.0 890.2" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-fix" d="M2187.0 916.2L2173.0 916.2L2173.0 2244.5L2141.0 2244.5" fill="none" marker-end="url(#m-fix)"/>
+<path class="e e-side" d="M2272.0 1048.5L2272.0 2172.0" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-main" d="M2357.0 902.2L2380.0 902.2L2380.0 1186.0L2403.0 1186.0" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-main" d="M2488.0 1275.5L2488.0 1895.5" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-side" d="M2488.0 2045.5L2488.0 2407.5" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-main" d="M2488.0 1096.5L2488.0 691.5" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-main" d="M2488.0 512.5L2488.0 448.0" fill="none" marker-end="url(#m-main)"/>
+<path class="e e-main" d="M2488.0 219.0L2488.0 171.0" fill="none" marker-end="url(#m-main)"/>
+<g class="bx l0"><rect x="27" y="77.2" width="170" height="86.5" rx="7"/>
+<text class="t" x="40" y="100.2">Open CreditCoach</text>
+<text class="b" x="40" y="120.2">You land on the welcome</text>
+<text class="b" x="40" y="134.8">page. Nobody reaches the</text>
+<text class="b" x="40" y="149.2">chat without signing in.</text>
+</g>
+<g class="bx l0"><rect x="459" y="77.2" width="170" height="86.5" rx="7"/>
+<text class="t" x="472" y="100.2">Type a question</text>
+<text class="b" x="472" y="120.2">Example: “Why did my</text>
+<text class="b" x="472" y="134.8">credit score drop 20</text>
+<text class="b" x="472" y="149.2">points this month?”</text>
+</g>
+<circle class="step" cx="459" cy="77.2" r="11.5"/><text class="step-t" x="459" y="81.2" text-anchor="middle">1</text>
+<g class="bx l0"><rect x="2403" y="70.0" width="170" height="101.0" rx="7"/>
+<text class="t" x="2416" y="93.0">Read it, ask again</text>
+<text class="b" x="2416" y="113.0">A follow-up starts again</text>
+<text class="b" x="2416" y="127.5">at step 1, and the last</text>
+<text class="b" x="2416" y="142.0">8 chat messages come</text>
+<text class="b" x="2416" y="156.5">along as context.</text>
+</g>
+<circle class="step" cx="2403" cy="70.0" r="11.5"/><text class="step-t" x="2403" y="74.0" text-anchor="middle">15</text>
+<g class="bx l1"><rect x="27" y="242.8" width="170" height="181.5" rx="7"/>
+<text class="t" x="40" y="265.8">Welcome page</text>
+<text class="b" x="40" y="285.8">Log in: User ID and</text>
+<text class="b" x="40" y="300.2">password.</text>
+<text class="b" x="40" y="318.8">Sign up: 10 required</text>
+<text class="b" x="40" y="333.2">questions, 14 optional,</text>
+<text class="b" x="40" y="347.8">a consent tick. No name,</text>
+<text class="b" x="40" y="362.2">phone or email.</text>
+<text class="b" x="40" y="380.8">A new User ID and</text>
+<text class="b" x="40" y="395.2">16-character password</text>
+<text class="b" x="40" y="409.8">are shown once.</text>
+</g>
+<g class="bx l1"><rect x="243" y="264.5" width="170" height="138.0" rx="7"/>
+<text class="t" x="256" y="287.5">Chat page opens</text>
+<text class="b" x="256" y="307.5">Tab 1 · Ask CreditCoach.</text>
+<text class="b" x="256" y="326.0">Tab 2 · My credit: score</text>
+<text class="b" x="256" y="340.5">story, a pay-down what-</text>
+<text class="b" x="256" y="355.0">if slider, what you owe.</text>
+<text class="b" x="256" y="373.5">Panel · your memory and</text>
+<text class="b" x="256" y="388.0">past conversations.</text>
+</g>
+<g class="bx l1"><rect x="459" y="267.8" width="170" height="131.5" rx="7"/>
+<text class="t" x="472" y="290.8">Chat sends it,</text>
+<text class="t" x="472" y="306.8">progress shows</text>
+<text class="b" x="472" y="326.8">Each step appears live</text>
+<text class="b" x="472" y="341.2">with a timer and</text>
+<text class="b" x="472" y="355.8">rotating credit tips, so</text>
+<text class="b" x="472" y="370.2">the 11-second wait is</text>
+<text class="b" x="472" y="384.8">never blank.</text>
+</g>
+<circle class="step" cx="459" cy="267.8" r="11.5"/><text class="step-t" x="459" y="271.8" text-anchor="middle">2</text>
+<g class="bx l1"><rect x="2403" y="219.0" width="170" height="229.0" rx="7"/>
+<text class="t" x="2416" y="242.0">The answer appears</text>
+<text class="b" x="2416" y="262.0">Badges: what the safety</text>
+<text class="b" x="2416" y="276.5">check did, and whether</text>
+<text class="b" x="2416" y="291.0">the cache was used.</text>
+<text class="b" x="2416" y="309.5">The answer, citing</text>
+<text class="b" x="2416" y="324.0">passages [1] [2] [3].</text>
+<text class="b" x="2416" y="342.5">Confidence %, sources,</text>
+<text class="b" x="2416" y="357.0">tools and model used,</text>
+<text class="b" x="2416" y="371.5">timings, and an</text>
+<text class="b" x="2416" y="386.0">expandable agent trace.</text>
+<text class="b" x="2416" y="404.5">Sign-ups also see</text>
+<text class="b" x="2416" y="419.0">questions left this</text>
+<text class="b" x="2416" y="433.5">week.</text>
+</g>
+<circle class="step" cx="2403" cy="219.0" r="11.5"/><text class="step-t" x="2403" y="223.0" text-anchor="middle">14</text>
+<g class="bx l2"><rect x="27" y="504.0" width="170" height="196.0" rx="7"/>
+<text class="t" x="40" y="527.0">Check who you are</text>
+<text class="b" x="40" y="547.0">The password is compared</text>
+<text class="b" x="40" y="561.5">with a salted PBKDF2</text>
+<text class="b" x="40" y="576.0">hash. The real password</text>
+<text class="b" x="40" y="590.5">is never stored.</text>
+<text class="b" x="40" y="609.0">8 wrong tries lock that</text>
+<text class="b" x="40" y="623.5">User ID for 15 minutes.</text>
+<text class="b" x="40" y="642.0">Success: a 30-second</text>
+<text class="b" x="40" y="656.5">one-time ticket becomes</text>
+<text class="b" x="40" y="671.0">a signed cookie that</text>
+<text class="b" x="40" y="685.5">lasts 7 days.</text>
+</g>
+<g class="bx l2"><rect x="459" y="496.0" width="170" height="212.0" rx="7"/>
+<text class="t" x="472" y="519.0">Who is asking, and</text>
+<text class="t" x="472" y="535.0">may they?</text>
+<text class="b" x="472" y="555.0">Your user ID comes from</text>
+<text class="b" x="472" y="569.5">the sign-in cookie,</text>
+<text class="b" x="472" y="584.0">never from what you</text>
+<text class="b" x="472" y="598.5">type.</text>
+<text class="b" x="472" y="617.0">Sign-ups: 5 questions a</text>
+<text class="b" x="472" y="631.5">week. The 15 team</text>
+<text class="b" x="472" y="646.0">logins: no limit.</text>
+<text class="b" x="472" y="664.5">Counted before</text>
+<text class="b" x="472" y="679.0">answering; a failed</text>
+<text class="b" x="472" y="693.5">answer hands it back.</text>
+</g>
+<circle class="step" cx="459" cy="496.0" r="11.5"/><text class="step-t" x="459" y="500.0" text-anchor="middle">3</text>
+<g class="bx l2"><rect x="1755" y="498.0" width="170" height="208.0" rx="7"/>
+<text class="t" x="1768" y="521.0">Pack the briefing</text>
+<text class="t" x="1768" y="537.0">for the AI</text>
+<text class="b" x="1768" y="557.0">System prompt: tone,</text>
+<text class="b" x="1768" y="571.5">India context (₹, scores</text>
+<text class="b" x="1768" y="586.0">300–900), six hard</text>
+<text class="b" x="1768" y="600.5">rules.</text>
+<text class="b" x="1768" y="619.0">Your profile (habits, no</text>
+<text class="b" x="1768" y="633.5">figures) · MEMORY notes</text>
+<text class="b" x="1768" y="648.0">· library passages ·</text>
+<text class="b" x="1768" y="662.5">safety notes · last 8</text>
+<text class="b" x="1768" y="677.0">chat messages · your</text>
+<text class="b" x="1768" y="691.5">question · tool results.</text>
+</g>
+<circle class="step" cx="1755" cy="498.0" r="11.5"/><text class="step-t" x="1755" y="502.0" text-anchor="middle">9</text>
+<g class="bx l2"><rect x="2403" y="512.5" width="170" height="179.0" rx="7"/>
+<text class="t" x="2416" y="535.5">Build the reply</text>
+<text class="t" x="2416" y="551.5">card</text>
+<text class="b" x="2416" y="571.5">Confidence starts at 90%</text>
+<text class="b" x="2416" y="586.0">and drops for: a tool</text>
+<text class="b" x="2416" y="600.5">with no data, an</text>
+<text class="b" x="2416" y="615.0">untraceable figure, a</text>
+<text class="b" x="2416" y="629.5">library gap, a wrong</text>
+<text class="b" x="2416" y="644.0">citation, a promise.</text>
+<text class="b" x="2416" y="662.5">Fixed checks, no extra</text>
+<text class="b" x="2416" y="677.0">AI call.</text>
+</g>
+<circle class="step" cx="2403" cy="512.5" r="11.5"/><text class="step-t" x="2403" y="516.5" text-anchor="middle">13</text>
+<g class="bx l3"><rect x="675" y="772.5" width="170" height="259.5" rx="7"/>
+<text class="t" x="688" y="795.5">Input rails: clean</text>
+<text class="t" x="688" y="811.5">the question</text>
+<text class="b" x="688" y="831.5">Mask IDs: PAN, Aadhaar,</text>
+<text class="b" x="688" y="846.0">card, account, phone,</text>
+<text class="b" x="688" y="860.5">email, OTP become “[PAN</text>
+<text class="b" x="688" y="875.0">removed]”.</text>
+<text class="b" x="688" y="893.5">Spot tricks: “ignore</text>
+<text class="b" x="688" y="908.0">your rules”, “show your</text>
+<text class="b" x="688" y="922.5">prompt”. A warning note</text>
+<text class="b" x="688" y="937.0">goes to the AI.</text>
+<text class="b" x="688" y="955.5">Spot risky products:</text>
+<text class="b" x="688" y="970.0">payday loans, loan apps,</text>
+<text class="b" x="688" y="984.5">credit-repair offers.</text>
+<text class="b" x="688" y="1003.0">Never refuses a</text>
+<text class="b" x="688" y="1017.5">question. Under 0.1 s.</text>
+</g>
+<circle class="step" cx="675" cy="772.5" r="11.5"/><text class="step-t" x="675" y="776.5" text-anchor="middle">4</text>
+<g class="bx l3"><rect x="2187" y="756.0" width="170" height="292.5" rx="7"/>
+<text class="t" x="2200" y="779.0">Output rails: the</text>
+<text class="t" x="2200" y="795.0">gate</text>
+<text class="b" x="2200" y="815.0">G1 · no promised or</text>
+<text class="b" x="2200" y="829.5">predicted score.</text>
+<text class="b" x="2200" y="848.0">G3 · every figure traces</text>
+<text class="b" x="2200" y="862.5">to this turn&#x27;s tools or</text>
+<text class="b" x="2200" y="877.0">the library.</text>
+<text class="b" x="2200" y="895.5">G2 · risky products</text>
+<text class="b" x="2200" y="910.0">flagged, safer option</text>
+<text class="b" x="2200" y="924.5">offered.</text>
+<text class="b" x="2200" y="943.0">S2, S4 · no hidden-</text>
+<text class="b" x="2200" y="957.5">prompt text, no other</text>
+<text class="b" x="2200" y="972.0">user&#x27;s data.</text>
+<text class="b" x="2200" y="990.5">Pass: shown. Fail:</text>
+<text class="b" x="2200" y="1005.0">rewritten once. Fails</text>
+<text class="b" x="2200" y="1019.5">again: a fixed safe</text>
+<text class="b" x="2200" y="1034.0">message.</text>
+</g>
+<circle class="step" cx="2187" cy="756.0" r="11.5"/><text class="step-t" x="2187" y="760.0" text-anchor="middle">11</text>
+<g class="bx l4"><rect x="891" y="1097.2" width="170" height="177.5" rx="7"/>
+<text class="t" x="904" y="1120.2">Asked this before?</text>
+<text class="b" x="904" y="1140.2">A stored answer is</text>
+<text class="b" x="904" y="1154.8">reused only if all five</text>
+<text class="b" x="904" y="1169.2">hold: same user, same</text>
+<text class="b" x="904" y="1183.8">question, same setup,</text>
+<text class="b" x="904" y="1198.2">figures unchanged, under</text>
+<text class="b" x="904" y="1212.8">1 hour old.</text>
+<text class="b" x="904" y="1231.2">“This month” vs “last</text>
+<text class="b" x="904" y="1245.8">month”, 20 vs 40, drop</text>
+<text class="b" x="904" y="1260.2">vs rise never match.</text>
+</g>
+<circle class="step" cx="891" cy="1097.2" r="11.5"/><text class="step-t" x="891" y="1101.2" text-anchor="middle">6</text>
+<g class="bx l4"><rect x="1107" y="1133.5" width="170" height="105.0" rx="7"/>
+<text class="t" x="1120" y="1156.5">Search work kept</text>
+<text class="b" x="1120" y="1176.5">The question&#x27;s vector: 7</text>
+<text class="b" x="1120" y="1191.0">days.</text>
+<text class="b" x="1120" y="1209.5">The passages found for</text>
+<text class="b" x="1120" y="1224.0">it: 24 hours.</text>
+</g>
+<g class="bx l4"><rect x="1323" y="1142.0" width="170" height="88.0" rx="7"/>
+<text class="t" x="1336" y="1165.0">Lookups kept 5</text>
+<text class="t" x="1336" y="1181.0">minutes</text>
+<text class="b" x="1336" y="1201.0">Under your own key only.</text>
+<text class="b" x="1336" y="1215.5">Errors are never kept.</text>
+</g>
+<g class="bx l4"><rect x="2403" y="1096.5" width="170" height="179.0" rx="7"/>
+<text class="t" x="2416" y="1119.5">Keep the answer 1</text>
+<text class="t" x="2416" y="1135.5">hour</text>
+<text class="b" x="2416" y="1155.5">Up to 20 answers per</text>
+<text class="b" x="2416" y="1170.0">user.</text>
+<text class="b" x="2416" y="1188.5">Not kept if: blocked, a</text>
+<text class="b" x="2416" y="1203.0">tool failed, the goal</text>
+<text class="b" x="2416" y="1217.5">changed, the backup</text>
+<text class="b" x="2416" y="1232.0">model wrote it, or the</text>
+<text class="b" x="2416" y="1246.5">question was flagged or</text>
+<text class="b" x="2416" y="1261.0">leans on the chat.</text>
+</g>
+<circle class="step" cx="2403" cy="1096.5" r="11.5"/><text class="step-t" x="2403" y="1100.5" text-anchor="middle">12</text>
+<g class="bx l5"><rect x="891" y="1336.0" width="170" height="193.5" rx="7"/>
+<text class="t" x="904" y="1359.0">The library shelf</text>
+<text class="t" x="904" y="1375.0">(built ahead)</text>
+<text class="b" x="904" y="1395.0">17 credit-education</text>
+<text class="b" x="904" y="1409.5">documents cut into 45</text>
+<text class="b" x="904" y="1424.0">chunks (max 240 tokens),</text>
+<text class="b" x="904" y="1438.5">each turned into 384</text>
+<text class="b" x="904" y="1453.0">numbers and stored in</text>
+<text class="b" x="904" y="1467.5">ChromaDB.</text>
+<text class="b" x="904" y="1486.0">18 scoring-factor, 16</text>
+<text class="b" x="904" y="1500.5">money-basics, 11</text>
+<text class="b" x="904" y="1515.0">product-risk chunks.</text>
+</g>
+<g class="bx l5"><rect x="1107" y="1323.5" width="170" height="218.5" rx="7"/>
+<text class="t" x="1120" y="1346.5">Search the library</text>
+<text class="b" x="1120" y="1366.5">“CIBIL” becomes “cibil</text>
+<text class="b" x="1120" y="1381.0">(credit)”.</text>
+<text class="b" x="1120" y="1399.5">Question becomes a</text>
+<text class="b" x="1120" y="1414.0">vector; the 12 nearest</text>
+<text class="b" x="1120" y="1428.5">chunks are taken.</text>
+<text class="b" x="1120" y="1447.0">A reranker re-reads and</text>
+<text class="b" x="1120" y="1461.5">reorders them.</text>
+<text class="b" x="1120" y="1480.0">Max 2 per document; the</text>
+<text class="b" x="1120" y="1494.5">top 3 are kept.</text>
+<text class="b" x="1120" y="1513.0">Risky product? 2 risk</text>
+<text class="b" x="1120" y="1527.5">passages are added.</text>
+</g>
+<circle class="step" cx="1107" cy="1323.5" r="11.5"/><text class="step-t" x="1107" y="1327.5" text-anchor="middle">7</text>
+<g class="bx l6"><rect x="243" y="1652.8" width="170" height="101.0" rx="7"/>
+<text class="t" x="256" y="1675.8">My credit charts</text>
+<text class="b" x="256" y="1695.8">The tab calls the same</text>
+<text class="b" x="256" y="1710.2">two tools directly, for</text>
+<text class="b" x="256" y="1724.8">you only. No AI</text>
+<text class="b" x="256" y="1739.2">involved.</text>
+</g>
+<g class="bx l6"><rect x="1323" y="1604.5" width="170" height="197.5" rx="7"/>
+<text class="t" x="1336" y="1627.5">MCP host: the</text>
+<text class="t" x="1336" y="1643.5">bouncer</text>
+<text class="b" x="1336" y="1663.5">Fetches both lookups up</text>
+<text class="b" x="1336" y="1678.0">front, so the AI always</text>
+<text class="b" x="1336" y="1692.5">has your figures.</text>
+<text class="b" x="1336" y="1711.0">Fills in your user ID</text>
+<text class="b" x="1336" y="1725.5">itself; any other ID is</text>
+<text class="b" x="1336" y="1740.0">refused (USER_MISMATCH).</text>
+<text class="b" x="1336" y="1758.5">5-second timeout, one</text>
+<text class="b" x="1336" y="1773.0">retry, every call</text>
+<text class="b" x="1336" y="1787.5">logged.</text>
+</g>
+<circle class="step" cx="1323" cy="1604.5" r="11.5"/><text class="step-t" x="1323" y="1608.5" text-anchor="middle">8</text>
+<g class="bx l6"><rect x="1539" y="1590.0" width="170" height="226.5" rx="7"/>
+<text class="t" x="1552" y="1613.0">MCP server: two</text>
+<text class="t" x="1552" y="1629.0">tools</text>
+<text class="b" x="1552" y="1649.0">get_score_history:</text>
+<text class="b" x="1552" y="1663.5">monthly scores, each</text>
+<text class="b" x="1552" y="1678.0">change and its main</text>
+<text class="b" x="1552" y="1692.5">reason.</text>
+<text class="b" x="1552" y="1711.0">get_account_summary:</text>
+<text class="b" x="1552" y="1725.5">balances, limits,</text>
+<text class="b" x="1552" y="1740.0">utilization, high-risk</text>
+<text class="b" x="1552" y="1754.5">accounts.</text>
+<text class="b" x="1552" y="1773.0">Read-only. The tools do</text>
+<text class="b" x="1552" y="1787.5">the maths; the AI only</text>
+<text class="b" x="1552" y="1802.0">copies.</text>
+</g>
+<g class="bx l7"><rect x="243" y="1881.0" width="170" height="179.0" rx="7"/>
+<text class="t" x="256" y="1904.0">Open today&#x27;s diary</text>
+<text class="t" x="256" y="1920.0">page</text>
+<text class="b" x="256" y="1940.0">A login event starts a</text>
+<text class="b" x="256" y="1954.5">new session.</text>
+<text class="b" x="256" y="1973.0">Dreaming, in the</text>
+<text class="b" x="256" y="1987.5">background: earlier</text>
+<text class="b" x="256" y="2002.0">sessions are tidied into</text>
+<text class="b" x="256" y="2016.5">facts, preferences and</text>
+<text class="b" x="256" y="2031.0">summaries. It can never</text>
+<text class="b" x="256" y="2045.5">change your goal.</text>
+</g>
+<g class="bx l7"><rect x="675" y="1864.5" width="170" height="212.0" rx="7"/>
+<text class="t" x="688" y="1887.5">Note the question,</text>
+<text class="t" x="688" y="1903.5">recall you</text>
+<text class="b" x="688" y="1923.5">The masked question is</text>
+<text class="b" x="688" y="1938.0">written down.</text>
+<text class="b" x="688" y="1956.5">MEMORY notes: your goal</text>
+<text class="b" x="688" y="1971.0">in your own words (say,</text>
+<text class="b" x="688" y="1985.5">720 by 2027 for a car),</text>
+<text class="b" x="688" y="2000.0">facts, how you like</text>
+<text class="b" x="688" y="2014.5">answers, where the last</text>
+<text class="b" x="688" y="2029.0">chat ended.</text>
+<text class="b" x="688" y="2047.5">Never scores or</text>
+<text class="b" x="688" y="2062.0">balances.</text>
+</g>
+<circle class="step" cx="675" cy="1864.5" r="11.5"/><text class="step-t" x="675" y="1868.5" text-anchor="middle">5</text>
+<g class="bx l7"><rect x="1971" y="1887.0" width="170" height="167.0" rx="7"/>
+<text class="t" x="1984" y="1910.0">Goal tools</text>
+<text class="b" x="1984" y="1930.0">save_goal and clear_goal</text>
+<text class="b" x="1984" y="1944.5">run only when you</text>
+<text class="b" x="1984" y="1959.0">clearly ask.</text>
+<text class="b" x="1984" y="1977.5">Each needs a quote you</text>
+<text class="b" x="1984" y="1992.0">really typed, or it is</text>
+<text class="b" x="1984" y="2006.5">refused.</text>
+<text class="b" x="1984" y="2025.0">“Change to 750” keeps</text>
+<text class="b" x="1984" y="2039.5">your date and purpose.</text>
+</g>
+<g class="bx l7"><rect x="2403" y="1895.5" width="170" height="150.0" rx="7"/>
+<text class="t" x="2416" y="1918.5">Write the reply in</text>
+<text class="t" x="2416" y="1934.5">the diary</text>
+<text class="b" x="2416" y="1954.5">Kept: answer, model,</text>
+<text class="b" x="2416" y="1969.0">passages, which tools</text>
+<text class="b" x="2416" y="1983.5">ran, safety result,</text>
+<text class="b" x="2416" y="1998.0">seconds.</text>
+<text class="b" x="2416" y="2016.5">Never kept: what the</text>
+<text class="b" x="2416" y="2031.0">tools returned.</text>
+</g>
+<circle class="step" cx="2403" cy="1895.5" r="11.5"/><text class="step-t" x="2403" y="1899.5" text-anchor="middle">12</text>
+<g class="bx l8"><rect x="243" y="2172.0" width="170" height="117.0" rx="7"/>
+<text class="t" x="256" y="2195.0">GPT-5 mini: the</text>
+<text class="t" x="256" y="2211.0">tidy-up</text>
+<text class="b" x="256" y="2231.0">Writes the dream.</text>
+<text class="b" x="256" y="2245.5">Anything containing ₹, %</text>
+<text class="b" x="256" y="2260.0">or a score is thrown</text>
+<text class="b" x="256" y="2274.5">out.</text>
+</g>
+<g class="bx l8"><rect x="891" y="2164.8" width="170" height="131.5" rx="7"/>
+<text class="t" x="904" y="2187.8">GPT-5 mini: same</text>
+<text class="t" x="904" y="2203.8">question?</text>
+<text class="b" x="904" y="2223.8">Asked only about a</text>
+<text class="b" x="904" y="2238.2">rewording that is at</text>
+<text class="b" x="904" y="2252.8">least 0.90 similar. Any</text>
+<text class="b" x="904" y="2267.2">doubt means no. About</text>
+<text class="b" x="904" y="2281.8">1.4 s.</text>
+</g>
+<g class="bx l8"><rect x="1107" y="2155.5" width="170" height="150.0" rx="7"/>
+<text class="t" x="1120" y="2178.5">Two small local</text>
+<text class="t" x="1120" y="2194.5">models</text>
+<text class="b" x="1120" y="2214.5">all-MiniLM-L6-v2 makes</text>
+<text class="b" x="1120" y="2229.0">the vectors; an ms-marco</text>
+<text class="b" x="1120" y="2243.5">cross-encoder reranks.</text>
+<text class="b" x="1120" y="2262.0">Both run on the app&#x27;s</text>
+<text class="b" x="1120" y="2276.5">own machine: no key, no</text>
+<text class="b" x="1120" y="2291.0">cost.</text>
+</g>
+<g class="bx l8"><rect x="1971" y="2124.5" width="170" height="212.0" rx="7"/>
+<text class="t" x="1984" y="2147.5">GPT-5 writes the</text>
+<text class="t" x="1984" y="2163.5">draft</text>
+<text class="b" x="1984" y="2183.5">Reads the briefing, then</text>
+<text class="b" x="1984" y="2198.0">answers or asks for a</text>
+<text class="b" x="1984" y="2212.5">tool: up to 4 tool</text>
+<text class="b" x="1984" y="2227.0">rounds, then it must</text>
+<text class="b" x="1984" y="2241.5">answer.</text>
+<text class="b" x="1984" y="2260.0">Low reasoning effort,</text>
+<text class="b" x="1984" y="2274.5">16,000-token cap.</text>
+<text class="b" x="1984" y="2293.0">If it fails, GPT-4o</text>
+<text class="b" x="1984" y="2307.5">steps in once and the</text>
+<text class="b" x="1984" y="2322.0">log says so.</text>
+</g>
+<circle class="step" cx="1971" cy="2124.5" r="11.5"/><text class="step-t" x="1971" y="2128.5" text-anchor="middle">10</text>
+<g class="bx l8"><rect x="2187" y="2172.0" width="170" height="117.0" rx="7"/>
+<text class="t" x="2200" y="2195.0">GPT-5 mini: wording</text>
+<text class="t" x="2200" y="2211.0">review</text>
+<text class="b" x="2200" y="2231.0">Only for projections and</text>
+<text class="b" x="2200" y="2245.5">product answers. Acted</text>
+<text class="b" x="2200" y="2260.0">on only if a second call</text>
+<text class="b" x="2200" y="2274.5">agrees. About 2 s.</text>
+</g>
+<g class="bx l9"><rect x="27" y="2384.5" width="170" height="148.5" rx="7"/>
+<text class="t" x="40" y="2407.5">Logins drawer</text>
+<text class="b" x="40" y="2427.5">app_logins: User ID and</text>
+<text class="b" x="40" y="2442.0">password hash for sign-</text>
+<text class="b" x="40" y="2456.5">ups.</text>
+<text class="b" x="40" y="2475.0">Sign-up also saves a</text>
+<text class="b" x="40" y="2489.5">practice profile: cards,</text>
+<text class="b" x="40" y="2504.0">loans, 12 months of</text>
+<text class="b" x="40" y="2518.5">scores. 50 places.</text>
+</g>
+<g class="bx l9"><rect x="243" y="2391.8" width="170" height="134.0" rx="7"/>
+<text class="t" x="256" y="2414.8">Diary drawer</text>
+<text class="b" x="256" y="2434.8">memory_events: one row</text>
+<text class="b" x="256" y="2449.2">per event.</text>
+<text class="b" x="256" y="2463.8">memory_dreams: one row</text>
+<text class="b" x="256" y="2478.2">per tidy-up.</text>
+<text class="b" x="256" y="2496.8">Append-only: edits and</text>
+<text class="b" x="256" y="2511.2">deletes are refused.</text>
+</g>
+<g class="bx l9"><rect x="459" y="2408.2" width="170" height="101.0" rx="7"/>
+<text class="t" x="472" y="2431.2">Counter drawer</text>
+<text class="b" x="472" y="2451.2">app_usage: when your</text>
+<text class="b" x="472" y="2465.8">week started and how</text>
+<text class="b" x="472" y="2480.2">many questions you have</text>
+<text class="b" x="472" y="2494.8">asked.</text>
+</g>
+<g class="bx l9"><rect x="675" y="2415.5" width="170" height="86.5" rx="7"/>
+<text class="t" x="688" y="2438.5">Diary drawer, read</text>
+<text class="b" x="688" y="2458.5">The goal is rebuilt by</text>
+<text class="b" x="688" y="2473.0">replaying every goal_set</text>
+<text class="b" x="688" y="2487.5">event in order.</text>
+</g>
+<g class="bx l9"><rect x="1539" y="2391.8" width="170" height="134.0" rx="7"/>
+<text class="t" x="1552" y="2414.8">Credit-data drawer</text>
+<text class="b" x="1552" y="2434.8">dataset_users,</text>
+<text class="b" x="1552" y="2449.2">dataset_accounts,</text>
+<text class="b" x="1552" y="2463.8">dataset_score_history.</text>
+<text class="b" x="1552" y="2482.2">15 synthetic users plus</text>
+<text class="b" x="1552" y="2496.8">sign-ups. “Now” is the</text>
+<text class="b" x="1552" y="2511.2">latest month on file.</text>
+</g>
+<g class="bx l9"><rect x="2403" y="2407.5" width="170" height="102.5" rx="7"/>
+<text class="t" x="2416" y="2430.5">Diary drawer, new</text>
+<text class="t" x="2416" y="2446.5">rows</text>
+<text class="b" x="2416" y="2466.5">Shared at once with</text>
+<text class="b" x="2416" y="2481.0">every teammate and every</text>
+<text class="b" x="2416" y="2495.5">deployment.</text>
+</g>
+<text class="el el-side" x="120.0" y="468.1">your login</text>
+<text class="el el-side" x="120.0" y="1293.6">check the hash · save a sign-up</text>
+<text class="el el-side" transform="translate(215.0 467.8) rotate(-90)" text-anchor="middle">signed in</text>
+<text class="el el-side" x="336.0" y="531.5">My credit tab</text>
+<text class="el el-side" transform="translate(422.0 829.4) rotate(-90)" text-anchor="middle">page loaded</text>
+<text class="el el-side" x="336.0" y="2120.0">summarise</text>
+<text class="el el-side" transform="translate(458.0 2220.6) rotate(-90)" text-anchor="middle">events + dreams</text>
+<text class="el el-side" x="552.0" y="1307.1">count 1 of 5</text>
+<text class="el el-main" transform="translate(647.0 752.1) rotate(-90)" text-anchor="middle">your question</text>
+<text class="el el-main" x="768.0" y="1452.2">masked question</text>
+<text class="el el-side" x="768.0" y="2250.0">goal + notes</text>
+<text class="el el-main" transform="translate(863.0 1578.2) rotate(-90)" text-anchor="middle">question + MEMORY</text>
+<text class="el el-hit" x="1256.8" y="726.0" text-anchor="middle">HIT: stored answer back in about 0.01 s, no AI call</text>
+<text class="el el-side" transform="translate(1106.0 1838.2) rotate(-90)" text-anchor="middle">reworded? ask</text>
+<text class="el el-main" transform="translate(1070.0 1299.4) rotate(-90)" text-anchor="middle">MISS</text>
+<text class="el el-side" x="1200.0" y="1285.0">check, then keep</text>
+<text class="el el-side" x="1200.0" y="1852.8">embed + rerank</text>
+<text class="el el-main" transform="translate(1295.0 1568.0) rotate(-90)" text-anchor="middle">3 passages</text>
+<text class="el el-side" x="1416.0" y="1421.2">check, then keep</text>
+<text class="el el-main" x="1516.0" y="1697.2" text-anchor="middle">MCP</text>
+<text class="el el-side" x="1632.0" y="2165.7">only your rows</text>
+<text class="el el-main" transform="translate(1727.0 1097.6) rotate(-90)" text-anchor="middle">your live figures</text>
+<text class="el el-main" transform="translate(1934.0 1329.4) rotate(-90)" text-anchor="middle">the whole briefing</text>
+<text class="el el-side" x="2064.0" y="2093.2">save a goal</text>
+<text class="el el-side" x="1726.4" y="1834.5" text-anchor="middle">needs other months? another tool call, up to 4 rounds</text>
+<text class="el el-main" transform="translate(2150.0 1554.4) rotate(-90)" text-anchor="middle">draft answer</text>
+<text class="el el-fix" transform="translate(2186.0 1580.4) rotate(-90)" text-anchor="middle">broke a rule: rewrite once</text>
+<text class="el el-side" x="2280.0" y="1614.2">second opinion</text>
+<text class="el el-main" transform="translate(2375.0 1044.1) rotate(-90)" text-anchor="middle">checked</text>
+<text class="el el-main" x="2496.0" y="1589.5">and the diary</text>
+<text class="el el-side" x="2496.0" y="2230.5">new rows</text>
+</svg>
+      </div>
+    </div>
+    <figcaption>A question passes the safety inspector twice (steps 4 and 11), picks up three kinds of facts on the way (your memory, library passages, your live figures), and only then reaches the model. A repeated question takes the amber shortcut and skips the model entirely.</figcaption>
+  </figure>
+
+  <h2>The fine print, row by row</h2>
+  <div class="print">
+
+    <section class="l3">
+      <h3>Guardrails: the nine rules</h3>
+      <div class="tbl"><table>
+        <tr><th>Rule</th><th>CreditCoach must</th><th>If broken</th></tr>
+        <tr><td>G1</td><td>Never promise or predict a score, a gain or a date</td><td>Rewrite</td></tr>
+        <tr><td>G2</td><td>Never endorse a predatory product; flag it as high-risk and offer a safer option</td><td>Rewrite</td></tr>
+        <tr><td>G3</td><td>Never invent a figure; every number comes from this turn's tools or the library</td><td>Rewrite, else block</td></tr>
+        <tr><td>G4</td><td>Never change your saved goal without your say-so</td><td>The save is refused</td></tr>
+        <tr><td>G5</td><td>Record tool failures and say so plainly, never estimate</td><td>Fallback answer</td></tr>
+        <tr><td>S1</td><td>Keep its rules when a message says to ignore them</td><td>Decline, then help</td></tr>
+        <tr><td>S2</td><td>Never reveal its hidden prompt (14 copied words in a row is a leak)</td><td>Decline</td></tr>
+        <tr><td>S3</td><td>Never keep or repeat personal identifiers</td><td>Mask</td></tr>
+        <tr><td>S4</td><td>Only ever discuss the signed-in user's data</td><td>Decline</td></tr>
+      </table></div>
+      <ul>
+        <li>Three layers enforce them: the system prompt tells the model the rules, the tools and hosts make some breaks impossible, and the guardrail layer checks every question and every answer.</li>
+        <li>Eight rails run in total: three on the question, five on the answer. Seven are fixed pattern and number checks (under 0.1 s together); one is a small-model wording review.</li>
+        <li>A rewrite adds 5 to 20 s because the main model writes again. You never see the rejected draft.</li>
+        <li>Every decision is one JSON log line, and it drives the badge above the answer: passed, high-risk product not endorsed, no guarantee given, rewritten, or blocked.</li>
+        <li>Red-teamed with 28 adversarial prompts in seven attack types plus 4 harmless controls. Final live run: 28 of 28 held, 4 of 4 controls untouched.</li>
+      </ul>
+    </section>
+
+    <section class="l4">
+      <h3>Cache: four layers in Redis</h3>
+      <div class="tbl"><table>
+        <tr><th>Layer</th><th>What is reused</th><th>Kept for</th><th>Saves</th></tr>
+        <tr><td>Embedding</td><td>A question's 384-number vector</td><td>7 days</td><td>~5 ms</td></tr>
+        <tr><td>Retrieval</td><td>The passages found for a question</td><td>24 hours</td><td>~20 ms</td></tr>
+        <tr><td>Tool</td><td>Your score-history or account lookup</td><td>5 minutes</td><td>~1.8 s</td></tr>
+        <tr><td>Answer</td><td>A finished, safety-checked answer</td><td>1 hour</td><td>~11 s + one GPT-5 call</td></tr>
+      </table></div>
+      <ul>
+        <li>"Same question" is decided in three steps: exact match; same meaningful words with similarity of at least 0.90; or a rewording that GPT-5 mini confirms.</li>
+        <li>Before a stored answer is served, your figures are read again and compared. If they changed, the stored answer is deleted and a fresh one is written.</li>
+        <li>Measured: 11.05 s uncached against 0.009 s cached (median), and $0.0122 of model cost against none.</li>
+        <li>Keys include your user ID, so one user can never read another's entries.</li>
+        <li>No Redis configured? The cache lives in the app's own memory (5,000 entries, lost on restart). Redis down? Every lookup counts as a miss and Redis is left alone for 30 s.</li>
+      </ul>
+    </section>
+
+    <section class="l5">
+      <h3>RAG pipeline: how the library is searched</h3>
+      <ul>
+        <li><b>Built ahead of time.</b> 17 Markdown documents are split at paragraphs, lists and tables into 45 chunks of at most 240 tokens. Each chunk starts with its document title and is stored in ChromaDB with its vector, category and source.</li>
+        <li><b>At question time.</b> Normalise bureau names, embed, take the 12 nearest chunks by cosine similarity, rerank with a cross-encoder, keep at most 2 per document, return the top 3.</li>
+        <li><b>Three shelves.</b> Scoring factors (18 chunks), money basics (16), product risks (11). A question about a risky product always gets 2 extra passages from the product-risk shelf.</li>
+        <li><b>Cited.</b> The model must cite passages as [1], [2], [3], and the chat lists them under every answer.</li>
+        <li><b>Not in the library?</b> The model says "I don't have specific information on that" and sticks to general principles.</li>
+      </ul>
+    </section>
+
+    <section class="l6">
+      <h3>Tools and MCP: where your numbers come from</h3>
+      <ul>
+        <li><b>MCP</b> (Model Context Protocol) is the standard plug between an AI and its tools. The host starts the CreditCoach MCP server as a small side process and talks to it over stdio.</li>
+        <li><b>get_score_history(period)</b> accepts <code>latest</code>, <code>last_N_months</code> (1 to 24), <code>YYYY-MM</code>, <code>YYYY-MM:YYYY-MM</code> or <code>all</code>.</li>
+        <li><b>get_account_summary()</b> returns every account with balance, limit and utilization, plus totals.</li>
+        <li>The model is shown the tools without a user-ID field. The host adds it from your sign-in.</li>
+        <li>Amounts are whole rupees. Ratios are decimals to three places (0.374 means 37.4%).</li>
+        <li>Error codes: <code>INVALID_PERIOD</code>, <code>PERIOD_OUT_OF_RANGE</code>, <code>UNKNOWN_USER</code>, <code>USER_MISMATCH</code>, <code>DATA_UNAVAILABLE</code> (retried once), <code>UNKNOWN_TOOL</code>, <code>INVALID_ARGUMENTS</code>. An error never carries partial data, and the model must not fill the gap.</li>
+      </ul>
+    </section>
+
+    <section class="l7">
+      <h3>Memory: three kinds, plus dreaming</h3>
+      <div class="tbl"><table>
+        <tr><th>Kind</th><th>Holds</th><th>Written by</th></tr>
+        <tr><td>Episodic</td><td>What happened, in order: sign-ins, questions, replies, goal changes, errors, sign-outs</td><td>The chat, live</td></tr>
+        <tr><td>Semantic</td><td>Your goal (target score, target date, purpose) and facts you shared</td><td>Goal: only you. Facts: dreaming</td></tr>
+        <tr><td>Procedural</td><td>How you like to be helped, such as "keep answers short"</td><td>Dreaming</td></tr>
+      </table></div>
+      <ul>
+        <li>Dreaming runs in the background at sign-in. It merges duplicates, drops stale items, summarises each session, and keeps at most 20 facts and 10 preferences.</li>
+        <li>Dreaming may only suggest a goal. The chat asks you to confirm before anything is saved.</li>
+        <li>A goal needs a score of 300 to 900, a date as YYYY-MM or YYYY, or a purpose of up to 200 characters.</li>
+        <li>Memory never holds a credit figure. Figures always come live from the tools.</li>
+      </ul>
+    </section>
+
+    <section class="l8">
+      <h3>LLMs: who writes what</h3>
+      <div class="tbl"><table>
+        <tr><th>Model</th><th>Job</th><th>Runs</th></tr>
+        <tr><td>GPT-5</td><td>Writes every fresh answer and any rewrite</td><td>Cloud, via OpenRouter</td></tr>
+        <tr><td>GPT-5 mini</td><td>Dreaming, "same question?" for the cache, the wording review</td><td>Cloud, via OpenRouter</td></tr>
+        <tr><td>GPT-4o</td><td>Backup when the main model errors or times out</td><td>Cloud, via OpenRouter</td></tr>
+        <tr><td>all-MiniLM-L6-v2</td><td>Turns text into 384-number vectors</td><td>Locally</td></tr>
+        <tr><td>ms-marco cross-encoder</td><td>Reranks the 12 candidate chunks</td><td>Locally</td></tr>
+      </table></div>
+      <ul>
+        <li>One OpenRouter key covers every cloud model. Each call is capped at 16,000 output tokens and 90 seconds.</li>
+        <li>The model may ask for tools in up to 4 rounds. On the next turn no tools are offered, so it has to answer.</li>
+        <li>An answer written by the backup model is shown but never cached.</li>
+      </ul>
+    </section>
+
+    <section class="l9">
+      <h3>Neon database: seven tables</h3>
+      <div class="tbl"><table>
+        <tr><th>Table</th><th>Holds</th></tr>
+        <tr><td><code>app_logins</code></td><td>Sign-up logins: User ID, salt and password hash</td></tr>
+        <tr><td><code>app_usage</code></td><td>Each sign-up's week start and questions asked</td></tr>
+        <tr><td><code>memory_events</code></td><td>One row per diary event, append-only</td></tr>
+        <tr><td><code>memory_dreams</code></td><td>One row per tidy-up, append-only</td></tr>
+        <tr><td><code>dataset_users</code></td><td>Profiles: 15 synthetic users plus sign-ups</td></tr>
+        <tr><td><code>dataset_accounts</code></td><td>Cards and loans with balance and limit</td></tr>
+        <tr><td><code>dataset_score_history</code></td><td>One score per user per month, with the main reason for each change</td></tr>
+      </table></div>
+      <ul>
+        <li>The 15 team logins live in a file in the code, as hashes only. Sign-up logins live in Neon.</li>
+        <li>A sign-up is written in one transaction, so two people signing up at once can't get the same number.</li>
+        <li>The reviewed source of the 15 users is a set of CSV files; Neon holds a copy, and a setup check fails if they differ.</li>
+      </ul>
+    </section>
+
+    <section class="l2">
+      <h3>When something breaks</h3>
+      <div class="tbl"><table>
+        <tr><th>If this fails</th><th>This happens</th></tr>
+        <tr><td>GPT-5</td><td>GPT-4o answers once, and the fallback is logged</td></tr>
+        <tr><td>A tool call</td><td>5 s timeout, one retry, then "I can't pull your latest data right now". No estimate</td></tr>
+        <tr><td>Redis</td><td>Lookups count as misses; the answer is built live</td></tr>
+        <tr><td>A guardrail check</td><td>Treated as a failed check (fail closed)</td></tr>
+        <tr><td>Memory</td><td>Logged; the chat keeps working</td></tr>
+        <tr><td>The whole answer</td><td>A short apology, and a sign-up's question is handed back</td></tr>
+        <tr><td>No Neon connection set</td><td>Data and memory are read from files; sign-up is switched off</td></tr>
+      </table></div>
+    </section>
+
+  </div>
+
+  <footer>All user data in CreditCoach is synthetic. Its guidance is educational, not financial advice. Amounts are in ₹ and scores use the 300–900 range of Indian credit bureaus.</footer>
+</div>
+</body>
+</html>
