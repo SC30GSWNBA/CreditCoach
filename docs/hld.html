@@ -45,10 +45,15 @@ code { font-family: var(--mono); font-size: .86em; }
 .key span { display: inline-flex; align-items: center; gap: 8px; }
 .key svg { flex: none; }
 .dot { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: .72rem; font-weight: 600; display: inline-grid; place-items: center; }
+.key .dot { flex: none; justify-content: center; line-height: 1; }
 
 figure { margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .scroller { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--bg); }
 .scroller:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.topbar { position: sticky; top: 0; z-index: 3; overflow-x: auto; overflow-y: hidden; background: var(--bg); border: 1px solid var(--rule); border-radius: 7px; }
+.topbar > div { height: 1px; }
+.topbar::-webkit-scrollbar { height: 12px; }
+.topbar::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 6px; border: 3px solid var(--bg); }
 .board { display: flex; width: max-content; }
 .lanes { position: sticky; left: 0; z-index: 2; flex: none; width: 150px; background: var(--bg); border-right: 1px solid var(--rule); }
 .lane-head { display: flex; align-items: center; padding-inline: 12px; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); box-sizing: border-box; }
@@ -118,6 +123,7 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
 
   <figure>
     <p class="hint">Scroll sideways to follow the journey. The row names stay pinned on the left.</p>
+    <div class="topbar" aria-hidden="true"><div></div></div>
     <div class="scroller" tabindex="0" role="group" aria-label="CreditCoach swimlane diagram, scrolls sideways">
       <div class="board">
         <div class="lanes"><div class="lane-head" style="height:46px">Who does it</div><div class="lane l0" style="height:149.0px"><b>You</b><i>The person asking</i><span>Your browser</span></div><div class="lane l1" style="height:277.0px"><b>Front end</b><i>What you see</i><span>Gradio pages</span></div><div class="lane l2" style="height:260.0px"><b>Back end</b><i>The conductor</i><span>FastAPI + the Python pipeline</span></div><div class="lane l3" style="height:340.5px"><b>Guardrails</b><i>The safety inspector</i><span>NVIDIA NeMo Guardrails</span></div><div class="lane l4" style="height:227.0px"><b>Cache</b><i>The sticky notes</i><span>Redis</span></div><div class="lane l5" style="height:266.5px"><b>RAG pipeline</b><i>The librarian</i><span>ChromaDB + two local models</span></div><div class="lane l6" style="height:274.5px"><b>Tools + MCP</b><i>The records clerk</i><span>MCP host and MCP server</span></div><div class="lane l7" style="height:260.0px"><b>Memory</b><i>The diary</i><span>Episodes, goal, dreams</span></div><div class="lane l8" style="height:260.0px"><b>LLMs</b><i>The writers</i><span>GPT-5 family via OpenRouter</span></div><div class="lane l9" style="height:196.5px"><b>Neon database</b><i>The filing cabinet</i><span>Postgres in the cloud</span></div></div>
@@ -763,5 +769,17 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
 
   <footer>All user data in CreditCoach is synthetic. Its guidance is educational, not financial advice. Amounts are in ₹ and scores use the 300–900 range of Indian credit bureaus.</footer>
 </div>
+<script>
+/* The top scrollbar mirrors the board's own, so you can move sideways from either end. */
+(function () {
+  var top = document.querySelector('.topbar'), main = document.querySelector('.scroller');
+  if (!top || !main) return;
+  function size() { top.firstElementChild.style.width = main.scrollWidth + 'px'; }
+  top.addEventListener('scroll', function () { main.scrollLeft = top.scrollLeft; });
+  main.addEventListener('scroll', function () { top.scrollLeft = main.scrollLeft; });
+  window.addEventListener('resize', size);
+  size();
+})();
+</script>
 </body>
 </html>
