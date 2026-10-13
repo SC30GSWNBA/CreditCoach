@@ -1,6 +1,6 @@
 # CreditCoach: Guardrail Rules
 
-*Week 3 · Tasks #19 (rules), #20 (the guardrail layer) and #21 (tests and red team) · Last updated: 2026-10-10 · Status: Draft for team review · Code: `creditcoach/guardrails/`*
+*Week 3 · Tasks #19 (rules), #20 (the guardrail layer) and #21 (tests and red team) · Last updated: 2026-10-13 (checklist ticked against the Task 17, 20, 21 and 24 evidence) · Status: Draft for team review · Code: `creditcoach/guardrails/`*
 
 This document is the checklist of rules CreditCoach must never break, each mapped to [requirements.md](../requirements.md). The guardrail layer that enforces them was built in Task #20 (§3; evidence in [task-20-guardrail-log.md](evidence/week-3/task-20-guardrail-log.md)). It was tested live and red-teamed in Task #21 (§4; evidence in [task-21-guardrail-tests.md](evidence/week-3/task-21-guardrail-tests.md)). Since Task #25 the chat UI shows the result as a badge above each answer ([screenshots](evidence/week-3/task-25-badges.md)).
 
