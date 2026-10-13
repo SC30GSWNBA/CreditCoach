@@ -35,8 +35,8 @@ Each role owns its area end to end across all four weeks: design, build, tests, 
 | Guardrails | **NVIDIA NeMo Guardrails** (Colang flows) running our own checks as actions: regex/keyword checks, a figure-provenance check against tool output, and one small-model wording review (GPT-5 mini) | Maps one-to-one to requirements.md §6 ([guardrails.md](guardrails.md)). The rails are declared in a Colang file anyone can read, and every check is our own code, so nothing is a black box. |
 | Observability | Structured JSON logs with a per-request `trace_id`, written to SQLite, plus a Gradio "Dashboard" tab | Meets §6 (tool-failure rate, graceful degradation) with no extra infrastructure. |
 | Evals | **pytest** with custom scorers over the 6 sample queries (requirements.md §3) and the 44 additional queries (§4). The 50 queries are one golden set: `creditcoach/evals/golden.py` reads the text from requirements.md and the checks from `golden_queries.json` | One command (Task #27). The golden set already drives the Week 1–2 evaluations, and `tests/test_golden_queries.py` checks every expected figure against the tools in CI. |
-| UI | **Gradio** `ChatInterface` behind a welcome page with Log in and Sign up, both mounted on one **FastAPI** app (`creditcoach/app/server.py`, with a `--share` link), with one login per user (`creditcoach/auth.py`) and self-service sign-up for new testers (`creditcoach/signup/`); a "My credit" tab draws the score story with **Plotly** (`creditcoach/app/charts.py`) | Gives the shareable link Task #11 requires. Each login sees only its own user's data, so any teammate can demo any of the 15 users. |
-| Secrets | `.env` (git-ignored) with `OPENROUTER_API_KEY` and the Neon `DATABASE_URL`, loaded by `python-dotenv`. `.env.example` is committed with a placeholder value. Chat UI passwords are committed only as salted PBKDF2 hashes (`creditcoach/app/logins.json`) and shared privately | Keys and passwords are never committed. |
+| UI | **Gradio** `ChatInterface` behind a welcome page with Log in and Sign up, both mounted on one **FastAPI** app (`creditcoach/app/server.py`, with a `--share` link), with one login per user (`creditcoach/auth.py`) and self-service sign-up for new testers (`creditcoach/signup/`); a "My credit" tab draws the score story with **Plotly** (`creditcoach/app/charts.py`) | Gives the shareable link Task #11 requires. Each login sees only its own user's data. |
+| Secrets | `.env` (git-ignored) with `OPENROUTER_API_KEY` and the Neon `DATABASE_URL`, loaded by `python-dotenv`. `.env.example` is committed with a placeholder value. Chat UI passwords are stored only as salted PBKDF2 hashes | Keys and passwords are never committed. |
 
 ### Repo layout
 
@@ -87,4 +87,4 @@ Each member checks their box and adds the date.
 
 | # | Action | Owner | Due | Status |
 |---|---|---|---|---|
-| 1 | Replace the 15 chat UI passwords with strong, random ones before sharing a link outside the team. Today's passwords follow a guessable pattern, and Gradio doesn't limit login attempts, so anyone with a share link could guess them. Decide how the new passwords are created (`scripts/set_login.py`) and shared privately. For now the link is shared only within the team. | Aman, Anil, Sudip | Before the final demo (Task 34) | ⬜ Open |
+| — | No open action items. | | | |

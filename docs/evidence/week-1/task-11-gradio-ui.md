@@ -2,7 +2,7 @@
 
 *2026-09-24 · Code: `creditcoach/app/main.py` · Run: `uv run python -m creditcoach.app --share`*
 
-> **Update (2026-09-27): per-user logins.** The single `APP_USERNAME` / `APP_PASSWORD` login has been replaced by one login per dataset user (`creditcoach_user1` → USR-001 … `creditcoach_user13` → USR-013; 15 users since 2026-09-30). Answers now use the signed-in user's own profile, score history and accounts, and never another user's. The screenshot and transcript below predate this change, so that answer says it can't see account data; a signed-in user now gets their own figures. Evidence: [task-11-user-logins.md](task-11-user-logins.md).
+> **Update (2026-09-27): per-user data.** Each person now signs in with their own login. Answers now use the signed-in user's own profile, score history and accounts, and never another user's. The screenshot and transcript below predate this change, so that answer says it can't see account data; a signed-in user now gets their own figures. Evidence: [task-11-user-logins.md](task-11-user-logins.md).
 
 **Definition of Done:** the Gradio app launches and returns a grounded explanation for a real query. **Evidence:** a screenshot of the running UI, plus the shareable link posted to the team channel.
 
@@ -30,7 +30,7 @@ INFO creditcoach.app: Public share link (expires in about 1 week, stops when thi
 
 **To share with the team** (the second half of the evidence), relaunch and post the new link:
 1. Run `uv run python -m creditcoach.app --share` and copy the "Public share link" line. Login is always on; there is nothing to set in `.env`.
-2. Post the link in the team channel. Teammates sign in as any of the 15 users with the privately shared logins (see README > Chat UI logins). Keep the process running while they try it.
+2. Post the link in the team channel. Teammates sign up on the welcome page, then log in (see README > Chat UI logins). Keep the process running while they try it.
 
 | Posted to team channel | Link | By | Date |
 |---|---|---|---|
@@ -44,7 +44,7 @@ INFO creditcoach.app: Public share link (expires in about 1 week, stops when thi
 - **Fast first answer:** the embedding and reranker models load at startup (about 14 s) instead of on the first question.
 - **Graceful failure:** if the model call fails, the user sees a plain apology instead of a stack trace, and the error is logged.
 - **Privacy:** Gradio's usage analytics are turned off (0 telemetry requests in the startup log).
-- **Security:** login is always required, with one login per dataset user; each login sees only its own user's data (updated 2026-09-27, see the note at the top).
+- **Security:** login is always required; each login sees only its own user's data (updated 2026-09-27, see the note at the top).
 
 ## Issues found and fixed while building
 
