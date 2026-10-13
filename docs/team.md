@@ -1,6 +1,6 @@
 # CreditCoach: Team, Roles & Tech Stack
 
-*Week 1 · Task #1 (Kickoff) · Last updated: 2026-10-08 (memory and dataset in Neon Postgres)*
+*Week 1 · Task #1 (Kickoff) · Last updated: 2026-10-13 (stack as built through Task #25, plus sign-up)*
 
 ## 1. Roles
 

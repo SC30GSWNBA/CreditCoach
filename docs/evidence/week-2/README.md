@@ -30,6 +30,7 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 - Live progress while waiting (Task 18): each step with a timer, plus rotating credit tips during the slowest step, because an answer takes about 18 s with GPT-5 (measured in Task 18).
 - All-50-query evaluation (2026-10-02): see below.
 - My credit tab (2026-10-06, `feature/credit-charts`): a second tab in the chat UI charts the signed-in user's own data from the Task 13–14 tools, with no model call: snapshot tiles, the score story (score line, monthly change bars and the reasons behind them), card utilization with a what-if pay-down slider (the tasks.md "what-if simulator" stretch goal; utilization only, never a score estimate), and every account by balance with instant loan apps flagged. "Ask in chat" turns a month into a chat question. Code: [charts.py](../../../creditcoach/app/charts.py); 31 pytest tests in `tests/test_charts.py`, including data isolation and the no-credit-file state. No screenshot yet.
+- Confidence percentage (2026-10-10): each chat answer ends with a confidence percentage and the reason for it, worked out by fixed checks on the finished answer with no extra model call. It shows how well the answer is backed by the user's data and the library, not whether it is right. Code: [confidence.py](../../../creditcoach/app/confidence.py); 12 pytest tests in `tests/test_confidence.py`.
 
 ## Evaluation on all 50 requirements.md queries (2026-10-02)
 

@@ -1,6 +1,6 @@
 # CreditCoach: Tool Specs
 
-*Week 2 · Task #12 · Last updated: 2026-09-30 · Status: Draft for team review*
+*Week 2 · Task #12 · Last updated: 2026-10-13 · Status: Draft for team review*
 
 This spec defines the two tools the agent calls for a user's credit data:
 
@@ -402,7 +402,7 @@ Beyond T1–T15, every figure that an expected answer in requirements.md §3 and
 
 1. **Rounding.** The tools return ratios to 3 places, so ACC-01 is 78.7%. requirements.md §4 #15 says "79%" and §4 #18 says "9%" for USR-013's cards (8.9% at 3 places). Both are roundings of the tool's figure, but the Task #27 scorers should accept either or check against the tool output. Proposal: keep 3 places, and update the scorers rather than requirements.md. *Done in the golden set (2026-10-02): each figure check accepts both roundings, for example "79%" or "78.7%".*
 2. **Timeout.** 5 seconds is a starting value. Local CSV reads take milliseconds, so the timeout only matters when Task #32 simulates a slow API.
-3. **More tools.** Profile fields from `users.csv` (such as `pays_card` and `goals_2yr`) are not part of either tool. They stay in the prompt context through `user_data.py` until Task #16 decides whether stored goals replace `goals_2yr`.
+3. **More tools.** Profile fields from `users.csv` (such as `pays_card` and `goals_2yr`) are not part of either tool. They stay in the prompt context through `user_data.py`. Tasks #16–17 added the stored goal alongside `goals_2yr` without replacing it; whether it should replace it is still open.
 
 ## 7. Sign-off
 
