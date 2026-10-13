@@ -6,13 +6,15 @@ All guidance is educational, not financial advice. All user data in this repo is
 
 **Status:** 
 
-Week 1 (foundations, RAG and chat UI) is built, with a separate login for each of the 15 dataset users. See the [Week 1 tracker](docs/evidence/week-1/README.md). 
+Week 1 (foundations, RAG and chat UI) is built. See the [Week 1 tracker](docs/evidence/week-1/README.md). 
 
 Week 2 (account tools through MCP, goal memory and the agent trace) is built, with Aman's and Anil's sign-off still to come: the tool specs (Task 12) are in [docs/tools.md](docs/tools.md), the score-history and account-summary tools (Tasks 13–14) are built and tested, and since Task 15 the chat reads each user's scores and accounts live through them over MCP. Since Tasks 16–17 every conversation is saved to that user's memory, which is shared through git, and answers recall the user's goal and earlier conversations (see [Memory](#memory)). Since Task 18 the chat shows live progress while an answer is being built, then an expandable agent trace of every tool call and the recalled goal. Beyond the task plan, a **My credit** tab charts the signed-in user's score story, card utilization (with a what-if pay-down slider, the tasks.md stretch goal) and what they owe, straight from the same two tools. Each chat answer also ends with a **confidence percentage** (with the reason), worked out by fixed checks on the finished answer with no extra model call; it shows how well the answer is backed by the user's data and the library, not whether it is right. The [Week 2 tracker](docs/evidence/week-2/README.md) shows each task's status. 
 
-Week 3 has started: the guardrail rules are written down (Task 19, [docs/guardrails.md](docs/guardrails.md)), since Task 20 every question and every answer passes through a guardrail layer built with NVIDIA NeMo Guardrails, Task 21 tested it live and red-teamed it, since Task 22 repeated lookups and repeated questions are served from a Redis cache, Task 23 measured it (median 11.05 s uncached against 0.009 s cached), since Task 25 the chat shows a guardrail badge and a cache badge above every answer, and all 6 sample queries pass end to end against the expected-answers table ([Task 24](docs/evidence/week-3/task-24-sample-queries.md)) (see [Caching](#caching), [Guardrails](#guardrails) and the [Week 3 tracker](docs/evidence/week-3/README.md)). Every Week 1–2 evaluation, and the Task 20 guardrail run, uses all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
+Week 3 has started: the guardrail rules are written down (Task 19, [docs/guardrails.md](docs/guardrails.md)), since Task 20 every question and every answer passes through a guardrail layer built with NVIDIA NeMo Guardrails, Task 21 tested it live and red-teamed it, since Task 22 repeated lookups and repeated questions are served from a Redis cache, Task 23 measured it (median 11.05 s uncached against 0.009 s cached), since Task 25 the chat shows a guardrail badge and a cache badge above every answer, and all 6 sample queries pass end to end against the expected-answers table ([Task 24](docs/evidence/week-3/task-24-sample-queries.md)) (see [Caching](#caching), [Guardrails](#guardrails) and the [Week 3 tracker](docs/evidence/week-3/README.md)). 
 
-After Week 3, beyond the task plan: the app opens on a welcome page with **Log in** and **Sign up**, so new people can test CreditCoach without borrowing one of the 15 dataset users. Signing up answers the interview questions and creates a practice profile and a login in Neon; a signed-up user may ask 5 questions a week, and the 15 team logins and the committed dataset are unchanged (see [Sign-up](#sign-up) and the [User Guide](docs/user-guide.md)). The signed-in pages were restyled to match the welcome page.
+Every Week 1–2 evaluation, and the Task 20 guardrail run, uses all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
+
+After Week 3, beyond the task plan: the app opens on a welcome page with **Log in** and **Sign up**, so new people can test CreditCoach with a practice profile of their own. Signing up answers the interview questions and creates a practice profile and a login in Neon; a signed-up user may ask 5 questions a week, and the committed dataset is unchanged (see [Sign-up](#sign-up) and the [User Guide](docs/user-guide.md)). The signed-in pages were restyled to match the welcome page.
 
 ## Quickstart (fresh clone)
 
@@ -42,7 +44,7 @@ uv run python -m creditcoach.rag.retrieve "why did my credit score drop 20 point
 # 7. Ask CreditCoach (retrieval + GPT-5; needs your OpenRouter key). Add --user USR-001 to answer from that user's data via the MCP tools
 uv run python -m creditcoach.agent.pipeline "why did my credit score drop 20 points?"
 
-# 8. Open the chat UI at http://127.0.0.1:7860 (add --share for a public link) and log in as one of the 15 users, or sign up as a new one
+# 8. Open the chat UI at http://127.0.0.1:7860 (add --share for a public link) then sign up and log in
 uv run python -m creditcoach.app
 
 # 9. Run the tests (no API key needed; CI runs them on every pull request)
@@ -63,7 +65,7 @@ CreditCoach/
     config.py         #   secrets, model IDs, paths (model IDs live here, not in code)
     check.py          #   setup check for fresh clones
     llm.py            #   OpenRouter client with fallback model
-    auth.py           #   per-user chat UI logins: the team's (password hashes in app/logins.json) and sign-ups' (Neon)
+    auth.py           #   per-user chat UI logins: checks a User ID and password against its salted hash
     signup/           #   self-service sign-up: questions.py (the form), generate.py (answers -> profile, accounts, 12-month
                       #   score history, password), store.py (writes the user and login to Neon), mailer.py (optional email)
     user_data.py      #   one signed-in user's profile, scores and accounts from data/, nobody else's
@@ -79,7 +81,7 @@ CreditCoach/
     dataset.py        #   reads users, accounts and score history from Neon or data/ (same DataFrames either way)
     tools/            #   data tools from docs/tools.md: score_history.py (Task 13), account_summary.py (Task 14); common.py (errors, data);
                       #   server.py: MCP server exposing both (Task 15): python -m creditcoach.tools.server
-    app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share]; logins.json;
+    app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share];
                       #   trace.py: live progress and the expandable agent trace (Task 18)
                       #   charts.py: the "My credit" tab: score story, card utilization what-if, what you owe
                       #   confidence.py: the confidence percentage under each answer (fixed checks, no model call)
@@ -115,7 +117,7 @@ CreditCoach/
     task08_ingestion_report.py # rebuild the vector store and regenerate the Task 8 evidence
     task09_retrieval_eval.py # retrieval test and strategy comparison, incl. all 50 queries (Task 9)
     task10_prototype_run.py  # prototype round trip with grounding checks (Task 10; --all: 50 queries)
-    task11_login_isolation.py # per-user logins and data-isolation checks (Task 11 follow-up)
+    task11_login_isolation.py # per-user data-isolation checks (Task 11 follow-up)
     task13_score_history_test.py # score-history tool test log (Task 13)
     task14_account_summary_test.py # account-summary tool test log (Task 14)
     task15_mcp_round_trip.py # live MCP round trip trace (Task 15; --all: 50 queries; paid model calls)
@@ -131,7 +133,6 @@ CreditCoach/
     memory_import.py         # copy file memory (the memory/ archive) into Neon; safe to re-run
     data_import.py           # load data/*.csv into Neon (replaces the copy there); run after rebuilding the dataset
     memory_sync.py           # files backend only: share memory files as a PR (push), or pull everyone's (pull)
-    set_login.py             # add or change a chat UI login
   user_interviews/    # 14 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
   docs/               # team.md, hld.html, 6-pager.md, pr-faq.md, user-guide.md, tools.md, memory.md, guardrails.md, caching.md, research/, evidence/week-1/ to week-3/
@@ -252,23 +253,16 @@ All settings are read from `.env` (git-ignored). See [.env.example](.env.example
 | `RERANKER_MODEL` | No | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Local cross-encoder that reorders retrieved chunks |
 | `CREDITCOACH_SIGNUP_MAX` | No | `50` | How many people may sign up in total; sign-up closes when it is reached |
 | `CREDITCOACH_INVITE_CODE` | No | (none) | When set, the sign-up form asks for this code and refuses anyone without it |
-| `CREDITCOACH_WEEKLY_QUESTIONS` | No | `5` | Questions a signed-up user may ask per week (the team logins have no limit) |
+| `CREDITCOACH_WEEKLY_QUESTIONS` | No | `5` | Questions a signed-up user may ask per week |
 | `CREDITCOACH_SESSION_SECRET` | No | random each start | Signs the sign-in cookie. Set it to keep people signed in across restarts. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | No | (none); port `587` | Mail account for the "email me my login" backup at sign-up. Without it the option isn't shown. |
 
 ## Chat UI logins
 
-The app opens on a welcome page with two tabs, **Log in** and **Sign up**, locally and on a share link. Nobody reaches the chat without logging in. There is one login per user, and each answer uses **only that user's** profile, score history and accounts:
+The app opens on a welcome page with two tabs, **Log in** and **Sign up**, locally and on a share link. Nobody reaches the chat without logging in, and the only way to get a login is to [sign up](#sign-up). There is one login per user, and each answer uses **only that user's** profile, score history and accounts.
 
-| Username | Signs in as |
-|---|---|
-| `creditcoach_user1` | USR-001 (Aravind, the requirements.md persona) |
-| `creditcoach_user2` … `creditcoach_user15` | USR-002 … USR-015, in order (see `data/users.csv`) |
-| `creditcoach_user16` onwards | People who signed up in the app (USR-016 onwards), see [Sign-up](#sign-up) |
-
-- **Passwords** follow the pattern the team agreed and are shared privately, never in the repo. `creditcoach/app/logins.json` holds only a salted PBKDF2-SHA256 hash of each, so every clone accepts the same logins with no setup.
+- **Passwords** are generated at sign-up and shown once. Only a salted PBKDF2-SHA256 hash of each is stored, never the password.
 - **One user can't see another's data.** The user comes from the signed-in session, never from the message. Only that user's rows are loaded, and the system prompt tells the model to decline questions about anyone else. Checked in [task-11-user-logins.md](docs/evidence/week-1/task-11-user-logins.md).
-- **Change a password or add a user:** `uv run python scripts/set_login.py USR-005 creditcoach_user5`, which asks for the password at a hidden prompt. Commit `logins.json` afterwards.
 - **Sign out** with the **Log out** button at the top of the chat. It returns to the welcome page.
 
 ### Sign-up
@@ -281,9 +275,9 @@ Someone without a login creates one on the **Sign up** tab. It needs Neon (`DATA
 4. **Pop-up.** The User ID and password are shown once, with copy buttons. If a mail account is configured (`SMTP_*`), the person can email them to themselves; the address is used for that one message and not stored. A lost password can't be recovered or reset: the person signs up again as a new user.
 5. **Log in.** After confirming they saved the details, the person lands on the Log in tab with the User ID filled in.
 
-- **5 questions a week.** A signed-up user may ask 5 questions per week (`CREDITCOACH_WEEKLY_QUESTIONS`). The week starts with their first question and resets 7 days later; each answer ends with how many are left, and a sixth question gets the date the next ones unlock. A failed answer isn't counted; an answer from the cache is. The 15 team logins have no limit. Counts are in Neon's `app_usage`.
+- **5 questions a week.** A signed-up user may ask 5 questions per week (`CREDITCOACH_WEEKLY_QUESTIONS`). The week starts with their first question and resets 7 days later; each answer ends with how many are left, and a sixth question gets the date the next ones unlock. A failed answer isn't counted; an answer from the cache is. Counts are in Neon's `app_usage`.
 - **Keeping cost bounded.** Anyone with the link can sign up, so sign-up closes after `CREDITCOACH_SIGNUP_MAX` people (default 50), and `CREDITCOACH_INVITE_CODE` restricts it to people you gave the code to.
-- **The CSVs are untouched.** Sign-up users exist only in Neon. `scripts/data_import.py` keeps them when it reloads the CSVs, and the "Neon matches data/*.csv" check ignores them. `logins.json` still holds only the 15 team logins.
+- **The CSVs are untouched.** Sign-up users exist only in Neon. `scripts/data_import.py` keeps them when it reloads the CSVs, and the "Neon matches data/*.csv" check ignores them.
 - **Remove a sign-up user** in the Neon SQL editor: delete their rows from `app_usage`, `app_logins`, `dataset_score_history`, `dataset_accounts` and `dataset_users`, in that order. Remove the newest user first, since User IDs are numbered by how many users exist.
 
 ## Branch Strategy
@@ -348,8 +342,8 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 | `[FAIL] Python >= 3.11` | Run `uv python install 3.12`, then `uv sync` again. Always run code with `uv run ...`, not a system `python`. |
 | `[FAIL] import ...` | Run `uv sync` again from the repo root. |
 | `[INFO] Vector store not built yet` | Run `uv run python -m creditcoach.rag.ingest`. |
-| `[FAIL] Chat UI logins` or "No logins found" | Run `git pull`: `creditcoach/app/logins.json` must be present, with one login for each of the 15 dataset users. Every signed-up user in Neon needs a row in `app_logins` too. |
-| Login page says the credentials are wrong | Team usernames are `creditcoach_user1` to `creditcoach_user15`, and passwords are case-sensitive. Ask the team for the current passwords. A signed-up user's password was shown once at sign-up and can't be recovered: sign up again. |
+| `[FAIL] Chat UI logins` or "No logins found" | Run `git pull` so the checkout is complete. Every signed-up user in Neon needs a row in `app_logins`. |
+| Login page says the credentials are wrong | Passwords are case-sensitive: paste the password instead of typing it. It was shown once at sign-up and can't be recovered, so if it is lost, sign up again. |
 | Sign up tab says sign-up isn't available | The app isn't reading from Neon. Set `DATABASE_URL` in `.env` and restart. |
 | "Too many attempts for this User ID" | Eight wrong passwords in 15 minutes lock that User ID for the rest of the 15 minutes. |
 | `git pull` says "untracked working tree files would be overwritten" for files in `memory/` | Your shared sessions came back from GitHub. Run `uv run python scripts/memory_sync.py pull`, which removes only the identical local copies and then pulls. |

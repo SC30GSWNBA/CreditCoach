@@ -1,8 +1,8 @@
-# Task 11 Follow-up: Per-User Logins and Data Isolation
+# Task 11 Follow-up: Per-User Data Isolation
 
 *2026-10-02 · Code: `creditcoach/auth.py`, `creditcoach/user_data.py`, `creditcoach/app/main.py` · Script: `uv run python scripts/task11_login_isolation.py`*
 
-**What changed:** every visitor signs in as one of the 15 dataset users (`creditcoach_user1` → USR-001 … `creditcoach_user15` → USR-015), and answers use that user's own profile, score history and accounts from `data/`. Passwords are stored only as salted PBKDF2-SHA256 hashes in `creditcoach/app/logins.json`, so every clone can check logins but no password is in git.
+**What changed:** every visitor signs in, and answers use the signed-in user's own profile, score history and accounts. Passwords are stored only as salted PBKDF2-SHA256 hashes, never as the password itself. The checks below cover the 15 users in `data/`.
 
 **How one user is kept out of another's data:**
 1. The user id comes only from the signed-in Gradio session (`request.username` → `auth.user_id_for`), never from the message text.
@@ -12,16 +12,7 @@
 
 **Result: ✅ PASS** (offline checks; live checks not run)
 
-## 1. Logins
-
-| Check | Result | Detail |
-|---|---|---|
-| One login per dataset user | ✅ | 15 logins, 15 distinct users, 15 in data/ |
-| creditcoach_userN signs in as USR-00N | ✅ | all 15 |
-| No plain-text password in logins.json | ✅ | only salt + PBKDF2-SHA256 hash per login |
-| Empty, wrong and unknown logins refused | ✅ | 31 attempts, all refused |
-
-## 2. Everything the model receives holds only the user's own data
+## 1. Everything the model receives holds only the user's own data
 
 The context from `pipeline.build_context`, exactly as sent to the model, plus the output of both tools for that user (`get_score_history(..., "all")` and `get_account_summary`). *Other users' data found* searches for every other user's id, account ids, first name and balance/limit amounts.
 
@@ -45,10 +36,10 @@ The context from `pipeline.build_context`, exactly as sent to the model, plus th
 
 USR-004 and USR-007 have no credit file, so both tools say so and the model is told not to state or estimate a score.
 
-## 3. The session, not the message, decides the user
+## 2. The session, not the message, decides the user
 
 | Check | Result | Detail |
 |---|---|---|
-| Signed-in user decides whose data is used | ✅ | creditcoach_user1 -> ['USR-001'] |
+| Signed-in user decides whose data is used | ✅ | USR-001's session -> ['USR-001'] |
 | Message claiming another user is ignored | ✅ | still ['USR-001'] |
 | Unknown or missing session gets no data | ✅ | pipeline calls: 2; reply: 'Please sign in again to continue.' |
