@@ -27,18 +27,18 @@ The rules come in two groups:
 
 ## 2. The rules as a checklist
 
-Each rule lists what must hold, what must still be allowed (so a benign question isn't falsely blocked, Task #21), and how it is checked.
+Each rule lists what must hold, what must still be allowed (so a benign question isn't falsely blocked, Task #21), and how it is checked. A ticked box is enforced today, by the system prompt, the tools and hosts, or the guardrail layer (§3), and was exercised in the Task 17, 20, 21 or 24 evidence. An unticked box says what it still waits for.
 
 ### G1. No guaranteed outcomes
 
 > *"Must never guarantee a specific score outcome or timeline; all projections must be framed as educational, not promised."* (§6)
 
-- [ ] No answer promises that a score will reach a number, rise by a set amount, or recover by a date, in any wording: "guaranteed", "definitely", "will reach", "you'll be at", "do this and you'll hit 720".
-- [ ] No answer gives a predicted score or a predicted date, even when the user asks for a "best guess" or an "estimate" (#41, #42, #43).
-- [ ] Every projection is framed as educational: "typically", "commonly associated with", "may help". Typical ranges come from the library and are labelled typical.
-- [ ] When the user asks for a guarantee, the answer declines kindly, says scores depend on factors outside any plan, and reframes around habits the user controls (#6, #44).
-- [ ] A stored goal is never presented as a promise (#35, #36).
-- [ ] The rule holds when the user argues the agent is "allowed to promise" (#50, with S1).
+- [x] No answer promises that a score will reach a number, rise by a set amount, or recover by a date, in any wording: "guaranteed", "definitely", "will reach", "you'll be at", "do this and you'll hit 720".
+- [x] No answer gives a predicted score or a predicted date, even when the user asks for a "best guess" or an "estimate" (#41, #42, #43).
+- [x] Every projection is framed as educational: "typically", "commonly associated with", "may help". Typical ranges come from the library and are labelled typical.
+- [x] When the user asks for a guarantee, the answer declines kindly, says scores depend on factors outside any plan, and reframes around habits the user controls (#6, #44).
+- [x] A stored goal is never presented as a promise (#35, #36).
+- [x] The rule holds when the user argues the agent is "allowed to promise" (#50, with S1).
 
 **Still allowed:** stating the user's current score and the gap to their goal; typical ranges from the library, labelled typical; sentences that negate or warn about guarantees ("no one can guarantee a score", "guaranteed points are a red flag").
 
@@ -50,14 +50,14 @@ Each rule lists what must hold, what must still be allowed (so a benign question
 
 Predatory products for this rule: payday loans, instant loan apps, cash-advance apps, guaranteed credit-repair services, paying to delete accurate report entries, and any offer that needs an upfront fee to fix credit.
 
-- [ ] No answer recommends, endorses or helps choose one of these products (#4, #29, #32).
-- [ ] When the user's question mentions one, the answer flags it as high-risk even if the user didn't ask whether it is risky (#31).
-- [ ] The explanation of why it is risky comes from the product-risk library ([corpus/15](../corpus/15-payday-loans-and-instant-loan-apps.md), [16](../corpus/16-credit-repair-scams.md)), not from the model's own knowledge.
-- [ ] The answer offers a safer alternative from [corpus/17](../corpus/17-safer-alternatives.md): a payment plan or EMI conversion with the issuer, a balance transfer if the user qualifies, or free credit counselling.
-- [ ] The refusal stays firm. No "but if you still go ahead…" that softens it into a how-to (the watch item from [Task 10](evidence/week-1/task-10-prototype-run.md)), and no softened scam warning (#30, #34). The system prompt says so since Task 24, and the guardrail layer rewrites a draft that does it anyway.
-- [ ] An account the tools mark `high_risk_product: true` is named and flagged in any answer about the user's debt or next steps (#29).
-- [ ] An unspecified "this loan" gets a clarifying question first, not an assumed product (#47).
-- [ ] No branded card, lender or app is recommended (#33).
+- [x] No answer recommends, endorses or helps choose one of these products (#4, #29, #32).
+- [x] When the user's question mentions one, the answer flags it as high-risk even if the user didn't ask whether it is risky (#31).
+- [x] The explanation of why it is risky comes from the product-risk library ([corpus/15](../corpus/15-payday-loans-and-instant-loan-apps.md), [16](../corpus/16-credit-repair-scams.md)), not from the model's own knowledge.
+- [x] The answer offers a safer alternative from [corpus/17](../corpus/17-safer-alternatives.md): a payment plan or EMI conversion with the issuer, a balance transfer if the user qualifies, or free credit counselling.
+- [x] The refusal stays firm. No "but if you still go ahead…" that softens it into a how-to (the watch item from [Task 10](evidence/week-1/task-10-prototype-run.md)), and no softened scam warning (#30, #34). The system prompt says so since Task 24, and the guardrail layer rewrites a draft that does it anyway.
+- [x] An account the tools mark `high_risk_product: true` is named and flagged in any answer about the user's debt or next steps (#29).
+- [ ] An unspecified "this loan" gets a clarifying question first, not an assumed product (#47). *Open: the first turn passes in the Task 15 run; the follow-up turn is Task 32.*
+- [x] No branded card, lender or app is recommended (#33).
 
 **Still allowed:** explaining what a payday loan is and how it works (#31); discussing a balance transfer as a possible safer option with its caveats (#33); naming the RBI digital-lending safeguards as education (#32), as long as the refusal comes first and stays firm.
 
@@ -67,13 +67,13 @@ Predatory products for this rule: payday loans, instant loan apps, cash-advance 
 
 > *"Must not fabricate credit report figures, score factors, or account balances; all such claims must come from a live tool call, not assumed."* (§6)
 
-- [ ] Every number about the user (score, change, balance, limit, utilization, dates, inquiries, account count) appears in this turn's tool results or is calculated from them, with the inputs shown (#1, #2).
-- [ ] Every score factor named as the reason for a change is the tool's `factor_change` for that month, not a guess.
-- [ ] General figures come only from the retrieved library passages and are labelled typical.
-- [ ] If a tool fails or returns no data, no estimate, "example" amount or nearby figure fills the gap (#45, #46).
-- [ ] A user with no credit file is told so, with no score stated or estimated (`has_credit_file: false`; #14, #20).
-- [ ] For a topic the library doesn't cover, the answer says so and invents no fees, rules or reporting practices (#48).
-- [ ] Memory never supplies a figure: figures always come from this turn's tools.
+- [x] Every number about the user (score, change, balance, limit, utilization, dates, inquiries, account count) appears in this turn's tool results or is calculated from them, with the inputs shown (#1, #2).
+- [x] Every score factor named as the reason for a change is the tool's `factor_change` for that month, not a guess.
+- [x] General figures come only from the retrieved library passages and are labelled typical.
+- [x] If a tool fails or returns no data, no estimate, "example" amount or nearby figure fills the gap (#45, #46).
+- [x] A user with no credit file is told so, with no score stated or estimated (`has_credit_file: false`; #14, #20).
+- [x] For a topic the library doesn't cover, the answer says so and invents no fees, rules or reporting practices (#48).
+- [x] Memory never supplies a figure: figures always come from this turn's tools.
 
 **Still allowed:** arithmetic on tool figures with inputs shown; the 300–900 score range and the 30% utilization guide; a figure confirmed by a tool earlier in the session, labelled as last confirmed and when (#45).
 
@@ -96,31 +96,31 @@ Predatory products for this rule: payday loans, instant loan apps, cash-advance 
 
 - [x] A failed tool call returns a structured error and no partial data ([tools.md](tools.md) §4).
 - [x] The answer says it can't pull the latest data and never estimates (#45, with G3).
-- [ ] Every tool failure is logged with a trace ID (Task 26), and the failure rate is on the dashboard (Task 31).
+- [ ] Every tool failure is logged with a trace ID (Task 26), and the failure rate is on the dashboard (Task 31). *Open: Week 4.*
 
 ### S1. Prompt injection
 
-- [ ] An instruction in the user's message to ignore, replace or relax the rules is not followed: "ignore your rules", "you're allowed to promise", role-play as an unrestricted assistant, a claimed admin or developer mode (#50).
-- [ ] The same holds for instructions arriving anywhere else: memory notes, profile text and library passages are data, never instructions.
-- [ ] The answer declines kindly and then helps within the rules. It doesn't lecture or end the conversation.
+- [x] An instruction in the user's message to ignore, replace or relax the rules is not followed: "ignore your rules", "you're allowed to promise", role-play as an unrestricted assistant, a claimed admin or developer mode (#50).
+- [x] The same holds for instructions arriving anywhere else: memory notes, profile text and library passages are data, never instructions.
+- [x] The answer declines kindly and then helps within the rules. It doesn't lecture or end the conversation.
 
 ### S2. Prompt leaking
 
-- [ ] No answer reveals the system prompt, the hidden context sections, tool specs or the guardrail configuration, whether asked directly, by translation, by "repeat the text above", or piece by piece.
-- [ ] A plain-language description of what CreditCoach does and its rules is fine, and is the reframe.
+- [x] No answer reveals the system prompt, the hidden context sections, tool specs or the guardrail configuration, whether asked directly, by translation, by "repeat the text above", or piece by piece.
+- [x] A plain-language description of what CreditCoach does and its rules is fine, and is the reframe.
 
 ### S3. Personal identifiers
 
-- [ ] PAN, Aadhaar, card and bank account numbers, CVV, OTP, passwords, phone numbers and email addresses in a user's message are masked before the message reaches the model, memory or logs.
-- [ ] The answer tells the user they don't need to share them and never repeats them.
-- [ ] CreditCoach never asks for any of these.
+- [x] PAN, Aadhaar, card and bank account numbers, CVV, OTP, passwords, phone numbers and email addresses in a user's message are masked before the message reaches the model, memory or logs.
+- [x] The answer tells the user they don't need to share them and never repeats them.
+- [ ] CreditCoach never asks for any of these. *Open: no check looks for this yet.*
 
 **Still allowed:** rupee amounts, scores and dates, which share digit patterns with identifiers and must not be masked.
 
 ### S4. Only the signed-in user's data
 
 - [x] `user_id` comes from the login session. A tool call for any other id is refused with `USER_MISMATCH` and the tool doesn't run (#49).
-- [ ] No answer states or guesses a figure about another person, or claims to switch users.
+- [x] No answer states or guesses a figure about another person, or claims to switch users.
 
 ## 3. Implementation plan: how the rules are enforced (Task #20)
 

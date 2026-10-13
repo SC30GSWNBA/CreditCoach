@@ -23,4 +23,10 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 | Visible speed-up with a cache-hit badge on a repeated factor-lookup query | ✅ | "Why did my credit score drop 20 points this month?" asked twice: 12.3 s, then 0.1 s with "⚡ Cache hit · saved 12 s" ([Task 25](task-25-badges.md), screenshots 3 and 4); measured in [Task 23](task-23-cache-latency.md) |
 | Team sign-off | ⬜ Aman, Anil and Sudip | Sign-off column above |
 
+**Additional (outside the task plan):**
+- Red team (Task 21): the tasks.md "red-team your own agent" stretch goal, with 28 adversarial prompts, three live runs and the fixes each led to ([task-21-red-team.md](task-21-red-team.md)).
+- Token and cost tracking (Task 23): `llm.track()` records each call's model, tokens and cost, which is where the cost-per-answer figures come from.
+- Sign-up (2026-10-11): the app opens on a welcome page with Log in and Sign up. Signing up answers the interview questions and creates a practice profile and a login in Neon, with 5 questions a week for each person. Code: [creditcoach/signup/](../../../creditcoach/signup/), [welcome.py](../../../creditcoach/app/welcome.py), [limits.py](../../../creditcoach/app/limits.py); 38 pytest tests in `tests/test_signup.py`. See [README > Sign-up](../../../README.md#sign-up) and the [User Guide](../../user-guide.md).
+- High-level design (2026-10-12): [docs/hld.html](../../hld.html), one diagram that follows a question through the chat UI, guardrails, cache, retrieval, the MCP tools, memory, the models and Neon.
+
 **To run the demo:** start Redis (`brew services start redis`), then `uv run python -m creditcoach.app`, sign in as Aravind, and ask the payday-loan question, the guarantee question, and the score-drop question twice. Each of the three people on the team needs their own Redis, or the cache falls back to the app's memory, which still shows the hit within one run of the app.
