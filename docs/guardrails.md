@@ -207,4 +207,4 @@ The final live run, after both rounds of fixes, held 28/28 with 4/4 controls unt
 |---|---|---|
 | Aman | [ ] | |
 | Anil | [ ] | |
-| Sudip | [ ] | |
+| Sudip | ✅ Reviewed and Signed Off | 2026-10-14 |
