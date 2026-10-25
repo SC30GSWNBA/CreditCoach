@@ -19,7 +19,8 @@ Everything goes through ``get`` and ``put`` here, which
       ``BREAK_SECONDS`` so a dead server doesn't slow every lookup,
     * log one JSON line per lookup on the ``creditcoach.cache`` logger,
     * count hits, misses and stores per layer (``stats``) for Task 23,
-    * and record the lookup in the list opened by ``collect()``, so one answer can report what it used.
+    * record the lookup in the list opened by ``collect()``, so one answer can report what it used,
+    * and add it as a ``cache`` event to the current span of the request's trace (Task 26).
 
 Example:
     >>> from creditcoach import cache
@@ -40,6 +41,7 @@ import time
 from contextlib import contextmanager
 
 from creditcoach import config
+from creditcoach import observability as obs
 from creditcoach.cache.backend import MemoryBackend, RedisBackend
 
 log = logging.getLogger("creditcoach.cache")
@@ -85,6 +87,7 @@ def key(layer: str, *parts, scope: str = "") -> str:
 def _note(layer: str, result: str, key_: str, count: bool = True, **extra) -> None:
     entry = {"event": "cache", "layer": layer, "result": result, "key": key_, **extra}
     log.info(json.dumps(entry, ensure_ascii=False))
+    obs.event("cache", **{k: v for k, v in entry.items() if k != "event"})
     events = _events.get()
     if events is not None:
         events.append(entry)

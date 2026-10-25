@@ -364,7 +364,7 @@ Both tools share one error shape:
 - `message` is for logs and traces, not for showing to the user as written.
 - Over MCP (Task #15), a success returns the JSON object as the tool result. An error returns the envelope with the MCP result's `isError` set to `true`, so the host can count failures for the §6 tool-failure rate without parsing text.
 - The host retries a `retryable` error once. If the retry fails, the agent degrades as described in the tables above.
-- Every call, success or error, is logged with the tool name, `user_id`, arguments, `ok`, error `code` and latency. Task #26 adds the trace id.
+- Every call, success or error, is logged with the tool name, `user_id`, arguments, `ok`, error `code`, latency and, since Task #26, the trace id. Each call is also a `tool.<name>` span in the request's trace; a failed call has ERROR status and a `tool.failure` event ([observability.md](observability.md)).
 
 **As built (Task 15):** the server is `creditcoach/tools/server.py` and the host is `creditcoach/agent/mcp_host.py`. The host adds two codes of its own: `UNKNOWN_TOOL` (the model named a tool that doesn't exist) and `INVALID_ARGUMENTS` (the model's arguments weren't valid JSON or failed the server's validation). Neither is retryable. `USER_MISMATCH` and the 5-second timeout are enforced there, as §1 and the error tables describe.
 

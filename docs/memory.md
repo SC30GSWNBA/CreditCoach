@@ -57,7 +57,7 @@ Path `memory/<user_id>/episodes/<session>.jsonl`. Each line is one event:
 |---|---|---|
 | `login` | — | `source` (`chat_ui`, `cli`, `eval`, `evidence`), `recorded_by` (`git config user.name` of the machine), `gradio_session` |
 | `user_message` | What the user typed | — |
-| `assistant_message` | CreditCoach's answer | `model`, `passages` (chunk ids), `tools` (`tool`, `arguments`, `ok`, `code`; never the result), `seconds` |
+| `assistant_message` | CreditCoach's answer | `model`, `passages` (chunk ids), `tools` (`tool`, `arguments`, `ok`, `code`; never the result), `seconds`; since Week 3 `guardrail` (`action`, `rules`) and `cache` (when used); since Task 26 `trace_id`, which links the reply to its full trace ([observability.md](observability.md)) |
 | `error` | Short description, e.g. `TimeoutError: answer service failed` | — |
 | `goal_set` | The user's own words that set the goal | `goal` (§4), `previous` (the goal it replaced, or `null`) |
 | `goal_cleared` | The user's own words that dropped the goal | — |

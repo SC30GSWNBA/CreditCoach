@@ -343,7 +343,7 @@
      "behavior": [["right now", "at the moment", "currently", "unavailable", "can't pull", "cannot pull", "can't access", "couldn't", "unable"]],
      "forbidden": ["37\\.4", "78\\.7", "\\b79\\s?%"],
      "fault": "get_account_summary times out",
-     "needs": ["failure logged for observability (Task 26)", "last-confirmed figure from earlier in the session (Task 32)"]},
+     "needs": ["last-confirmed figure from earlier in the session (Task 32)"]},
     {"id": 46, "user_id": "USR-001", "tools": [["history"]],
      "facts": [
        {"tool": "history", "period": "2025-01", "path": "error.code", "equals": "PERIOD_OUT_OF_RANGE"},

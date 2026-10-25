@@ -10,6 +10,8 @@ for. It does the jobs ``docs/tools.md`` gives to "the host":
     Retry          A retryable error is retried once (§4).
     Log            Every call is recorded as a ``ToolCall`` (tool, arguments, ok, error code, latency, attempts)
                    and logged as one JSON line, for the Week 4 tool-failure rate.
+    Trace          Every call is a ``tool.<name>`` span in the request's trace (Task 26, ``creditcoach.observability``);
+                   a failed call has ERROR status and a ``tool.failure`` event with the error code.
     Cache          A successful result is kept for a few minutes under the signed-in user's own key (Task 22,
                    ``creditcoach.cache``), so repeated lookups skip the server. Errors are never cached, and the
                    user check above always runs first.
@@ -35,6 +37,7 @@ from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, get_default_environment, stdio_client
 
 from creditcoach import cache, config
+from creditcoach import observability as obs
 from creditcoach.tools.common import error
 
 log = logging.getLogger(__name__)
@@ -92,11 +95,33 @@ def tool_key(user_id: str, name: str, args: dict) -> str:
 def cached_call(user_id: str, name: str, args: dict) -> ToolCall | None:
     """A recent successful result for this call, as a ``ToolCall``, without starting the MCP server; else None."""
     start = time.perf_counter()
-    result = cache.get("tool", tool_key(user_id, name, args), tool=name, user_id=user_id)
-    if result is None:
-        return None
-    return ToolCall(tool=name, arguments=args, user_id=user_id, result=result, seconds=time.perf_counter() - start,
-                    attempts=0, cached=True)
+    with obs.span(f"tool.{name}", **tool_attributes(name, args, user_id)):
+        result = cache.get("tool", tool_key(user_id, name, args), tool=name, user_id=user_id)
+        if result is None:
+            obs.annotate(**{"tool.cached": False, "tool.outcome": "not cached"})
+            return None
+        call = ToolCall(tool=name, arguments=args, user_id=user_id, result=result,
+                        seconds=time.perf_counter() - start, attempts=0, cached=True)
+        trace_call(call)
+        return call
+
+
+def tool_attributes(name: str, args, user_id: str) -> dict:
+    """The attributes every ``tool.<name>`` span starts with."""
+    return {"langfuse.observation.type": "tool", "tool.name": name, "tool.arguments": args, "user.id": user_id,
+            "langfuse.observation.input": args}
+
+
+def trace_call(call: ToolCall) -> None:
+    """Record a finished call on the current ``tool.<name>`` span; a failed call marks the span as failed."""
+    obs.annotate(**{"tool.ok": call.ok, "tool.code": call.code, "tool.attempts": call.attempts,
+                    "tool.cached": call.cached, "tool.ms": round(call.seconds * 1000, 1),
+                    "langfuse.observation.output": call.result})
+    if not call.ok:
+        err = call.result.get("error", {})
+        obs.event("tool.failure", tool=call.tool, code=call.code, message=err.get("message"),
+                  retryable=err.get("retryable"), attempts=call.attempts)
+        obs.fail(f"{call.tool} failed: {call.code}")
 
 
 class McpHost:
@@ -148,27 +173,32 @@ class McpHost:
         Returns:
             The tool's success object or an error envelope (``docs/tools.md`` §4).
         """
-        start = time.perf_counter()
-        args, result, attempts = self._check(name, arguments)
-        cached = False
-        if result is None:
-            key = tool_key(self.user_id, name, args)
-            result = cache.get("tool", key, tool=name, user_id=self.user_id)
-            cached = result is not None
-        if result is None:
-            for attempts in (1, 2):
-                result = await self._send(name, {**args, "user_id": self.user_id})
-                if result.get("ok") or not result["error"].get("retryable"):
-                    break
-            if result.get("ok"):
-                cache.put("tool", key, result, tool=name, user_id=self.user_id)
-        call = ToolCall(tool=name, arguments=args, user_id=self.user_id, result=result,
-                        seconds=time.perf_counter() - start, attempts=attempts, cached=cached)
-        self.calls.append(call)
-        log.info("tool_call %s", json.dumps({"tool": name, "user_id": self.user_id, "arguments": call.arguments,
-                                              "ok": call.ok, "code": call.code, "attempts": attempts, "cached": cached,
-                                              "ms": round(call.seconds * 1000)}, ensure_ascii=False))
-        return result
+        with obs.span(f"tool.{name}", **tool_attributes(name, arguments, self.user_id)):
+            start = time.perf_counter()
+            args, result, attempts = self._check(name, arguments)
+            cached = False
+            if result is None:
+                key = tool_key(self.user_id, name, args)
+                result = cache.get("tool", key, tool=name, user_id=self.user_id)
+                cached = result is not None
+            if result is None:
+                for attempts in (1, 2):
+                    result = await self._send(name, {**args, "user_id": self.user_id})
+                    if result.get("ok") or not result["error"].get("retryable"):
+                        break
+                    if attempts == 1:
+                        obs.event("tool.retry", code=result["error"].get("code"))
+                if result.get("ok"):
+                    cache.put("tool", key, result, tool=name, user_id=self.user_id)
+            call = ToolCall(tool=name, arguments=args, user_id=self.user_id, result=result,
+                            seconds=time.perf_counter() - start, attempts=attempts, cached=cached)
+            self.calls.append(call)
+            trace_call(call)
+            log.info("tool_call %s", json.dumps({"tool": name, "user_id": self.user_id, "arguments": call.arguments,
+                                                  "ok": call.ok, "code": call.code, "attempts": attempts,
+                                                  "cached": cached, "ms": round(call.seconds * 1000),
+                                                  "trace_id": obs.trace_id()}, ensure_ascii=False))
+            return result
 
     def _check(self, name: str, arguments) -> tuple[dict, dict | None, int]:
         """Validate a call before it is sent. Returns (arguments, refusal or None, attempts)."""

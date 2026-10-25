@@ -16,7 +16,8 @@ A check that itself fails (the review model can't be reached, an action raises) 
 the layer fails closed.
 
 Every decision is logged on the ``creditcoach.guardrails`` logger as one JSON line per finding, plus one line for
-the turn, so Task 26 can count guardrail triggers:
+the turn. Since Task 26 each finding is also a ``guardrail.trigger`` event on the request's trace, so guardrail
+triggers can be counted per request:
 
     {"event": "guardrail", "stage": "output", "rule": "G1", "rail": "check guarantee", "action": "reframed", ...}
 
@@ -38,6 +39,7 @@ from pathlib import Path
 
 from nemoguardrails import LLMRails, RailsConfig
 
+from creditcoach import observability as obs
 from creditcoach.guardrails import checks
 from creditcoach.guardrails.checks import Finding
 
@@ -240,6 +242,9 @@ def _log(stage: str, action: str, user_id: str | None, f: Finding | None = None,
     if f is not None:
         entry |= {"rule": f.rule, "rail": f.rail, "detail": f.detail, "matched": f.matched}
     log.info(json.dumps(entry | extra, ensure_ascii=False))
+    if f is not None:  # Task 26: each finding is a guardrail.trigger event on the guardrail span of the request
+        obs.event("guardrail.trigger", stage=stage, action=action, rule=f.rule, rail=f.rail, detail=f.detail,
+                  matched=f.matched)
 
 
 def mask(text: str) -> str:

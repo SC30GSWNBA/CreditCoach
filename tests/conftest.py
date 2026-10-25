@@ -41,3 +41,16 @@ def no_mail_account(monkeypatch):
     """No test can send a real email, whatever mail account the developer's ``.env`` holds."""
     for name in ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD"):
         monkeypatch.setattr(config, name, "")
+
+
+@pytest.fixture(autouse=True)
+def spans():
+    """Spans go to memory, never to .traces/ or Langfuse (Task 26); read them with ``spans.get_finished_spans()``."""
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
+    from creditcoach import observability
+
+    exporter = InMemorySpanExporter()
+    observability.configure([exporter])
+    yield exporter
+    exporter.clear()
