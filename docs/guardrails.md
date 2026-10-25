@@ -96,7 +96,8 @@ Predatory products for this rule: payday loans, instant loan apps, cash-advance 
 
 - [x] A failed tool call returns a structured error and no partial data ([tools.md](tools.md) §4).
 - [x] The answer says it can't pull the latest data and never estimates (#45, with G3).
-- [ ] Every tool failure is logged with a trace ID (Task 26), and the failure rate is on the dashboard (Task 31). *Open: Week 4.*
+- [x] Every tool failure is logged with a trace ID (Task 26): the `tool.<name>` span has ERROR status and a `tool.failure` event with the code ([observability.md](observability.md), [evidence](evidence/week-4/task-26-trace.md)).
+- [ ] The failure rate is on the dashboard (Task 31). *Open: Week 4.*
 
 ### S1. Prompt injection
 
@@ -149,7 +150,7 @@ How it behaves:
 - **Fixed checks first, one model check second.** Seven of the eight rails are patterns and number tracing: together they take under 0.1 s and give the same result every time. The wording review runs only where wording decides the outcome, on 23 of the 50 saved Week 2 answers, and adds 1.6 to 2.0 s to an answer that takes about 12 s.
 - **Reframe before block.** On a finding, the model is asked once to rewrite its draft, with each problem and its fix named and the same live tool output in front of it. The rewrite goes through the output rails again. If it still fails, the user gets the fixed safe message for that rule. The user never sees the draft. A rewrite adds 5 to 20 s.
 - **Fail closed.** If a check itself errors (for example the review model can't be reached), the answer is treated as failing that check.
-- **Every decision is logged.** One JSON line per finding and one per answer on the `creditcoach.guardrails` logger: stage, rule ID, rail, action (`masked`, `flagged`, `passed`, `reframed`, `blocked`), the matched text, and for a rewrite the draft and the final answer. The decision is also on the answer (`Answer.guardrail`) for the Task 25 badge and the Task 26 trace, and its action and rules are saved with the reply in memory.
+- **Every decision is logged.** One JSON line per finding and one per answer on the `creditcoach.guardrails` logger: stage, rule ID, rail, action (`masked`, `flagged`, `passed`, `reframed`, `blocked`), the matched text, and for a rewrite the draft and the final answer. The decision is also on the answer (`Answer.guardrail`) for the Task 25 badge and the Task 26 trace, and its action and rules are saved with the reply in memory. Since Task 26 each finding is also a `guardrail.trigger` event in the request's trace, under the same trace ID as its tool calls and model calls.
 - **Identifiers are masked before memory.** The chat UI masks the message before it writes the episode, so memory, the trace, retrieval, the model and the logs only ever hold the placeholder.
 
 Choices made while building, which differ from the first draft of this plan:

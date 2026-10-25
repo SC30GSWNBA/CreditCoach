@@ -629,7 +629,7 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
 </svg>
       </div>
     </div>
-    <figcaption>A question passes the safety inspector twice (steps 4 and 11), picks up three kinds of facts on the way (your memory, library passages, your live figures), and only then reaches the model. A repeated question takes the amber shortcut and skips the model entirely.</figcaption>
+    <figcaption>A question passes the safety inspector twice (steps 4 and 11), picks up three kinds of facts on the way (your memory, library passages, your live figures), and only then reaches the model. A repeated question takes the amber shortcut and skips the model entirely. Every step on the board is also recorded in one trace for the question (see Observability below).</figcaption>
   </figure>
 
   <h2>The fine print, row by row</h2>
@@ -752,6 +752,24 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
     </section>
 
     <section class="l2">
+      <h3>Observability: one trace per question</h3>
+      <div class="tbl"><table>
+        <tr><th>Step on the board</th><th>Recorded as</th></tr>
+        <tr><td>The whole question</td><td>One trace: user, session, question, answer, total time</td></tr>
+        <tr><td>Guardrail checks</td><td>A span each way, and a "trigger" event per rule that fired</td></tr>
+        <tr><td>Cache</td><td>An event for every lookup: hit, miss, store or skip</td></tr>
+        <tr><td>RAG pipeline</td><td>A span with the passages found and their scores</td></tr>
+        <tr><td>Tools + MCP</td><td>A span per call; a failure is marked as an error, with its code</td></tr>
+        <tr><td>LLMs</td><td>A span per call: model, tokens and cost</td></tr>
+      </table></div>
+      <ul>
+        <li>Built with OpenTelemetry. Every trace is written to local files (<code>.traces/</code>) and, when its keys are set, sent to Langfuse Cloud.</li>
+        <li>The trace ID is saved with each reply in memory, so any answer can be traced back step by step.</li>
+        <li>Questions are recorded only after personal identifiers are masked. Recording can never break an answer.</li>
+      </ul>
+    </section>
+
+    <section class="l2">
       <h3>When something breaks</h3>
       <div class="tbl"><table>
         <tr><th>If this fails</th><th>This happens</th></tr>
@@ -762,6 +780,7 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
         <tr><td>Memory</td><td>Logged; the chat keeps working</td></tr>
         <tr><td>The whole answer</td><td>A short apology, and a sign-up's question is handed back</td></tr>
         <tr><td>No Neon connection set</td><td>Data and memory are read from files; sign-up is switched off</td></tr>
+        <tr><td>Langfuse</td><td>The trace is still written locally; the answer is unaffected</td></tr>
       </table></div>
     </section>
 

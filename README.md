@@ -12,6 +12,8 @@ Week 2 (account tools through MCP, goal memory and the agent trace) is built, wi
 
 Week 3 (guardrails, caching and the badges in the chat) is built and signed off by Sudip, with Aman's and Anil's sign-off still to come: the guardrail rules are written down (Task 19, [docs/guardrails.md](docs/guardrails.md)), since Task 20 every question and every answer passes through a guardrail layer built with NVIDIA NeMo Guardrails, Task 21 tested it live and red-teamed it, since Task 22 repeated lookups and repeated questions are served from a Redis cache, Task 23 measured it (median 11.05 s uncached against 0.009 s cached), since Task 25 the chat shows a guardrail badge and a cache badge above every answer, and all 6 sample queries pass end to end against the expected-answers table ([Task 24](docs/evidence/week-3/task-24-sample-queries.md)) (see [Caching](#caching), [Guardrails](#guardrails) and the [Week 3 tracker](docs/evidence/week-3/README.md)). 
 
+Week 4 (observability, evals and demo readiness) is under way: since Task 26 every question is one OpenTelemetry trace, so retrieval, each tool call and tool failure, the guardrail checks and what they triggered, every model call (with tokens and cost) and every cache lookup share one trace ID; traces are written locally and sent to Langfuse ([one exported trace](docs/evidence/week-4/task-26-trace.md); see [Observability](#observability) and the [Week 4 tracker](docs/evidence/week-4/README.md)). Tasks 27–34 are still to come.
+
 Every Week 1–2 evaluation, and the Task 20 guardrail run, uses all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
 After Week 3, beyond the task plan: the app opens on a welcome page with **Log in** and **Sign up**, so new people can test CreditCoach with a practice profile of their own. Signing up answers the interview questions and creates a practice profile and a login in Neon; a signed-up user may ask 5 questions a week, and the committed dataset is unchanged (see [Sign-up](#sign-up) and the [User Guide](docs/user-guide.md)). The signed-in pages were restyled to match the welcome page.
@@ -65,6 +67,7 @@ CreditCoach/
     config.py         #   secrets, model IDs, paths (model IDs live here, not in code)
     check.py          #   setup check for fresh clones
     llm.py            #   OpenRouter client with fallback model
+    observability.py  #   one OpenTelemetry trace per question: spans to .traces/ and, with its keys, Langfuse (Task 26)
     auth.py           #   per-user chat UI logins: checks a User ID and password against its salted hash
     signup/           #   self-service sign-up: questions.py (the form), generate.py (answers -> profile, accounts, 12-month
                       #   score history, password), store.py (writes the user and login to Neon), mailer.py (optional email)
@@ -109,7 +112,8 @@ CreditCoach/
                       #   test_golden_queries.py: every requirements.md figure checked against the tools,
                       #   test_llm.py: model client (output-token cap, fallback, token and cost tracking for Task 23),
                       #   test_dataset.py: dataset loader (backend choice, Neon unreachable),
-                      #   test_signup.py: the sign-up form and generated profile, sign-in sessions, the weekly allowance
+                      #   test_signup.py: the sign-up form and generated profile, sign-in sessions, the weekly allowance,
+                      #   test_observability.py (Task 26): one trace ID per request, every event type, no identifiers
   scripts/
     synthetic/        #   step1-3: build data/ from the interviews and the sample
     task05_prompt_tests.py   # system prompt test runs (Task 5; --all: rule checks on all 50 answers)
@@ -130,12 +134,13 @@ CreditCoach/
     task24_sample_queries.py # the 6 sample queries end to end through the chat UI functions, table filled in (Task 24; paid calls)
     task25_badges.py         # screenshots of the guardrail and cache badges in the real UI (Task 25; paid calls;
                              # run with: uv run --with playwright python scripts/task25_badges.py)
+    task26_trace_export.py   # one live request with a tool forced to fail, its trace exported (Task 26; paid calls)
     memory_import.py         # copy file memory (the memory/ archive) into Neon; safe to re-run
     data_import.py           # load data/*.csv into Neon (replaces the copy there); run after rebuilding the dataset
     memory_sync.py           # files backend only: share memory files as a PR (push), or pull everyone's (pull)
   user_interviews/    # 14 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
-  docs/               # team.md, hld.html, 6-pager.md, pr-faq.md, user-guide.md, tools.md, memory.md, guardrails.md, caching.md, research/, evidence/week-1/ to week-3/
+  docs/               # team.md, hld.html, 6-pager.md, pr-faq.md, user-guide.md, tools.md, memory.md, guardrails.md, caching.md, observability.md, research/, evidence/week-1/ to week-4/
   tasks.md            # 4-week task plan with Definition of Done per task
   requirements.md     # product requirements, persona, sample and additional queries, guardrails
   credit_score_factors_guide.pdf   # seed document for the RAG corpus
@@ -214,6 +219,19 @@ brew install redis && brew services start redis     # then set REDIS_URL=redis:/
 
 Without `REDIS_URL` it is kept in the app's own memory and lost on restart, so a fresh clone needs no Redis. `CREDITCOACH_CACHE=off` turns it off. A Redis that is down never breaks an answer: lookups count as misses. To empty the cache: `uv run python -c "from creditcoach import cache; print(cache.clear())"`.
 
+## Observability
+
+Every question is one OpenTelemetry trace (Task 26; design in [docs/observability.md](docs/observability.md)). Retrieval, every tool call, the guardrail checks and what they triggered, tool failures, every model call (with tokens and cost) and every cache lookup for that question are spans and events under a single trace ID ([one exported trace](docs/evidence/week-4/task-26-trace.md)). The trace ID is saved with each reply in memory and is printed by the command-line transcript.
+
+Traces are always written to `.traces/<date>.jsonl` (git-ignored). To read one back: `uv run python -c "from creditcoach import observability as o; print(o.load('<trace id>'))"`. To also see them in Langfuse, create a project at [cloud.langfuse.com](https://cloud.langfuse.com) and add its keys to `.env`:
+
+```
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+```
+
+Any other OpenTelemetry collector works through `OTEL_EXPORTER_OTLP_ENDPOINT`. Recording never breaks an answer, and tests never export.
+
 ## Evaluation queries
 
 requirements.md lists 50 queries with their expected behavior: 6 sample queries (§3) and 44 additional queries (§4) that vary them across users, figures and wording. They are one golden set, read by every evaluation so none of them drifts back to the original 6:
@@ -253,6 +271,12 @@ All settings are read from `.env` (git-ignored). See [.env.example](.env.example
 | `REDIS_URL` | No | (none) | Redis connection string for the cache, for example `redis://localhost:6379/0`. Without it the cache is kept in the app's memory. |
 | `CREDITCOACH_CACHE` | No | `on` | `off` turns every cache layer off |
 | `CREDITCOACH_CACHE_CONFIRM` | No | `on` | `off` stops the answer cache asking `SMALL_MODEL` whether a reworded question is the same |
+| `CREDITCOACH_TRACES` | No | `on` | `off` stops writing traces to `.traces/` |
+| `CREDITCOACH_TRACES_DIR` | No | `.traces/` | Folder for the local trace files |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | No | (none) | With both set, every trace is also sent to Langfuse |
+| `LANGFUSE_HOST` | No | `https://cloud.langfuse.com` | Langfuse region or self-hosted URL |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | No | (none) | Without Langfuse keys: any OpenTelemetry collector to send traces to |
+| `CREDITCOACH_ENV` | No | `local` | Tags every trace with where it ran (for example `railway`) |
 | `EMBEDDING_MODEL` | No | `sentence-transformers/all-MiniLM-L6-v2` | Local embedding model for the vector store. Rebuild the store after changing it. |
 | `RERANKER_MODEL` | No | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Local cross-encoder that reorders retrieved chunks |
 | `CREDITCOACH_SIGNUP_MAX` | No | `50` | How many people may sign up in total; sign-up closes when it is reached |
@@ -321,7 +345,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 
 | # | Gap today | Plan |
 |---|---|---|
-| 7 | **No observability.** `llm.chat()` ignores `response.usage`, so tokens, cost and latency per call aren't recorded. | Log usage and latency for every call. Add tracing (Langfuse, LangSmith or OpenTelemetry) before the Week 2 tools arrive, because debugging tool calls without traces is painful. Task 26's trace IDs build on this.<br><br>**Partly addressed (Task 23):** `llm.track()` collects each call's model, tokens and cost, and the cache, guardrail and tool layers each log one JSON line per event. Still to do: record usage for every request (not only inside `track()`), and tracing with a shared trace ID (Task 26). |
+| 7 | **No observability.** `llm.chat()` ignores `response.usage`, so tokens, cost and latency per call aren't recorded. | Log usage and latency for every call. Add tracing (Langfuse, LangSmith or OpenTelemetry) before the Week 2 tools arrive, because debugging tool calls without traces is painful. Task 26's trace IDs build on this.<br><br>**Partly addressed (Task 23):** `llm.track()` collects each call's model, tokens and cost, and the cache, guardrail and tool layers each log one JSON line per event. **Done (Task 26):** every request is one OpenTelemetry trace, and every model call is a span with its model, tokens, cost and latency, whether or not `track()` is open; traces go to `.traces/` and Langfuse ([docs/observability.md](docs/observability.md)). |
 | 8 | **Fragile LLM client.** It catches a broad `except Exception` and tries the fallback model once. It has no retries, and it creates a new client on every call. | Catch specific exceptions, retry rate limits (429) and server errors (5xx) with backoff (for example `tenacity`), and reuse one client. Task 32 covers wider timeout handling. |
 | 9 | **No architecture or design doc for Week 2.** The chat history was passed in but unused (used since Task 17). | Add a diagram of the pipeline and agent loop. The tool contracts are in [docs/tools.md](docs/tools.md) (Task 12), and the agent loop over MCP is described in `pipeline.py` and `mcp_host.py` (Task 15). Memory and recall are specified in [docs/memory.md](docs/memory.md) (Tasks 16–17). **Done:** the high-level design ([docs/hld.html](docs/hld.html)) is one swimlane diagram of how the chat UI, guardrails, cache, retrieval, the MCP tools, memory, the models and Neon meet in `pipeline.py`. |
 | 10 | **Prompts aren't versioned.** `system_prompt.md` has no version, and answers don't record which prompt produced them. | Add a prompt version or hash to each `Answer` and to eval results, so a change in behaviour can be traced to a prompt change. |
@@ -368,9 +392,11 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 - [docs/memory.md](docs/memory.md): memory schema: episodes, the goal record, dreaming (Task 16)
 - [docs/caching.md](docs/caching.md): what is cached, where, for how long, and when a stored answer may be served (Task 22)
 - [docs/guardrails.md](docs/guardrails.md): guardrail rules mapped to requirements.md (Task 19) and how the guardrail layer enforces them (Task 20)
+- [docs/observability.md](docs/observability.md): what each request's trace records, where traces go (local files, Langfuse), and the rules (Task 26)
 - [data/README.md](data/README.md): synthetic dataset, how it's built, interview findings
 - [corpus/README.md](corpus/README.md): the 17 library documents, their format, and how to check them
 - [memory/README.md](memory/README.md): the archive of file-based memory from before the move to Neon
 - [docs/evidence/week-1/](docs/evidence/week-1/): evidence of completion for each Week 1 task
 - [docs/evidence/week-2/](docs/evidence/week-2/): evidence of completion for each Week 2 task
 - [docs/evidence/week-3/](docs/evidence/week-3/): evidence of completion for each Week 3 task
+- [docs/evidence/week-4/](docs/evidence/week-4/): evidence of completion for each Week 4 task

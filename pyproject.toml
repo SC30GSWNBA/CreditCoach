@@ -19,6 +19,8 @@ dependencies = [
     "psycopg[binary,pool]>=3.2",
     "nemoguardrails>=0.24.1",
     "redis>=8.1.0",
+    "opentelemetry-sdk>=1.39",
+    "opentelemetry-exporter-otlp-proto-http>=1.39",
 ]
 
 [dependency-groups]

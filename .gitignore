@@ -14,6 +14,7 @@ __pycache__/
 # Local data stores (rebuilt from source)
 .chroma/
 .cache/
+.traces/
 *.db
 *.sqlite3
 

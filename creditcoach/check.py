@@ -14,6 +14,7 @@ It prints one line per check and exits with code 0 if everything required passed
     [INFO]        Whether the vector store has been built (informational; never fails the check).
     [INFO]        How much chat memory is in memory/, and how much isn't shared yet (informational).
     [INFO]        Where the cache is kept: Redis, the app's own memory, or off (informational).
+    [INFO]        Where traces go: .traces/ and Langfuse (keys accepted or not), or an OTLP collector (informational).
 
 See README > Troubleshooting for how to fix each failure.
 """
@@ -25,7 +26,8 @@ import sys
 from creditcoach import config
 
 REQUIRED_PACKAGES = ["openai", "dotenv", "pandas", "openpyxl", "chromadb", "sentence_transformers", "gradio", "mcp",
-                     "nemoguardrails", "redis"]
+                     "nemoguardrails", "redis", "opentelemetry.sdk",
+                     "opentelemetry.exporter.otlp.proto.http"]
 
 
 def main() -> int:
@@ -132,6 +134,29 @@ def main() -> int:
     except Exception as exc:
         print(f"[INFO] Cache - Redis not reachable ({type(exc).__name__}); answers still work, uncached. "
               "Start it with: brew services start redis")
+
+    try:  # informational: tracing is optional, and a Langfuse that is unreachable never affects an answer
+        folder = config.TRACES_DIR
+        folder = folder.relative_to(config.ROOT) if folder.is_relative_to(config.ROOT) else folder
+        where = ["local files off" if config.TRACES == "off" else f"{folder}/"]
+        if config.LANGFUSE_PUBLIC_KEY and config.LANGFUSE_SECRET_KEY:
+            import base64
+            import urllib.request
+
+            auth = base64.b64encode(f"{config.LANGFUSE_PUBLIC_KEY}:{config.LANGFUSE_SECRET_KEY}".encode()).decode()
+            request = urllib.request.Request(config.LANGFUSE_HOST.rstrip("/") + "/api/public/projects",
+                                             headers={"Authorization": f"Basic {auth}"})
+            try:
+                with urllib.request.urlopen(request, timeout=5):
+                    where.append(f"Langfuse ({config.LANGFUSE_HOST}, keys accepted)")
+            except Exception as exc:
+                where.append(f"Langfuse NOT reachable or keys refused ({type(exc).__name__}); traces stay local")
+        elif config.OTLP_ENDPOINT:
+            where.append(f"OTLP collector at {config.OTLP_ENDPOINT}")
+        print(f"[INFO] Traces - {', '.join(where)}"
+              + ("" if len(where) > 1 else " (set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY for Langfuse)"))
+    except Exception as exc:
+        print(f"[INFO] Traces - not checked ({type(exc).__name__})")
 
     print("\nAll checks passed. Ready to build." if ok else "\nSome checks failed. See README > Troubleshooting.")
     return 0 if ok else 1

@@ -38,6 +38,15 @@ Cache (Task 22; environment variable -> default):
     CREDITCOACH_CACHE_CONFIRM  "on"  "off" stops the semantic answer cache asking ``SMALL_MODEL`` whether a reworded
                                      question is the same; only exact and same-words matches are then served.
 
+Observability (Task 26; environment variable -> default):
+    CREDITCOACH_TRACES      "on"       "off" stops writing spans to the local trace files.
+    CREDITCOACH_TRACES_DIR  .traces/   Where the local trace files go (git-ignored), one JSON line per span.
+    LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY
+                            ""         With both set, every trace is also sent to Langfuse over OTLP.
+    LANGFUSE_HOST           "https://cloud.langfuse.com"  Langfuse region or self-hosted URL.
+    OTEL_EXPORTER_OTLP_ENDPOINT  ""    Without Langfuse keys: any OpenTelemetry collector to send traces to.
+    CREDITCOACH_ENV         "local"    Tags every trace (for example "railway" for the deployed build).
+
 Sign-up and the weekly allowance (environment variable -> default):
     CREDITCOACH_SIGNUP_MAX         50  How many people may sign up in total. Sign-up closes when it is reached.
     CREDITCOACH_INVITE_CODE        ""  When set, the sign-up form asks for this code and refuses anyone without it.
@@ -95,6 +104,15 @@ CACHE = os.getenv("CREDITCOACH_CACHE", "on")
 CACHE_CONFIRM = os.getenv("CREDITCOACH_CACHE_CONFIRM", "on") != "off"
 # Where users, accounts and score history are read from: Neon (a copy loaded by scripts/data_import.py) or data/
 DATA_BACKEND = os.getenv("CREDITCOACH_DATA_BACKEND", "postgres" if DATABASE_URL else "files")
+
+# Observability (creditcoach.observability)
+TRACES = os.getenv("CREDITCOACH_TRACES", "on")
+TRACES_DIR = Path(os.getenv("CREDITCOACH_TRACES_DIR", ROOT / ".traces"))  # git-ignored
+LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY", "")
+LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY", "")  # never commit it
+LANGFUSE_HOST = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+ENVIRONMENT = os.getenv("CREDITCOACH_ENV", "local")
 
 # Sign-up (creditcoach.signup) and the weekly allowance (creditcoach.app.limits)
 SIGNUP_MAX = int(os.getenv("CREDITCOACH_SIGNUP_MAX", "50"))

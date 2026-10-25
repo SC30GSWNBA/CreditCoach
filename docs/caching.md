@@ -24,7 +24,7 @@ Tasks.md asks for "RAG embeddings and frequent score-factor lookups". The embedd
 - **Redis**, when `REDIS_URL` is set (`redis://localhost:6379/0` for a local install: `brew install redis && brew services start redis`). Redis keeps the cache across app restarts and shares it between processes.
 - **The app's own memory**, when `REDIS_URL` isn't set, so a fresh clone runs with no Redis. It is lost on restart and capped at 5,000 entries, least recently used first.
 - Every value is JSON under a key of the form `cc:<schema>:<layer>:[<user>:]<digest>`. Per-user layers have the user ID in the key, so one user's entries can be listed or cleared (`cache.clear("answer", "USR-001")`) and can never be read under another user's key. Raising `SCHEMA` in the code abandons everything cached by older code.
-- Every read and write goes through `cache.get` and `cache.put`, which log one JSON line on the `creditcoach.cache` logger, count hits, misses and stores per layer (`cache.stats()`), and attach the turn's lookups to the answer (`Answer.cache`).
+- Every read and write goes through `cache.get` and `cache.put`, which log one JSON line on the `creditcoach.cache` logger (and, since Task 26, add a `cache` event to the request's trace), count hits, misses and stores per layer (`cache.stats()`), and attach the turn's lookups to the answer (`Answer.cache`).
 - **The cache can never break an answer.** A Redis error is logged and treated as a miss, and Redis is then left alone for 30 seconds so a dead server costs one short timeout, not one per lookup. `CREDITCOACH_CACHE=off` turns everything off.
 
 **How long, and why.**

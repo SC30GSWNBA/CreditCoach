@@ -30,6 +30,12 @@ embedding, the passages retrieved for it, and successful tool lookups. With ``us
 a finished answer is also kept for the user who asked: if they ask the same question again, the stored answer is
 returned without a model call, but only after their live figures are checked to be the ones it was built on.
 
+Since Task 26, every call to ``answer`` is one OpenTelemetry trace (``creditcoach.observability``): a
+``creditcoach.answer`` span with child spans for the input rails, memory, the answer-cache lookup, retrieval,
+building the context, the agent loop (each model turn and each tool call), and the output rails. Guardrail
+findings, tool failures and cache lookups are events on those spans, so everything that happened for one question
+shares one trace ID (``Answer.trace_id``).
+
 Scores, balances, limits and utilization reach the model only through tool calls, so every figure it states
 comes from a live tool result. With no ``user_id`` (the Task 10 runs), no tools are offered and the model is
 told to say it can't see account data. The Gradio UI (``creditcoach.app``) calls ``answer()`` for every chat
@@ -57,7 +63,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from creditcoach import cache, config, guardrails
-from creditcoach.agent.mcp_host import McpHost, ToolCall, cached_call
+from creditcoach import observability as obs
+from creditcoach.agent.mcp_host import McpHost, ToolCall, cached_call, tool_attributes, trace_call
 from creditcoach.cache import answers as answer_cache
 from creditcoach.llm import chat, chat_with_tools
 from creditcoach.memory import recall, store
@@ -123,6 +130,7 @@ class Answer:
             with ``how`` it matched, the ``matched_question``, its ``similarity`` and ``age_seconds``, and the
             ``saved_seconds`` the original took), ``"miss"``, ``"stored"``, ``"skip"`` (with the ``reason``) or
             ``"off"``; ``events`` lists every cache lookup of the turn, layer by layer.
+        trace_id: The OpenTelemetry trace that recorded this answer (Task 26), as 32 hex characters.
     """
     question: str
     user_id: str | None
@@ -135,6 +143,7 @@ class Answer:
     sources: str = ""
     guardrail: guardrails.Decision | None = None
     cache: dict = field(default_factory=lambda: {"status": "off", "events": []})
+    trace_id: str | None = None
 
 
 def build_context(passages: list[Result], user_id: str | None = None, memory: str | None = None) -> str:
@@ -181,6 +190,11 @@ async def run_agent(messages: list[dict], user_id: str, memory: recall.MemoryToo
     Returns:
         ``(answer_text, model_used, tool_calls)``.
     """
+    with obs.span("agent", **{"langfuse.observation.type": "agent", "agent.prefetch": prefetch}):
+        return await _agent_loop(messages, user_id, memory, progress, prefetch)
+
+
+async def _agent_loop(messages, user_id, memory, progress, prefetch) -> tuple[str, str, list[ToolCall]]:
     async with McpHost(user_id) as host:
         offered = host.openai_tools + (memory.specs if memory else [])
         calls: list[ToolCall] = []
@@ -215,7 +229,9 @@ async def run_agent(messages: list[dict], user_id: str, memory: recall.MemoryToo
                     shown = {"raw": c.function.arguments}
                 _report(progress, "tool", status="start", name=c.function.name, arguments=shown)
                 if memory and c.function.name in recall.NAMES:
-                    call = memory.call(c.function.name, c.function.arguments)
+                    with obs.span(f"tool.{c.function.name}", **tool_attributes(c.function.name, shown, user_id)):
+                        call = memory.call(c.function.name, c.function.arguments)
+                        trace_call(call)
                     result = call.result
                 else:
                     result = await host.call(c.function.name, c.function.arguments)
@@ -257,9 +273,20 @@ def answer(question: str, k: int = 3, user_id: str | None = None, session: store
     """
     if session is not None and session.user_id != user_id:
         raise ValueError("the memory session belongs to a different user")
-    with cache.collect() as events:
-        a = _answer(question, k, user_id, session, history, progress, guard, use_cache)
-    a.cache["events"] = events
+    sid = session.session if session is not None else None
+    who = {"user.id": user_id, "langfuse.user.id": user_id, "session.id": sid, "langfuse.session.id": sid}
+    with obs.span("creditcoach.answer", carry=who, **{"langfuse.trace.name": "creditcoach.answer", "answer.k": k,
+                                                       "answer.guard": guard, "answer.use_cache": use_cache}):
+        with cache.collect() as events:
+            a = _answer(question, k, user_id, session, history, progress, guard, use_cache)
+        a.cache["events"] = events
+        a.trace_id = obs.trace_id()
+        obs.annotate(**{"langfuse.trace.output": a.text, "langfuse.observation.output": a.text,
+                        "answer.model": a.model, "answer.cache": a.cache["status"],
+                        "answer.guardrail": a.guardrail.action if a.guardrail else None,
+                        "answer.tool_calls": len(a.tool_calls),
+                        "answer.tool_failures": sum(1 for c in a.tool_calls if not c.ok),
+                        "answer.seconds": round(a.retrieval_seconds + a.generation_seconds, 2)})
     return a
 
 
@@ -322,10 +349,17 @@ def _reusable(user_id, guard, screened, history, question) -> str | None:
 
 
 def _answer(question, k, user_id, session, history, progress, guard, use_cache) -> Answer:
-    screened = guardrails.screen(question, user_id) if guard else guardrails.Screen(question)
+    with obs.span("guardrail.input", **{"langfuse.observation.type": "guardrail", "guardrail.on": guard}):
+        screened = guardrails.screen(question, user_id) if guard else guardrails.Screen(question)
+        obs.annotate(**{"guardrail.rules": sorted({f.rule for f in screened.findings}) or None,
+                        "guardrail.products": screened.products or None})
     question = screened.text
+    obs.annotate(**{"langfuse.trace.input": question, "langfuse.observation.input": question, "question": question})
     t0 = time.perf_counter()
-    memory = recall.context(user_id, session.session) if session is not None else None
+    memory = None
+    if session is not None:
+        with obs.span("memory.context"):
+            memory = recall.context(user_id, session.session)
     report: dict = {"status": "off"}
     reuse = use_cache and cache.enabled()
     if reuse:
@@ -334,52 +368,69 @@ def _answer(question, k, user_id, session, history, progress, guard, use_cache) 
             cache.skip("answer", why_not, user_id=user_id)
             reuse, report = False, {"status": "skip", "reason": why_not}
     if reuse:
-        embedding = rag.embed(rag.normalize_query(question))
-        version, memory_print = answer_version(k), _memory_print(memory)
-        found = answer_cache.lookup(user_id, question, embedding, version, memory_print)
-        report = {"status": "miss"}
-        if found:
-            calls = _prefetch(user_id)  # the user's figures now: a stored answer is only as good as its data
-            if _fingerprint(calls) == found["fingerprint"]:
-                stored = found["payload"]
-                seconds = time.perf_counter() - t0
-                report = {"status": "hit", "how": found["how"], "similarity": found["similarity"],
-                          "matched_question": found["question"], "age_seconds": found["age"],
-                          "saved_seconds": round(stored["seconds"] - seconds, 1)}
-                cache._note("answer", "hit", found["key"], user_id=user_id, **{k_: v for k_, v in report.items()
-                                                                              if k_ != "status"})
-                decision = guardrails.Decision(stored["guardrail"]["action"], screened,
-                                               reviewed=stored["guardrail"]["reviewed"],
-                                               projection=stored["guardrail"].get("projection", False),
-                                               findings=[guardrails.Finding(**f) for f in
-                                                         stored["guardrail"].get("findings", [])])
-                _report(progress, "cache", status="hit", report=report)
-                _report(progress, "answer", status="done", model=stored["model"])
-                return Answer(question=question, user_id=user_id, text=stored["text"], model=stored["model"],
-                              passages=[Result(**p) for p in stored["passages"]], tool_calls=calls,
-                              retrieval_seconds=0.0, generation_seconds=seconds, sources=stored["sources"],
-                              guardrail=decision, cache=report)
-            answer_cache.forget(user_id, found["key"])
-            cache._note("answer", "stale", found["key"], user_id=user_id,
-                        reason="the user's figures changed since the answer was stored")
-            report = {"status": "miss", "reason": "the user's figures changed since the answer was stored"}
+        with obs.span("cache.answer", **{"cache.layer": "answer"}):
+            embedding = rag.embed(rag.normalize_query(question))
+            version, memory_print = answer_version(k), _memory_print(memory)
+            found = answer_cache.lookup(user_id, question, embedding, version, memory_print)
+            report = {"status": "miss"}
+            if found:
+                calls = _prefetch(user_id)  # the user's figures now: a stored answer is only as good as its data
+                if _fingerprint(calls) == found["fingerprint"]:
+                    stored = found["payload"]
+                    seconds = time.perf_counter() - t0
+                    report = {"status": "hit", "how": found["how"], "similarity": found["similarity"],
+                              "matched_question": found["question"], "age_seconds": found["age"],
+                              "saved_seconds": round(stored["seconds"] - seconds, 1)}
+                    cache._note("answer", "hit", found["key"], user_id=user_id, **{k_: v for k_, v in report.items()
+                                                                                  if k_ != "status"})
+                    decision = guardrails.Decision(stored["guardrail"]["action"], screened,
+                                                   reviewed=stored["guardrail"]["reviewed"],
+                                                   projection=stored["guardrail"].get("projection", False),
+                                                   findings=[guardrails.Finding(**f) for f in
+                                                             stored["guardrail"].get("findings", [])])
+                    obs.annotate(**{"cache.result": "hit", "cache.how": found["how"]})
+                    _report(progress, "cache", status="hit", report=report)
+                    _report(progress, "answer", status="done", model=stored["model"])
+                    return Answer(question=question, user_id=user_id, text=stored["text"], model=stored["model"],
+                                  passages=[Result(**p) for p in stored["passages"]], tool_calls=calls,
+                                  retrieval_seconds=0.0, generation_seconds=seconds, sources=stored["sources"],
+                                  guardrail=decision, cache=report)
+                answer_cache.forget(user_id, found["key"])
+                cache._note("answer", "stale", found["key"], user_id=user_id,
+                            reason="the user's figures changed since the answer was stored")
+                report = {"status": "miss", "reason": "the user's figures changed since the answer was stored"}
+            obs.annotate(**{"cache.result": report["status"], "cache.reason": report.get("reason")})
     _report(progress, "retrieval", status="start")
-    passages = retrieve(question, k=k)
-    if screened.products:  # G2: the explanation of the risk must come from the library, whatever else was retrieved
-        risk = retrieve(question, k=RISK_PASSAGES, where={"category": "product_risk"})
-        passages += [r for r in risk if r.id not in {p.id for p in passages}]
+    with obs.span("retrieval", **{"langfuse.observation.type": "retriever", "retrieval.k": k,
+                                  "langfuse.observation.input": question}):
+        passages = retrieve(question, k=k)
+        if screened.products:  # G2: the explanation of the risk must come from the library, whatever else was retrieved
+            risk = retrieve(question, k=RISK_PASSAGES, where={"category": "product_risk"})
+            passages += [r for r in risk if r.id not in {p.id for p in passages}]
+        found = [{"id": p.id, "title": getattr(p, "title", None), "category": getattr(p, "category", None),
+                  "score": round(float(getattr(p, "score", 0)), 4)} for p in passages]
+        obs.annotate(**{"retrieval.passages": [f["id"] for f in found] or None,
+                        "retrieval.categories": [f["category"] or "" for f in found] or None,
+                        "retrieval.scores": [f["score"] for f in found] or None,
+                        "retrieval.risk_added": bool(screened.products), "langfuse.observation.output": found})
+        if not passages:
+            obs.event("retrieval.empty", question=question)
     t1 = time.perf_counter()
     _report(progress, "retrieval", status="done", passages=passages, seconds=t1 - t0)
     if session is not None:
-        remembered = store.load(user_id)
-        _report(progress, "memory", goal=remembered.goal,
-                sessions=sum(1 for e in remembered.episodes if e.session != session.session and e.turns()))
+        with obs.span("memory.recall"):
+            remembered = store.load(user_id)
+            earlier_sessions = sum(1 for e in remembered.episodes if e.session != session.session and e.turns())
+            obs.annotate(**{"memory.goal": asdict(remembered.goal) if remembered.goal else None,
+                            "memory.sessions": earlier_sessions, "memory.in_context": bool(memory)})
+        _report(progress, "memory", goal=remembered.goal, sessions=earlier_sessions)
     earlier = recall.history_messages(history)
-    messages = [{"role": "system", "content": load_system_prompt()},
-                {"role": "system", "content": build_context(passages, user_id, memory)},
-                *([{"role": "system", "content": screened.notes}] if screened.notes else []),
-                *({**m, "content": guardrails.mask(m["content"])} for m in earlier),
-                {"role": "user", "content": question}]
+    with obs.span("context.build", **{"data.backend": config.DATA_BACKEND, "context.history": len(earlier)}):
+        messages = [{"role": "system", "content": load_system_prompt()},
+                    {"role": "system", "content": build_context(passages, user_id, memory)},
+                    *([{"role": "system", "content": screened.notes}] if screened.notes else []),
+                    *({**m, "content": guardrails.mask(m["content"])} for m in earlier),
+                    {"role": "user", "content": question}]
     if user_id:
         tools = recall.MemoryTools(session, question) if session is not None else None
         text, model, calls = asyncio.run(run_agent(messages, user_id, tools, progress))
@@ -394,8 +445,16 @@ def _answer(question, k, user_id, session, history, progress, guard, use_cache) 
                          {"role": "system", "content": guardrails.rewrite_instruction(findings)}])[0]
 
         _report(progress, "guardrail", status="start")
-        text, decision = guardrails.review(text, question=question, sources=sources, user_id=user_id,
-                                           screen=screened, rewrite=rewrite)
+        with obs.span("guardrail.output", **{"langfuse.observation.type": "guardrail"}):
+            text, decision = guardrails.review(text, question=question, sources=sources, user_id=user_id,
+                                               screen=screened, rewrite=rewrite)
+            obs.annotate(**{"guardrail.action": decision.action, "guardrail.reviewed": decision.reviewed,
+                            "guardrail.projection": decision.projection,
+                            "guardrail.rules": sorted({f.rule for f in decision.findings}) or None,
+                            "guardrail.still_failing": sorted({f.rule for f in decision.remaining}) or None})
+            if decision.action != "passed":
+                obs.annotate(**{"langfuse.observation.level": "WARNING",
+                                "langfuse.observation.status_message": f"answer {decision.action}"})
         _report(progress, "guardrail", status="done", decision=decision)
     _report(progress, "answer", status="done", model=model)
     seconds = time.perf_counter() - t0
@@ -431,7 +490,8 @@ def transcript(a: Answer) -> str:
         Multi-line text: the question, the retrieved passage ids with similarity scores, each tool call and
         its outcome, the model and timings, and the answer text.
     """
-    lines = [f"> {a.question}", "", *([f"[user] {a.user_id}"] if a.user_id else []), f"[retrieval] {len(a.passages)} passages in {a.retrieval_seconds:.1f}s:"]
+    lines = [f"> {a.question}", "", *([f"[user] {a.user_id}"] if a.user_id else []),
+             *([f"[trace] {a.trace_id}"] if a.trace_id else []), f"[retrieval] {len(a.passages)} passages in {a.retrieval_seconds:.1f}s:"]
     lines += [f"  [{i}] {p.id} ({p.category}, similarity {p.score:.3f})" for i, p in enumerate(a.passages, 1)]
     lines += [f"[tool] {c.tool} {json.dumps(c.arguments, ensure_ascii=False)} -> "
               f"{'ok' if c.ok else c.code} ({c.seconds * 1000:.0f} ms)" for c in a.tool_calls]

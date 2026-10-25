@@ -155,12 +155,14 @@ def remember(request: gr.Request, user_id: str, type_: str, text: str = "", meta
 
 
 def answer_meta(a) -> dict:
-    """What an episode keeps about a reply: model, tools (no tool output: figures always come live), passages."""
+    """What an episode keeps about a reply: model, tools (no tool output: figures always come live), passages, and
+    the trace ID that links the reply to its full trace (Task 26)."""
     guard = {"guardrail": {"action": a.guardrail.action, "rules": a.guardrail.rules}} if getattr(a, "guardrail", None) else {}
     served = {"cache": a.cache["status"]} if getattr(a, "cache", None) and a.cache["status"] != "off" else {}
     return {"model": a.model, "passages": [p.id for p in a.passages], **guard, **served,
             "tools": [{"tool": c.tool, "arguments": c.arguments, "ok": c.ok, "code": c.code} for c in a.tool_calls],
-            "seconds": round(a.retrieval_seconds + a.generation_seconds, 1)}
+            "seconds": round(a.retrieval_seconds + a.generation_seconds, 1),
+            **({"trace_id": a.trace_id} if getattr(a, "trace_id", None) else {})}
 
 
 REFRESH_SECONDS = 1.0  # how often the trace redraws while waiting (timers and tips move even with no new event)

@@ -6,6 +6,9 @@ OpenRouter, so any model on OpenRouter can be used by changing ``CHAT_MODEL`` in
 model errors (for example a timeout, rate limit, or bad model ID), the call is retried once on
 ``FALLBACK_MODEL`` and a warning with the original error is logged, so fallbacks are never silent.
 
+Since Task 26 every call is an ``llm.chat`` span in the request's trace (``creditcoach.observability``): the model
+asked for and the one that answered, tokens, cost, and an ``llm.fallback`` event when the fallback was used.
+
 Example:
     >>> from creditcoach.llm import chat, chat_with_tools
     >>> reply, model_used = chat([{"role": "user", "content": "What is a credit score?"}])
@@ -19,6 +22,7 @@ from contextlib import contextmanager
 from openai import OpenAI
 
 from creditcoach import config
+from creditcoach import observability as obs
 
 log = logging.getLogger(__name__)
 
@@ -74,21 +78,44 @@ def _complete(messages: list[dict], model: str | None = None, effort: str | None
     """
     client = get_client()
     primary = model or config.CHAT_MODEL
-    for candidate in (primary, config.FALLBACK_MODEL):
-        try:
-            extra = {"extra_body": {"usage": {"include": True}}}  # OpenRouter then returns the call's cost
-            if candidate.startswith("openai/gpt-5") and (effort or config.REASONING_EFFORT):
-                extra["extra_body"]["reasoning"] = {"effort": effort or config.REASONING_EFFORT}
-            kwargs.setdefault("max_tokens", config.MAX_OUTPUT_TOKENS)
-            response = client.chat.completions.create(model=candidate, messages=messages, timeout=90, **extra, **kwargs)
-            _record(candidate, response)
-            return response.choices[0].message, candidate
-        except Exception as exc:
-            if candidate == config.FALLBACK_MODEL:
-                raise
-            log.warning("Chat model %s failed (%s: %s); falling back to %s",
-                        candidate, type(exc).__name__, exc, config.FALLBACK_MODEL)
+    with obs.span("llm.chat", **{"langfuse.observation.type": "generation", "gen_ai.system": "openrouter",
+                                 "gen_ai.request.model": primary, "gen_ai.request.reasoning_effort": effort or
+                                 config.REASONING_EFFORT, "llm.tools": [t["function"]["name"] for t in
+                                                                         kwargs.get("tools") or []] or None,
+                                 "langfuse.observation.input": messages}):
+        for candidate in (primary, config.FALLBACK_MODEL):
+            try:
+                extra = {"extra_body": {"usage": {"include": True}}}  # OpenRouter then returns the call's cost
+                if candidate.startswith("openai/gpt-5") and (effort or config.REASONING_EFFORT):
+                    extra["extra_body"]["reasoning"] = {"effort": effort or config.REASONING_EFFORT}
+                kwargs.setdefault("max_tokens", config.MAX_OUTPUT_TOKENS)
+                response = client.chat.completions.create(model=candidate, messages=messages, timeout=90, **extra,
+                                                          **kwargs)
+                _record(candidate, response)
+                _annotate(candidate, response, fallback=candidate != primary)
+                return response.choices[0].message, candidate
+            except Exception as exc:
+                if candidate == config.FALLBACK_MODEL:
+                    raise
+                log.warning("Chat model %s failed (%s: %s); falling back to %s",
+                            candidate, type(exc).__name__, exc, config.FALLBACK_MODEL)
+                obs.event("llm.fallback", failed_model=candidate, error=f"{type(exc).__name__}: {exc}",
+                          fallback_model=config.FALLBACK_MODEL)
     raise AssertionError("unreachable")
+
+
+def _annotate(model: str, response, fallback: bool) -> None:
+    """Put what a call used and returned on its ``llm.chat`` span."""
+    usage, message = getattr(response, "usage", None), response.choices[0].message
+    content = getattr(message, "content", None)
+    calls = [{"name": c.function.name, "arguments": c.function.arguments}
+             for c in getattr(message, "tool_calls", None) or []]
+    obs.annotate(**{"gen_ai.response.model": model, "langfuse.observation.model.name": model,
+                    "gen_ai.usage.input_tokens": getattr(usage, "prompt_tokens", None),
+                    "gen_ai.usage.output_tokens": getattr(usage, "completion_tokens", None),
+                    "gen_ai.usage.cost": float(getattr(usage, "cost", 0) or 0) if usage else None,
+                    "llm.fallback": fallback,
+                    "langfuse.observation.output": {"content": content, "tool_calls": calls} if calls else content})
 
 
 def chat(messages: list[dict], model: str | None = None, effort: str | None = None) -> tuple[str, str]:
