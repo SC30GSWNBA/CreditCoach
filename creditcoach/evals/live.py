@@ -7,8 +7,9 @@ Two modes, matching how the pipeline has grown:
     no-tools  As the Task 10 prototype: no user and no tools, so answers rest on the corpus alone.
 
 Each query is a single turn in a fresh session with no memory. Memory exists since Tasks 16-17, but this runner
-doesn't seed a stored goal or an earlier session yet (Task 27, docs/memory.md §9), so queries that depend on them are
-run as asked and their records carry the golden ``needs`` list. ``scripts/task17_goal_recall.py`` covers them live.
+doesn't seed a stored goal or an earlier session (docs/memory.md §9), so queries that depend on them are run as asked
+and their records carry the golden ``needs`` list. ``scripts/task17_goal_recall.py`` covers them live, and the eval
+harness (``harness.py``, Task 27) runs §3's #5 and #3 in two sessions.
 
 A run is saved as JSON (one record per query: the answer, model, passages, every tool call with its result, timings,
 and any exception), so later scripts can re-score it without paying for new model calls: the Task 5 prompt-rule
@@ -19,6 +20,7 @@ Example:
     >>> records = live.run("tools", ids=[1, 2])      # 2 live queries; needs OPENROUTER_API_KEY
 """
 
+import contextlib
 import json
 import os
 import threading
@@ -30,6 +32,7 @@ from datetime import datetime
 from pathlib import Path
 
 from creditcoach import cache
+from creditcoach import observability as obs
 from creditcoach.agent import pipeline
 from creditcoach.agent.mcp_host import McpHost
 from creditcoach.evals import golden
@@ -56,33 +59,43 @@ def _record(q: golden.Query, mode: str, a: pipeline.Answer | None, error: str | 
     """One saved result: the query, the answer and everything needed to re-check it."""
     rec = {"id": q.id, "user_id": q.user_id if mode == "tools" else None, "query": q.query, "mode": mode,
            "fault": q.fault if mode == "tools" else None, "needs": q.needs, "seconds": round(seconds, 1),
-           "error": error, "answer": None, "model": None, "passages": [], "tool_calls": []}
+           "error": error, "answer": None, "model": None, "passages": [], "tool_calls": [], "trace_id": None,
+           "guardrail": None}
     if a:
-        rec.update(answer=a.text, model=a.model, retrieval_seconds=round(a.retrieval_seconds, 1),
-                   generation_seconds=round(a.generation_seconds, 1),
+        rec.update(answer=a.text, model=a.model, trace_id=a.trace_id,
+                   guardrail=a.guardrail.action if a.guardrail else None,
+                   retrieval_seconds=round(a.retrieval_seconds, 1), generation_seconds=round(a.generation_seconds, 1),
                    passages=[{"id": p.id, "category": p.category, "score": p.score, "text": p.text} for p in a.passages],
                    tool_calls=[{**asdict(c), "ok": c.ok, "code": c.code, "seconds": round(c.seconds, 3)}
                                for c in a.tool_calls])
     return rec
 
 
-def _ask(q: golden.Query, mode: str) -> dict:
-    """Answer one golden query in the given mode, never raising (an exception is saved in the record)."""
+def _ask(q: golden.Query, mode: str, case_span=None) -> dict:
+    """Answer one golden query in the given mode, never raising (an exception is saved in the record).
+
+    ``case_span(q)``, if given, returns a span to answer inside (the eval harness's case, Task 27), so the answer and
+    whatever the caller adds to that span share one trace.
+    """
     start = time.perf_counter()
-    try:
-        a = pipeline.answer(q.query, user_id=q.user_id if mode == "tools" else None)
-        return _record(q, mode, a, None, time.perf_counter() - start)
-    except Exception:  # a crash is a finding to report, not a reason to lose the other 49 answers
-        return _record(q, mode, None, traceback.format_exc(limit=3), time.perf_counter() - start)
+    with case_span(q) if case_span else contextlib.nullcontext():
+        try:
+            a = pipeline.answer(q.query, user_id=q.user_id if mode == "tools" else None)
+            return _record(q, mode, a, None, time.perf_counter() - start)
+        except Exception:  # a crash is a finding to report, not a reason to lose the other 49 answers
+            rec = _record(q, mode, None, traceback.format_exc(limit=3), time.perf_counter() - start)
+            rec["trace_id"] = obs.trace_id()
+            return rec
 
 
-def run(mode: str, ids: list[int] | None = None, workers: int = 4) -> list[dict]:
+def run(mode: str, ids: list[int] | None = None, workers: int = 4, case_span=None) -> list[dict]:
     """Run golden queries live and return one record per query, ordered by query number.
 
     Args:
         mode: "tools" or "no-tools".
         ids: Query numbers to run (default: all 50).
         workers: Queries answered at once. Each runs its own MCP server process.
+        case_span: Optional ``case_span(query)`` returning a span each answer runs inside (see ``_ask``).
 
     Returns:
         The saved records (see ``_record``).
@@ -103,14 +116,14 @@ def run(mode: str, ids: list[int] | None = None, workers: int = 4) -> list[dict]
     pipeline.retrieve = one_at_a_time
     try:
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            records = list(pool.map(lambda q: _ask(q, mode), normal))
+            records = list(pool.map(lambda q: _ask(q, mode, case_span), normal))
     finally:
         pipeline.retrieve = retrieve
     for q in (q for q in queries if mode == "tools" and q.fault):  # one at a time: the fault patches the pipeline
         original, pipeline.McpHost = pipeline.McpHost, TimingOutAccounts
         try:
             with cache.disabled():  # a cached account summary would hide the injected timeout
-                records.append(_ask(q, mode))
+                records.append(_ask(q, mode, case_span))
         finally:
             pipeline.McpHost = original
     return sorted(records, key=lambda r: r["id"])

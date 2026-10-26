@@ -12,7 +12,7 @@ Week 2 (account tools through MCP, goal memory and the agent trace) is built, wi
 
 Week 3 (guardrails, caching and the badges in the chat) is built and signed off by Sudip, with Aman's and Anil's sign-off still to come: the guardrail rules are written down (Task 19, [docs/guardrails.md](docs/guardrails.md)), since Task 20 every question and every answer passes through a guardrail layer built with NVIDIA NeMo Guardrails, Task 21 tested it live and red-teamed it, since Task 22 repeated lookups and repeated questions are served from a Redis cache, Task 23 measured it (median 11.05 s uncached against 0.009 s cached), since Task 25 the chat shows a guardrail badge and a cache badge above every answer, and all 6 sample queries pass end to end against the expected-answers table ([Task 24](docs/evidence/week-3/task-24-sample-queries.md)) (see [Caching](#caching), [Guardrails](#guardrails) and the [Week 3 tracker](docs/evidence/week-3/README.md)). 
 
-Week 4 (observability, evals and demo readiness) is under way: since Task 26 every question is one OpenTelemetry trace, so retrieval, each tool call and tool failure, the guardrail checks and what they triggered, every model call (with tokens and cost) and every cache lookup share one trace ID; traces are written locally and sent to Langfuse ([one exported trace](docs/evidence/week-4/task-26-trace.md); see [Observability](#observability) and the [Week 4 tracker](docs/evidence/week-4/README.md)). Tasks 27–34 are still to come.
+Week 4 (observability, evals and demo readiness) is under way: since Task 26 every question is one OpenTelemetry trace, so retrieval, each tool call and tool failure, the guardrail checks and what they triggered, every model call (with tokens and cost) and every cache lookup share one trace ID; traces are written locally and sent to Langfuse ([one exported trace](docs/evidence/week-4/task-26-trace.md); see [Observability](#observability) and the [Week 4 tracker](docs/evidence/week-4/README.md)). Since Task 27 one command, `uv run python -m creditcoach.evals`, runs the 6 expected-answers rows as test cases and scores each one, with the scores attached to each case's trace in Langfuse (first run: 6 of 6 pass; see [Evaluation queries](#evaluation-queries) and [the evidence](docs/evidence/week-4/task-27-eval-harness.md)). Tasks 28–34 are still to come.
 
 Every Week 1–2 evaluation, and the Task 20 guardrail run, uses all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
@@ -94,6 +94,8 @@ CreditCoach/
                       #   server.py: serves the welcome page and the chat UI together; limits.py: 5 questions a week
     evals/            #   golden.py + golden_queries.json: the 50 requirements.md queries with their checks;
                       #   live.py: runs them through the agent and saves every answer (Tasks 5, 10, 15; Week 4);
+                      #   harness.py (+ __main__.py): the eval harness, `python -m creditcoach.evals` (Task 27);
+                      #   sample_rows.py: the expected-answers table's checks, shared by Tasks 24 and 27;
                       #   red_team.json: 28 adversarial prompts and 4 benign controls for the guardrail layer (Task 21)
     memory/           #   per-user memory: store.py (episodes, goal), pg.py (Neon Postgres), dream.py (consolidation) (Task 16);
                       #   recall.py: MEMORY in each answer and the save_goal / clear_goal tools (Task 17)
@@ -113,7 +115,8 @@ CreditCoach/
                       #   test_llm.py: model client (output-token cap, fallback, token and cost tracking for Task 23),
                       #   test_dataset.py: dataset loader (backend choice, Neon unreachable),
                       #   test_signup.py: the sign-up form and generated profile, sign-in sessions, the weekly allowance,
-                      #   test_observability.py (Task 26): one trace ID per request, every event type, no identifiers
+                      #   test_observability.py (Task 26): one trace ID per request, every event type, no identifiers,
+                      #   test_eval_harness.py (Task 27): every scorer, the judge, Langfuse scores, one trace per case
   scripts/
     synthetic/        #   step1-3: build data/ from the interviews and the sample
     task05_prompt_tests.py   # system prompt test runs (Task 5; --all: rule checks on all 50 answers)
@@ -252,6 +255,16 @@ requirements.md lists 50 queries with their expected behavior: 6 sample queries 
 
 The live checks are lenient keyword checks: they catch a missing figure or behavior, and the Task 27 judge scores tone and completeness.
 
+### Eval harness (Task 27)
+
+```bash
+uv run python -m creditcoach.evals                    # the 6 expected-answers rows (requirements.md §3)
+uv run python -m creditcoach.evals --all              # all 50 queries
+uv run python -m creditcoach.evals --label baseline   # name the run; --rescore scores a saved run again for free
+```
+
+Each row is a test case scored by **expected** (every separate thing the row asks for), **judge** (an independent `SMALL_MODEL`: meets the expected behavior, grounded ≥ 4/5, clear ≥ 3/5) and **run** (no crash, main model, not blocked). The §4 queries add **figures** (every figure traced to the data). A case passes when every scorer passes, and the run's score is the share that pass. The report goes to `docs/evidence/week-4/eval-<label>.md`. Each case is one trace, tagged `eval:<label>` in Langfuse with its scores attached. Runs are uncached and use a temporary memory folder. Details: [task-27-eval-harness.md](docs/evidence/week-4/task-27-eval-harness.md).
+
 ## Configuration
 
 All settings are read from `.env` (git-ignored). See [.env.example](.env.example).
@@ -338,7 +351,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 | 2 | **No CI.** There's no `.github/workflows/`. | One GitHub Actions workflow on every PR: `uv sync`, lint, `creditcoach.check` and the tests. Add a build badge to this README once it passes.<br><br>**Started (Task 13):** `.github/workflows/tests.yml` runs `uv sync --frozen` and `pytest` on every PR and push to `main`. Still to do: lint, `creditcoach.check` (it needs an API key, so it would need a CI secret or a skip) and the badge. |
 | 3 | **No lint, format or type-check config.** `.gitignore` lists `.ruff_cache/`, but ruff isn't configured. | Add `[tool.ruff]` and a type checker (mypy or pyright) to `pyproject.toml`, plus a `.pre-commit-config.yaml`. |
 | 4 | **No LICENSE.** The repo is public, but without a license nobody can legally reuse or contribute to the code. | Add a LICENSE file (the team picks the license). |
-| 5 | **Evals are one-off scripts, not a harness.** `scripts/task05…task10` write Markdown evidence, and the Task 5 and Task 10 judgments are filled in by a person (`_TBD_`). | A reusable eval suite with a golden set of questions (JSON or YAML), built from the 50 queries in requirements.md §3 and §4, and automatic scoring:<br>- **Retrieval:** Hit@k and MRR.<br>- **Guardrails:** refuses guarantees and predatory products; invents no numbers.<br>- **Answer quality:** an LLM judge using `SMALL_MODEL`, already set aside for this.<br><br>This is where Week 4's harness (Tasks 27–30) begins.<br><br>**Started (2026-10-02):** the golden set (`creditcoach/evals/`, see [Evaluation queries](#evaluation-queries)) with retrieval Hit@3 and MRR, keyword and figure checks, and a guarantee check, used by Tasks 5, 7, 9, 10, 13, 14 and 15, and saved live runs to score against. **Week 3:** the guardrail checks run on every answer, a red-team set of 28 adversarial prompts with a small-model judge (Task 21), and the six sample queries scored against the expected-answers table (Task 24). Still to do: a one-command harness over all 50 queries (Task 27). |
+| 5 | **Evals are one-off scripts, not a harness.** `scripts/task05…task10` write Markdown evidence, and the Task 5 and Task 10 judgments are filled in by a person (`_TBD_`). | A reusable eval suite with a golden set of questions (JSON or YAML), built from the 50 queries in requirements.md §3 and §4, and automatic scoring:<br>- **Retrieval:** Hit@k and MRR.<br>- **Guardrails:** refuses guarantees and predatory products; invents no numbers.<br>- **Answer quality:** an LLM judge using `SMALL_MODEL`, already set aside for this.<br><br>This is where Week 4's harness (Tasks 27–30) begins.<br><br>**Started (2026-10-02):** the golden set (`creditcoach/evals/`, see [Evaluation queries](#evaluation-queries)) with retrieval Hit@3 and MRR, keyword and figure checks, and a guarantee check, used by Tasks 5, 7, 9, 10, 13, 14 and 15, and saved live runs to score against. **Week 3:** the guardrail checks run on every answer, a red-team set of 28 adversarial prompts with a small-model judge (Task 21), and the six sample queries scored against the expected-answers table (Task 24). **Week 4:** the one-command harness (Task 27): `uv run python -m creditcoach.evals` scores the 6 rows (`--all`: all 50) with automatic checks and a small-model judge, and attaches the scores to each case's trace in Langfuse. |
 | 6 | **Regressions go unnoticed.** Nothing runs the evals when the prompt or model changes. | Run the retrieval evals in CI (local and free). Run the LLM evals on demand, because they cost API credits. |
 
 ### 2. Before and during Week 2: agent readiness and robustness
