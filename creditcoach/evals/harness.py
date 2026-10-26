@@ -10,7 +10,7 @@ Cases
               Aravind (USR-001): #5 alone in session 1 (it stores the goal), then #1, #2, #3, #4, #6 in session 2,
               where #3 must use that goal without being told it.
     §4 #7-50  With ``--all``: each as one turn signed in as its user (``live.run``; #45 with the account tool forced
-              to time out). Twelve depend on a stored goal or an earlier turn that this run doesn't set up (the
+              to time out). Ten depend on a stored goal or an earlier turn that this run doesn't set up (the
               golden ``needs``); they are scored as asked and flagged, so a failure there is read with that in mind.
 
 Scorers (each gives a ``Score``: name, passed, value from 0 to 1, detail)
