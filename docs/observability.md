@@ -52,6 +52,8 @@ Every trace carries `deployment.environment` (`CREDITCOACH_ENV`, default `local`
 
 [task-26-trace.md](evidence/week-4/task-26-trace.md), live: the payday-loan question as USR-001 with `get_account_summary` forced to time out. 13 spans and 16 events, all under one trace ID, with a span tree and an event timeline: retrieval (with the product-risk passages), a successful `get_score_history`, the failed `get_account_summary` (ERROR, retried once, `DATA_UNAVAILABLE`), the G2 guardrail trigger, both model calls with tokens and cost, and every cache lookup. The exported trace is [runs/task-26-trace.json](evidence/week-4/runs/task-26-trace.json). `tests/test_observability.py` has 8 tests that need no API key.
 
+Since Task #27 the eval harness runs each case inside an `eval.case` span, so the whole answer is under that case's trace (tagged `eval` and `eval:<label>`), and attaches the case's scores to the trace in Langfuse (`eval.pass`, `eval.expected`, `eval.judge.grounded`, `eval.judge.clear`) with `observability.score()`. A failing eval case opens straight onto the trace that explains it ([task-27-eval-harness.md](evidence/week-4/task-27-eval-harness.md)).
+
 The trace made one cost visible straight away: `context.build` takes about 1.3 s, almost all of it loading the user's profile from Neon on every question. That is a lead for the Task #29 error analysis.
 
 ## 5. Open questions for team review

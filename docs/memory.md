@@ -148,9 +148,9 @@ Every user is synthetic. Memory is no longer committed to the public repository;
 ## 9. Open questions for team review
 
 1. **Retention.** Episode files grow with every session. Proposal: keep everything during the 4-week build. Before the demo, decide whether to keep only the dreams for older sessions.
-2. **Evaluation runs.** The Week 4 eval harness calls the pipeline directly, so it writes no memory. Should eval sessions also be recorded (with `source: "eval"`), or kept out of users' histories? Proposal: keep them out.
+2. **Evaluation runs.** Should eval sessions also be recorded (with `source: "eval"`), or kept out of users' histories? *Decided in Task #27:* kept out. The eval harness writes memory only to a temporary folder.
 3. **Goal candidates.** *Decided in Task #17:* MEMORY lists candidates newer than the stored goal, and the model may ask "Shall I save that as your goal?". It saves only after the user confirms.
-4. **Eval runs with memory.** The 50-query live run starts every query with empty memory, so the goal-memory queries (#3, #5, #23, #25, #35–#40) are still marked "partly deferred" there. Proposal: the Task #27 harness seeds each query's stored goal and earlier session (for example, #36 runs after #35) using a temporary memory folder, as `scripts/task17_goal_recall.py` does.
+4. **Eval runs with memory.** *Partly done in Task #27:* the harness runs #5 and then #3 in two sessions with a temporary memory folder, so both are scored with real goal memory. The §4 goal-memory queries (#23, #25, #35–#40) still start with empty memory under `--all`, and the report flags them. Proposal: seed each one's stored goal and earlier session (for example, #36 runs after #35) if the Task #29 error analysis shows their failures come from the missing setup.
 
 ## 10. Sign-off
 

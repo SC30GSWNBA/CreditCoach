@@ -65,6 +65,7 @@ turned off.
 """
 
 import argparse
+import contextvars
 import logging
 import os
 import queue
@@ -226,7 +227,9 @@ def respond(message: str, history: list, request: gr.Request) -> Iterator[str | 
             events.put(None)
 
     trace = Trace(question=question)
-    threading.Thread(target=work, name=f"answer-{user_id}", daemon=True).start()
+    # In the caller's context, so a span the caller opened (an eval case, Task 27) is the answer's parent
+    threading.Thread(target=contextvars.copy_context().run, args=(work,), name=f"answer-{user_id}",
+                     daemon=True).start()
     yield trace.messages()
     while True:
         try:

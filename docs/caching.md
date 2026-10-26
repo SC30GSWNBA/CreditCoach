@@ -111,7 +111,7 @@ The workload's overall hit rate was 57% (20 of 35), which cut its waiting time b
 1. **Tool results for 5 minutes.** Is serving a user's figures from a 5-minute-old lookup acceptable under §6's "live tool call"? Proposal: yes, with §4's safeguards, and the dataset is a static snapshot. Setting `TTL["tool"]` to 0 would make every lookup live at a cost of about 1.8 s a question with the dataset in Neon.
 2. **Answers for an hour.** Should the limit be shorter, or longer for the demo? Proposal: keep 1 hour; correctness comes from the checks in §3, not from the limit.
 3. **Reworded questions.** Step 3 asks a model whether two questions are the same. It gave no wrong hit in testing, but it is a model. Task 23 saw none either (0 of 5 look-alikes matched). Proposal: keep it on, and review any wrong hit seen in the Week 4 evals.
-4. **Evaluations and the cache.** Caching answers in eval runs would cut their cost, but a run would then partly measure the cache. Proposal: keep evals uncached, and reconsider with the Task 27 harness.
+4. **Evaluations and the cache.** Caching answers in eval runs would cut their cost, but a run would then partly measure the cache. *Decided in Task 27:* the eval harness turns the cache off for the whole run, so every answer and tool call is fresh.
 5. **One Redis each, or one shared.** Each teammate runs a local Redis today. A shared Redis would let a demo machine reuse answers warmed elsewhere, at the cost of a secret to manage. Proposal: local for now.
 6. **Query router.** Sending simple questions to a cheaper model would cut the cost of a cache miss. Not in tasks.md. Task 23 measured a miss at $0.0122 and 11 s; proposal: the team decides whether that is worth a router.
 

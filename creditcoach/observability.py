@@ -230,6 +230,31 @@ def as_dict(s: ReadableSpan) -> dict:
                         "attributes": dict(e.attributes or {})} for e in s.events]}
 
 
+def score(trace_id: str, name: str, value: bool | float | str, comment: str | None = None) -> bool:
+    """Attach a score to a trace in Langfuse (the eval harness's verdicts, Task 27), so a trace and how it was
+    judged sit side by side. Booleans are sent as BOOLEAN, numbers as NUMERIC, text as CATEGORICAL.
+
+    Returns True if Langfuse accepted it; False without Langfuse keys or on any error (logged, never raised).
+    """
+    if not (config.LANGFUSE_PUBLIC_KEY and config.LANGFUSE_SECRET_KEY and trace_id):
+        return False
+    import urllib.request
+
+    kind = "BOOLEAN" if isinstance(value, bool) else "NUMERIC" if isinstance(value, (int, float)) else "CATEGORICAL"
+    body = {"traceId": trace_id, "name": name, "value": float(value) if kind != "CATEGORICAL" else value,
+            "dataType": kind, **({"comment": comment[:MAX_TEXT]} if comment else {})}
+    auth = base64.b64encode(f"{config.LANGFUSE_PUBLIC_KEY}:{config.LANGFUSE_SECRET_KEY}".encode()).decode()
+    req = urllib.request.Request(config.LANGFUSE_HOST.rstrip("/") + "/api/public/scores", method="POST",
+                                 data=json.dumps(body).encode(),
+                                 headers={"Authorization": f"Basic {auth}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return 200 <= r.status < 300
+    except Exception:
+        log.exception("Couldn't send score %s to Langfuse for trace %s", name, trace_id)
+        return False
+
+
 def load(trace_id: str, folder: Path | None = None) -> list[dict]:
     """Every recorded span of one trace from the local files, in the order they finished."""
     folder = Path(folder or config.TRACES_DIR)
