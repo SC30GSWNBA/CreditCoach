@@ -12,7 +12,7 @@ Week 2 (account tools through MCP, goal memory and the agent trace) is built, wi
 
 Week 3 (guardrails, caching and the badges in the chat) is built and signed off by Sudip, with Aman's and Anil's sign-off still to come: the guardrail rules are written down (Task 19, [docs/guardrails.md](docs/guardrails.md)), since Task 20 every question and every answer passes through a guardrail layer built with NVIDIA NeMo Guardrails, Task 21 tested it live and red-teamed it, since Task 22 repeated lookups and repeated questions are served from a Redis cache, Task 23 measured it (median 11.05 s uncached against 0.009 s cached), since Task 25 the chat shows a guardrail badge and a cache badge above every answer, and all 6 sample queries pass end to end against the expected-answers table ([Task 24](docs/evidence/week-3/task-24-sample-queries.md)) (see [Caching](#caching), [Guardrails](#guardrails) and the [Week 3 tracker](docs/evidence/week-3/README.md)). 
 
-Week 4 (observability, evals and demo readiness) is under way: since Task 26 every question is one OpenTelemetry trace, so retrieval, each tool call and tool failure, the guardrail checks and what they triggered, every model call (with tokens and cost) and every cache lookup share one trace ID; traces are written locally and sent to Langfuse ([one exported trace](docs/evidence/week-4/task-26-trace.md); see [Observability](#observability) and the [Week 4 tracker](docs/evidence/week-4/README.md)). Since Task 27 one command, `uv run python -m creditcoach.evals`, runs the 6 expected-answers rows as test cases and scores each one, with the scores attached to each case's trace in Langfuse (first run: 6 of 6 pass; see [Evaluation queries](#evaluation-queries) and [the evidence](docs/evidence/week-4/task-27-eval-harness.md)). Task 28 recorded the baseline over all 50 queries: 36 of 50 pass, 72% ([baseline](docs/evidence/week-4/task-28-baseline.md)). Tasks 29–34 are still to come.
+Week 4 (observability, evals and demo readiness) is under way: since Task 26 every question is one OpenTelemetry trace, so retrieval, each tool call and tool failure, the guardrail checks and what they triggered, every model call (with tokens and cost) and every cache lookup share one trace ID; traces are written locally and sent to Langfuse ([one exported trace](docs/evidence/week-4/task-26-trace.md); see [Observability](#observability) and the [Week 4 tracker](docs/evidence/week-4/README.md)). Since Task 27 one command, `uv run python -m creditcoach.evals`, runs the 6 expected-answers rows as test cases and scores each one, with the scores attached to each case's trace in Langfuse (first run: 6 of 6 pass; see [Evaluation queries](#evaluation-queries) and [the evidence](docs/evidence/week-4/task-27-eval-harness.md)). Task 28 recorded the baseline over all 50 queries: 36 of 50 pass, 72% ([baseline](docs/evidence/week-4/task-28-baseline.md)). The app is also deployed on Railway for testers at **https://creditcoach-production.up.railway.app** (sign-up needs the invite code; see [Deployment](#deployment-railway)), ahead of Task 34. Tasks 29–34 are still to come.
 
 Every Week 1–2 evaluation, and the Task 20 guardrail run, uses all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
@@ -84,7 +84,7 @@ CreditCoach/
     dataset.py        #   reads users, accounts and score history from Neon or data/ (same DataFrames either way)
     tools/            #   data tools from docs/tools.md: score_history.py (Task 13), account_summary.py (Task 14); common.py (errors, data);
                       #   server.py: MCP server exposing both (Task 15): python -m creditcoach.tools.server
-    app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share];
+    app/              #   Gradio chat UI (Task 11): python -m creditcoach.app [--share] [--host] [--port];
                       #   trace.py: live progress and the expandable agent trace (Task 18)
                       #   charts.py: the "My credit" tab: score story, card utilization what-if, what you owe
                       #   confidence.py: the confidence percentage under each answer (fixed checks, no model call)
@@ -144,6 +144,9 @@ CreditCoach/
   user_interviews/    # 14 interview responses (dummy participants) used to build data/
   sample_data/        # original seed profile (USR-001) in xlsx, in USD
   docs/               # team.md, hld.html, 6-pager.md, pr-faq.md, user-guide.md, tools.md, memory.md, guardrails.md, caching.md, observability.md, research/, evidence/week-1/ to week-4/
+  Dockerfile          # the deployed image (Railway): CPU-only PyTorch, models and vector store built in
+  railway.json        # Railway: build from the Dockerfile, health check on /welcome/; .dockerignore keeps secrets out
+  .env.example        # every setting, with what it does; copy to .env
   tasks.md            # 4-week task plan with Definition of Done per task
   requirements.md     # product requirements, persona, sample and additional queries, guardrails
   credit_score_factors_guide.pdf   # seed document for the RAG corpus
@@ -398,7 +401,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 
 | # | Gap today | Plan |
 |---|---|---|
-| 12 | **Setup takes several manual steps.** | Add a Dockerfile or devcontainer for one-command setup, which also makes the Task 34 deployment (for example Hugging Face Spaces or Render) straightforward. Use the CPU-only PyTorch index to shrink the large first download. |
+| 12 | **Setup takes several manual steps.** | Add a Dockerfile or devcontainer for one-command setup, which also makes the Task 34 deployment (for example Hugging Face Spaces or Render) straightforward. Use the CPU-only PyTorch index to shrink the large first download.<br><br>**Done (2026-10-27):** a `Dockerfile` with CPU-only PyTorch on Linux, the models and vector store built into the image, deployed on Railway (see [Deployment](#deployment-railway)). |
 | 13 | **Long commands.** | Add a Makefile or justfile with `setup`, `ingest`, `test`, `eval`, `app` and `lint`. |
 | 14 | **No contributor files.** | Add:<br>- `CONTRIBUTING.md`, with the branch strategy moved there;<br>- `SECURITY.md`, covering how to report problems such as a leaked API key, and how data is handled;<br>- PR and issue templates;<br>- `CHANGELOG.md`. |
 

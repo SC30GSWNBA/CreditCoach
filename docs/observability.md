@@ -36,7 +36,9 @@ Checked live on 2026-10-25 against the team's Langfuse Cloud project (Japan regi
 
 **Reading traces back from Langfuse** (for the Task #31 dashboard): use `GET /api/public/v2/observations` (filter by `traceId`, or by `fromStartTime` and `toStartTime`; add `fields=core,basic,usage,model,io` for more than the core fields). The older `/api/public/traces` and `/api/public/observations` already return 410 on Langfuse Cloud and are removed on 2026-11-16. Sending traces is not affected: it goes over OpenTelemetry.
 
-Every trace carries `deployment.environment` (`CREDITCOACH_ENV`, default `local`), so traces from the deployed build can be told apart from local runs.
+Every trace carries `deployment.environment` (`CREDITCOACH_ENV`, default `local`; the Docker image sets `railway`), so traces from the deployed build can be told apart from local runs.
+
+**On Railway, Langfuse is the record.** The container's own disk is replaced on every redeploy, so its `.traces/` files are lost with it. Testers' traces are kept only in Langfuse, which is where the Task #29 error analysis and the Task #31 dashboard should read them.
 
 **Why OpenTelemetry with Langfuse on top.** The implementation plan named both OpenTelemetry and Langfuse. Instrumenting with OpenTelemetry keeps the code free of any one vendor, and Langfuse accepts OpenTelemetry directly, so we get its LLM views (generations, cost, sessions) without its SDK. The local file means a fresh clone records traces with no account, and the Task #27 to #30 eval runs can be analysed offline.
 
