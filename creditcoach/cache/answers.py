@@ -17,8 +17,13 @@ How two questions are judged the same (``match``), in order:
     1. exact            Equal after lower-casing and removing punctuation and extra spaces.
     2. same words       Embedding similarity of at least ``THRESHOLD`` and the same set of meaning-bearing words
                         (contractions, word order, tense, filler words and British spellings don't count).
-    3. model-confirmed  Similarity of at least ``THRESHOLD`` with different words, none of the vetoes below, and
+    3. model-confirmed  Similarity of at least ``CONFIRM_FROM`` otherwise, none of the vetoes below, and
                         ``SMALL_MODEL`` agrees the two questions ask for the same thing.
+
+``CONFIRM_FROM`` is lower than ``THRESHOLD`` because real rewordings can score well under 0.90 ("How do I improve
+my credit score?" and "What can I do to raise my credit score?" score 0.852). Measured on 28 pairs (15 rewordings,
+13 look-alikes, scripts/task22_confirm_band.py): asking the model from 0.80 matched 14 of the 15 rewordings instead
+of 11, and still no look-alike. The cost is one ``SMALL_MODEL`` call (about 2 s) on a miss in that band.
 
 Embedding similarity alone is not enough. Measured with the project's embedding model: "Why did my credit score
 drop 20 points this month?" scores 0.996 against "...last month?", 0.955 against "...40 points...", and 0.983
@@ -43,7 +48,8 @@ from creditcoach import cache, config, llm
 
 log = logging.getLogger("creditcoach.cache")
 
-THRESHOLD = 0.90   # minimum cosine similarity before a reworded question is even considered
+THRESHOLD = 0.90     # minimum cosine similarity for a "same words" match, with no model call
+CONFIRM_FROM = 0.80  # minimum cosine similarity before SMALL_MODEL is asked whether the questions are the same
 MAX_PER_USER = 20  # stored answers per user; the oldest goes first
 
 CONTRACTIONS = [(r"\bwhat'?s\b", "what is"), (r"\bhow'?s\b", "how is"), (r"\bwhere'?s\b", "where is"),
@@ -156,11 +162,11 @@ def match(question: str, embedding: list[float], entries: list[dict]) -> tuple[d
         if e["plain"] == text:
             return e, "exact", 1.0
     similarity, best = max(((cosine(embedding, e["embedding"]), e) for e in entries), key=lambda pair: pair[0])
-    if similarity < THRESHOLD:
-        return None, f"closest stored question is {similarity:.3f} similar, below {THRESHOLD}", similarity
+    if similarity < CONFIRM_FROM:
+        return None, f"closest stored question is {similarity:.3f} similar, below {CONFIRM_FROM}", similarity
     if reason := veto(question, best["question"]):
         return None, f"{reason} from the closest stored question ({similarity:.3f} similar)", similarity
-    if words(question) == words(best["question"]):
+    if similarity >= THRESHOLD and words(question) == words(best["question"]):
         return best, "same words", similarity
     if config.CACHE_CONFIRM and confirm(question, best["question"]):
         return best, "model-confirmed", similarity

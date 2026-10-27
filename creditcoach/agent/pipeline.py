@@ -36,6 +36,10 @@ building the context, the agent loop (each model turn and each tool call), and t
 findings, tool failures and cache lookups are events on those spans, so everything that happened for one question
 shares one trace ID (``Answer.trace_id``).
 
+Since Task 30, retrieval also searches on what the signed-in user's own data says the question is about
+(``rag.personal``): the factor behind a month the question names, the factors behind the last two falls, or the
+interest on a carried card balance. At most 2 passages are added after the usual ones (``gather_passages``).
+
 Scores, balances, limits and utilization reach the model only through tool calls, so every figure it states
 comes from a live tool result. With no ``user_id`` (the Task 10 runs), no tools are offered and the model is
 told to say it can't see account data. The Gradio UI (``creditcoach.app``) calls ``answer()`` for every chat
@@ -69,6 +73,7 @@ from creditcoach.cache import answers as answer_cache
 from creditcoach.llm import chat, chat_with_tools
 from creditcoach.memory import recall, store
 from creditcoach.prompts import load_system_prompt
+from creditcoach.rag import personal
 from creditcoach.rag import retrieve as rag
 from creditcoach.rag.retrieve import Result, retrieve
 from creditcoach.user_data import load_user_data
@@ -144,6 +149,36 @@ class Answer:
     guardrail: guardrails.Decision | None = None
     cache: dict = field(default_factory=lambda: {"status": "off", "events": []})
     trace_id: str | None = None
+
+
+def gather_passages(question: str, k: int, user_id: str | None, product: bool) -> tuple[list[Result], list[str]]:
+    """The passages for one question: the ``k`` best for the question, then for a product question the product-risk
+    passages (G2), then one new passage for each search the user's own data suggests (``data_probes``, Task 30).
+
+    Returns:
+        ``(passages, probes)``: the passages, numbered [1], [2], ... in this order, and the data searches made.
+    """
+    passages = retrieve(question, k=k)
+    if product:  # G2: the explanation of the risk must come from the library, whatever else was retrieved
+        risk = retrieve(question, k=RISK_PASSAGES, where={"category": "product_risk"})
+        passages += [r for r in risk if r.id not in {p.id for p in passages}]
+    probes = data_probes(question, user_id)
+    for probe in probes:
+        passages += [r for r in retrieve(probe, k=2) if r.id not in {p.id for p in passages}][:1]
+    return passages, probes
+
+
+def data_probes(question: str, user_id: str | None) -> list[str]:
+    """Extra searches from the signed-in user's own data (``rag.personal``); none without a user or if the data
+    can't be read (the tools will report that in the answer)."""
+    if not user_id:
+        return []
+    try:
+        data = load_user_data(user_id)
+    except Exception:
+        logging.getLogger(__name__).exception("Couldn't read %s's data for data-aware retrieval", user_id)
+        return []
+    return personal.probes(question, data["get_score_history"]["points"], data["get_account_summary"]["accounts"])
 
 
 def build_context(passages: list[Result], user_id: str | None = None, memory: str | None = None) -> str:
@@ -403,16 +438,14 @@ def _answer(question, k, user_id, session, history, progress, guard, use_cache) 
     _report(progress, "retrieval", status="start")
     with obs.span("retrieval", **{"langfuse.observation.type": "retriever", "retrieval.k": k,
                                   "langfuse.observation.input": question}):
-        passages = retrieve(question, k=k)
-        if screened.products:  # G2: the explanation of the risk must come from the library, whatever else was retrieved
-            risk = retrieve(question, k=RISK_PASSAGES, where={"category": "product_risk"})
-            passages += [r for r in risk if r.id not in {p.id for p in passages}]
+        passages, probes = gather_passages(question, k, user_id, bool(screened.products))
         found = [{"id": p.id, "title": getattr(p, "title", None), "category": getattr(p, "category", None),
                   "score": round(float(getattr(p, "score", 0)), 4)} for p in passages]
         obs.annotate(**{"retrieval.passages": [f["id"] for f in found] or None,
                         "retrieval.categories": [f["category"] or "" for f in found] or None,
                         "retrieval.scores": [f["score"] for f in found] or None,
-                        "retrieval.risk_added": bool(screened.products), "langfuse.observation.output": found})
+                        "retrieval.risk_added": bool(screened.products), "retrieval.data_probes": probes or None,
+                        "langfuse.observation.output": found})
         if not passages:
             obs.event("retrieval.empty", question=question)
     t1 = time.perf_counter()

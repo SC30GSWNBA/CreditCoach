@@ -198,6 +198,8 @@ Each answer shows:
 - The library sources it used.
 - **Questions left this week**, with the date and time your week resets.
 
+**Tell us how the answer was.** Under each answer are 👍 and 👎. If an answer was wrong, slow or hard to follow, press 👎 and pick the reason that fits best: *Wrong or missing figure*, *Didn't answer my question*, *Too slow* or *Hard to follow*. The project team reads every rating with the answer it belongs to, and uses them to decide what to fix. Rating an answer doesn't use up a question.
+
 ### My credit (your charts)
 
 This tab shows your latest score, how it changed, your card utilization, what you owe, and a month-by-month "score story" with the reason for each change. You can switch between 3, 6 and 12 months and try a "what if I pay down a card?" slider.
@@ -275,6 +277,7 @@ If CreditCoach cannot check your allowance for a technical reason, it tells you 
 - **CreditCoach never sells your answers or passes them** to lenders, banks, credit bureaus, employers or advertisers.
 - **To write an answer, your question and practice profile are processed by the AI model service CreditCoach runs on** and kept in CreditCoach's own database. Nothing in them says who you are.
 - **Your conversations are saved** so CreditCoach can remember your goal and pick up where you left off. The project team can read them to check that answers are accurate.
+- **How each answer was built is recorded** (which library passages and tools it used, how long each step took) in a monitoring service the team uses to find and fix mistakes, together with any 👍 or 👎 you give.
 - **Your password is stored only in scrambled form.** Nobody can read it back.
 - **If you use the email backup, your address is not stored.** It is used to send that one message.
 

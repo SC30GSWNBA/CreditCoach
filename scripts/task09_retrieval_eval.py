@@ -173,8 +173,10 @@ def golden_section() -> list[str]:
               f"labels above. **Highest MRR on all 50 queries: {best}.** "
               + ("The chosen strategy (C) also leads on all 50 queries." if best.startswith("C") else
                  "The chosen strategy (C) stays in production for now: it still leads on the hand-labelled chunk-level "
-                 "comparison, the gap here is small, and the Task 10 and Task 15 runs use it. The misses below are "
-                 "input for the Task 29 error analysis, which decides whether to switch."),
+                 "comparison, the gap here is small, and the Task 10 and Task 15 runs use it. The Task 29 error analysis "
+                 "kept it: the passages that answers missed weren't in the 12 candidates at all, so no reordering "
+                 "strategy would reach them, and Task 30 added searches drawn from the user's own data instead "
+                 "(`creditcoach/rag/personal.py`)."),
               "", f"Queries where the chosen strategy's first chunk is not from a relevant document: {len(misses)} of "
               f"{len(chosen['rows'])}.\n"]
     lines += [f"- #{q.id} {q.query!r}: first relevant chunk at rank {f or 'none'} (top 3: {', '.join(ids)}; "

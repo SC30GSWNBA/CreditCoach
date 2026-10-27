@@ -1,6 +1,6 @@
 # CreditCoach: Caching
 
-*Week 3 · Task #22 · Last updated: 2026-10-10 · Status: Draft for team review · Code: `creditcoach/cache/`*
+*Week 3 · Task #22 · Last updated: 2026-10-27 · Status: Draft for team review · Code: `creditcoach/cache/`*
 
 An answer takes about 11 seconds and one GPT-5 call. Almost all of that is the model. This document defines what CreditCoach caches so repeated work isn't done twice, and the rules that keep a cached answer from being a wrong answer. Task #23 measures the hit rate and the latency improvement, and since Task #25 the chat UI shows a cache badge above each answer ([screenshots](evidence/week-3/task-25-badges.md)).
 
@@ -55,7 +55,7 @@ A cached answer can do harm in two ways: it can answer a different question, or 
 
 1. **Exact:** equal after lower-casing and removing punctuation.
 2. **Same words:** embedding similarity of at least 0.90, and the same set of meaning-bearing words. Contractions, word order, tense, filler words and British spellings don't count: "My credit score dropped 20 points this month. Why?" matches "Why did my credit score drop 20 points this month?".
-3. **Model-confirmed:** similarity of at least 0.90 with different words, and `SMALL_MODEL` agrees the stored answer fully answers the new question (about 1.4 s; any doubt or error is a no). `CREDITCOACH_CACHE_CONFIRM=off` removes this step.
+3. **Model-confirmed:** similarity of at least 0.80 (0.90 until 2026-10-27; see below) with different words, and `SMALL_MODEL` agrees the stored answer fully answers the new question (about 1.4–2 s; any doubt or error is a no). `CREDITCOACH_CACHE_CONFIRM=off` removes this step.
 
 **Embedding similarity alone is not safe.** Measured with the project's embedding model against "Why did my credit score drop 20 points this month?":
 
@@ -68,6 +68,17 @@ A cached answer can do harm in two ways: it can answer a different question, or 
 | "Why did my credit score **rise** 20 points this month?" | 0.939 | No |
 
 No threshold separates the two groups. So two questions whose **numbers, negation or time words** differ are never matched, whatever their similarity and without asking the model. On 23 test pairs (10 rewordings, 13 look-alikes) this gave no wrong hit in two live runs; 8 of the 10 rewordings hit, and the other two scored below 0.90 and were answered afresh. A miss costs time. A wrong hit would give the user an answer about the wrong month.
+
+**Lowered to 0.80 for the model check (2026-10-27).** On the Railway deployment a tester asked three questions about improving a credit score and each one missed. The cache was right about those: they were different questions (similarity 0.776 and 0.717, and the model also said no to each). But it also showed that real rewordings can score under 0.90: "How do I improve my credit score?" and "What can I do to raise my credit score?" score 0.852, so the model was never asked and they always missed. `scripts/task22_confirm_band.py` measured 28 pairs (Task 23's 23 plus 5 rewordings and 8 look-alikes, including the tester's questions):
+
+| Model check from | Rewordings that hit | Look-alikes that hit (wrong) |
+|---|---|---|
+| 0.90 (before) | 11 of 15 | 0 of 13 |
+| 0.85 | 13 of 15 | 0 of 13 |
+| **0.80 (now)** | **13–14 of 15** (two runs) | **0 of 13** |
+| 0.75 | 13–14 of 15 | 0 of 13 |
+
+The model check now starts at 0.80; matching on the same words alone still needs 0.90. The model said no to every look-alike in both runs, including "…for a home loan?" and "a personal loan" in place of "a payday loan". The cost is one `SMALL_MODEL` call (about 2 s) on a miss between 0.80 and 0.90. One rewording stays out of reach: "How much of my card limit am I using right now?" scores 0.562 against "What's my current credit utilization ratio?".
 
 **What is never stored or served from the answer cache:**
 

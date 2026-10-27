@@ -14,7 +14,7 @@ Until Week 3, what happened inside an answer was spread across several places: t
 | `guardrail.input` | the input rails: rules found, predatory products named | `guardrail.trigger` per finding (S1–S3, G2) |
 | `memory.context` | building the MEMORY section (only with a memory session) | |
 | `cache.answer` | the answer-cache lookup: hit, miss or stale, and how it matched | `cache` per lookup |
-| `retrieval` | passage ids, categories and scores; whether the product-risk passages were added | `cache` per lookup; `retrieval.empty` if nothing matched |
+| `retrieval` | passage ids, categories and scores; whether the product-risk passages were added; the searches drawn from the user's own data (`retrieval.data_probes`, Task 30) | `cache` per lookup; `retrieval.empty` if nothing matched |
 | `memory.recall` | the stored goal and how many earlier sessions there are | |
 | `context.build` | loading the user's profile and building the prompt (data backend, history length) | |
 | `agent` | the tool-calling loop | |
@@ -55,6 +55,8 @@ Every trace carries `deployment.environment` (`CREDITCOACH_ENV`, default `local`
 [task-26-trace.md](evidence/week-4/task-26-trace.md), live: the payday-loan question as USR-001 with `get_account_summary` forced to time out. 13 spans and 16 events, all under one trace ID, with a span tree and an event timeline: retrieval (with the product-risk passages), a successful `get_score_history`, the failed `get_account_summary` (ERROR, retried once, `DATA_UNAVAILABLE`), the G2 guardrail trigger, both model calls with tokens and cost, and every cache lookup. The exported trace is [runs/task-26-trace.json](evidence/week-4/runs/task-26-trace.json). `tests/test_observability.py` has 8 tests that need no API key.
 
 Since Task #27 the eval harness runs each case inside an `eval.case` span, so the whole answer is under that case's trace (tagged `eval` and `eval:<label>`), and attaches the case's scores to the trace in Langfuse (`eval.pass`, `eval.expected`, `eval.judge.grounded`, `eval.judge.clear`) with `observability.score()`. A failing eval case opens straight onto the trace that explains it ([task-27-eval-harness.md](evidence/week-4/task-27-eval-harness.md)).
+
+Since Task #29 testers can rate an answer in the chat. A 👍 or 👎 is attached to that answer's trace as the score `user.feedback` (true or false, with the verdict as its comment), and a 👎's reason as `user.feedback.reason` (*Wrong or missing figure*, *Didn't answer my question*, *Too slow*, *Hard to follow*). In Langfuse, filter traces by those scores to read every rated answer with everything that went into it ([task-29-error-analysis.md](evidence/week-4/task-29-error-analysis.md)).
 
 The trace made one cost visible straight away: `context.build` takes about 1.3 s, almost all of it loading the user's profile from Neon on every question. That is a lead for the Task #29 error analysis.
 

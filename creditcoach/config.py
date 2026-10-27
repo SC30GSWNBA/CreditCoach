@@ -78,7 +78,9 @@ CHAT_MODEL = os.getenv("CHAT_MODEL", "openai/gpt-5")
 SMALL_MODEL = os.getenv("SMALL_MODEL", "openai/gpt-5-mini")
 FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "openai/gpt-4o")
 # Reasoning effort for GPT-5-family models (minimal | low | medium | high). "low" cut answer time from
-# ~14-37s to ~8s in Task 11 with the same grounding and citation behaviour.
+# ~14-37s to ~8s in Task 11 with the same grounding and citation behaviour. "minimal" was tried on all 50 eval
+# cases in Task 30, side by side with "low": 40% faster, but 39 of 50 passed against 43 (a misstated figure, a
+# substitute month, missed advice), so "low" stays.
 REASONING_EFFORT = os.getenv("REASONING_EFFORT", "low")
 # Cap on each reply's tokens, reasoning included. Without it OpenRouter reserves GPT-5's full 65,536-token
 # limit, and a key with less credit than that gets a 402 on every call, so every answer silently came from

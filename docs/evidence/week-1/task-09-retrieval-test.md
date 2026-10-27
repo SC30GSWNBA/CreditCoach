@@ -1,6 +1,6 @@
 # Task 9 Evidence: Retrieval Test
 
-*2026-10-02 · Code: `creditcoach/rag/retrieve.py` · Script: `uv run python scripts/task09_retrieval_eval.py`*
+*2026-10-27 · Code: `creditcoach/rag/retrieve.py` · Script: `uv run python scripts/task09_retrieval_eval.py`*
 
 **Definition of Done:** relevant scoring-factor chunk(s) appear in the top-3 retrieved results for "why did my credit score drop 20 points?"
 
@@ -36,9 +36,9 @@ Query: why did my credit score drop 20 points?
 
 | Strategy | Hit@3 | Precision@3 | MRR | Recall@3 | nDCG@3 |
 |---|---|---|---|---|---|
-| A dense | 1.00 | 0.70 | 0.83 | 0.41 | 0.73 |
-| B dense + cap 2/doc | 1.00 | 0.67 | 0.83 | 0.39 | 0.71 |
-| C rerank + cap 2/doc | 1.00 | 0.77 | 0.95 | 0.44 | 0.83 |
+| A dense | 1.00 | 0.73 | 0.83 | 0.42 | 0.75 |
+| B dense + cap 2/doc | 1.00 | 0.70 | 0.83 | 0.41 | 0.73 |
+| C rerank + cap 2/doc | 1.00 | 0.80 | 0.95 | 0.46 | 0.85 |
 | D fusion (dense+rerank) + cap 2/doc | 1.00 | 0.73 | 0.85 | 0.43 | 0.77 |
 
 Hit@3: share of queries with a relevant chunk in the top 3. Precision@3: share of the top-3 chunks that are relevant. MRR: average of 1 / rank of the first relevant chunk (1.00 = always first). Recall@3: share of each query's relevant chunks that reach the top 3. Most queries have 5 to 8 relevant chunks, so the best Recall@3 that 3 slots allow is 0.56, not 1.00. nDCG@3: how close the top-3 order is to putting every relevant chunk first (1.00 = ideal; lower ranks count less). **Chosen: C**, the highest score on every measure. Rank fusion (D) did not beat the reranker alone.
@@ -56,7 +56,7 @@ Queries where the chosen strategy's first result is not relevant:
 | my cibil score fell suddenly, what happened? | `why-scores-drop#00`, `why-scores-drop#01`, `credit-report-and-disputes#00` |
 | I applied for a new card and my balance went up, why is my score lower? | `why-scores-drop#01`, `factor-credit-utilization#01`, `why-scores-drop#02` |
 | What's my current credit utilization ratio? | `factor-credit-utilization#00`, `factor-credit-utilization#01`, `score-impact-reference#01` |
-| I want to buy a car in 12 months — what should I focus on? | `planning-for-a-car-loan#02`, `planning-for-a-car-loan#01`, `credit-goals-and-no-guarantees#00` |
+| I want to buy a car in 12 months — what should I focus on? | `planning-for-a-car-loan#02`, `planning-for-a-car-loan#01`, `factor-hard-inquiries#01` |
 | Should I take out this payday loan to pay off my credit card? | `payday-loans-and-instant-loan-apps#02`, `minimum-due-and-interest#02`, `payday-loans-and-instant-loan-apps#03` |
 | is it ok to use an instant loan app to clear my card dues? | `minimum-due-and-interest#02`, `payday-loans-and-instant-loan-apps#02`, `safer-alternatives#00` |
 | Remember that I'm saving for a car and want to hit a 720 score by next year. | `credit-goals-and-no-guarantees#00`, `planning-for-a-car-loan#00`, `credit-goals-and-no-guarantees#01` |
@@ -69,11 +69,11 @@ The 6 sample queries (§3) and the 44 additional queries (§4), asked word for w
 | Strategy | Hit@3 | Precision@3 | MRR |
 |---|---|---|---|
 | A dense | 0.86 | 0.67 | 0.83 |
-| B dense + cap 2/doc | 0.88 | 0.64 | 0.84 |
-| C rerank + cap 2/doc | 0.93 | 0.63 | 0.84 |
+| B dense + cap 2/doc | 0.88 | 0.63 | 0.84 |
+| C rerank + cap 2/doc | 0.93 | 0.62 | 0.84 |
 | D fusion (dense+rerank) + cap 2/doc | 0.95 | 0.65 | 0.86 |
 
-Precision@3 here counts every chunk from a relevant document, a looser test than the chunk-level labels above. **Highest MRR on all 50 queries: D fusion (dense+rerank) + cap 2/doc.** The chosen strategy (C) stays in production for now: it still leads on the hand-labelled chunk-level comparison, the gap here is small, and the Task 10 and Task 15 runs use it. The misses below are input for the Task 29 error analysis, which decides whether to switch.
+Precision@3 here counts every chunk from a relevant document, a looser test than the chunk-level labels above. **Highest MRR on all 50 queries: D fusion (dense+rerank) + cap 2/doc.** The chosen strategy (C) stays in production for now: it still leads on the hand-labelled chunk-level comparison, the gap here is small, and the Task 10 and Task 15 runs use it. The Task 29 error analysis kept it: the passages that answers missed weren't in the 12 candidates at all, so no reordering strategy would reach them, and Task 30 added searches drawn from the user's own data instead (`creditcoach/rag/personal.py`).
 
 Queries where the chosen strategy's first chunk is not from a relevant document: 10 of 43.
 
@@ -94,12 +94,12 @@ Queries where the chosen strategy's first chunk is not from a relevant document:
 |---|---|---|---|---|---|
 | 1 | USR-001 | Why did my credit score drop 20 points this month? | credit-report-and-disputes, credit-scores-in-india, factor-credit-history-length, factor-credit-utilization, factor-hard-inquiries, factor-payment-history, score-impact-reference, why-scores-drop | `why-scores-drop#01`, `why-scores-drop#02`, `factor-credit-utilization#01` | ✅ 1 |
 | 2 | USR-001 | What's my current credit utilization ratio? | factor-credit-utilization, minimum-due-and-interest | `factor-credit-utilization#00`, `factor-credit-utilization#01`, `score-impact-reference#01` | ✅ 1 |
-| 3 | USR-001 | I want to buy a car in 12 months — what should I focus on? | building-good-credit-habits, credit-goals-and-no-guarantees, credit-scores-in-india, factor-credit-history-length, factor-credit-mix, factor-credit-utilization, factor-hard-inquiries, factor-payment-history, minimum-due-and-interest, no-credit-history, planning-for-a-car-loan, score-impact-reference | `planning-for-a-car-loan#02`, `planning-for-a-car-loan#01`, `credit-goals-and-no-guarantees#00` | ✅ 1 |
+| 3 | USR-001 | I want to buy a car in 12 months — what should I focus on? | building-good-credit-habits, credit-goals-and-no-guarantees, credit-scores-in-india, factor-credit-history-length, factor-credit-mix, factor-credit-utilization, factor-hard-inquiries, factor-payment-history, minimum-due-and-interest, no-credit-history, planning-for-a-car-loan, score-impact-reference | `planning-for-a-car-loan#02`, `planning-for-a-car-loan#01`, `factor-hard-inquiries#01` | ✅ 1 |
 | 4 | USR-001 | Should I take out this payday loan to pay off my credit card? | credit-repair-scams, minimum-due-and-interest, payday-loans-and-instant-loan-apps, safer-alternatives | `payday-loans-and-instant-loan-apps#02`, `minimum-due-and-interest#02`, `payday-loans-and-instant-loan-apps#03` | ✅ 1 |
 | 5 | USR-001 | Remember that I'm saving for a car and want to hit a 720 score by next year. | credit-goals-and-no-guarantees, planning-for-a-car-loan | `credit-goals-and-no-guarantees#00`, `planning-for-a-car-loan#00`, `credit-goals-and-no-guarantees#01` | ✅ 1 |
 | 6 | USR-001 | Can you guarantee my score will hit 720 if I do what you said? | building-good-credit-habits, credit-goals-and-no-guarantees, credit-repair-scams, credit-report-and-disputes, credit-scores-in-india, score-impact-reference | `credit-goals-and-no-guarantees#01`, `credit-goals-and-no-guarantees#00`, `credit-repair-scams#00` | ✅ 1 |
 | 7 | USR-001 | My score went from 690 to 650. What happened over the last two months? | factor-credit-utilization, factor-hard-inquiries, score-impact-reference, why-scores-drop | `why-scores-drop#02`, `score-impact-reference#02`, `why-scores-drop#01` | ✅ 1 |
-| 8 | USR-001 | Did applying for a new card hurt my score? | factor-hard-inquiries, score-impact-reference, why-scores-drop | `factor-hard-inquiries#01`, `factor-hard-inquiries#00`, `why-scores-drop#01` | ✅ 1 |
+| 8 | USR-001 | Did applying for a new card hurt my score? | factor-hard-inquiries, score-impact-reference, why-scores-drop | `factor-hard-inquiries#00`, `factor-hard-inquiries#01`, `why-scores-drop#01` | ✅ 1 |
 | 9 | USR-003 | Why did my score dip the last two months? I've always paid on time. | factor-hard-inquiries, planning-for-a-car-loan, why-scores-drop | `why-scores-drop#01`, `factor-payment-history#00`, `factor-credit-utilization#01` | ✅ 1 |
 | 10 | USR-011 | My score dropped a lot in August and I didn't even notice. Why? | factor-credit-utilization, score-impact-reference, why-scores-drop | `why-scores-drop#00`, `why-scores-drop#02`, `factor-credit-utilization#01` | ✅ 1 |
 | 11 | USR-009 | Why did my score crash in April, and is it still hurting me? | building-good-credit-habits, credit-goals-and-no-guarantees, factor-payment-history, score-impact-reference | `why-scores-drop#00`, `why-scores-drop#01`, `score-impact-reference#02` | ⚠️ 3 |
@@ -111,7 +111,7 @@ Queries where the chosen strategy's first chunk is not from a relevant document:
 | 17 | USR-001 | What's my total debt across all my accounts? | none needed | `minimum-due-and-interest#00`, `factor-credit-utilization#01`, `factor-credit-utilization#00` | not scored |
 | 18 | USR-013 | What's my credit utilization? | factor-credit-utilization | `factor-credit-utilization#00`, `factor-credit-utilization#02`, `why-scores-drop#01` | ✅ 1 |
 | 19 | USR-005 | What's my credit utilization? | factor-credit-utilization | `factor-credit-utilization#00`, `factor-credit-utilization#02`, `why-scores-drop#01` | ✅ 1 |
-| 20 | USR-007 | What's my credit score right now? | credit-scores-in-india, no-credit-history | `credit-scores-in-india#00`, `why-scores-drop#02`, `no-credit-history#00` | ✅ 1 |
+| 20 | USR-007 | What's my credit score right now? | credit-scores-in-india, no-credit-history | `credit-scores-in-india#00`, `why-scores-drop#02`, `why-scores-drop#00` | ✅ 1 |
 | 21 | USR-012 | Is my card usage too high? | factor-credit-utilization, minimum-due-and-interest, safer-alternatives | `building-good-credit-habits#01`, `factor-credit-utilization#02`, `factor-credit-utilization#01` | ⚠️ 2 |
 | 22 | USR-001 | What was my score in March? | none needed | `why-scores-drop#02`, `why-scores-drop#00`, `credit-scores-in-india#00` | not scored |
 | 23 | USR-003 | I'm about to apply for a car loan. How should I prepare? | factor-credit-utilization, factor-hard-inquiries, planning-for-a-car-loan | `planning-for-a-car-loan#00`, `planning-for-a-car-loan#01`, `credit-goals-and-no-guarantees#00` | ✅ 1 |
@@ -127,7 +127,7 @@ Queries where the chosen strategy's first chunk is not from a relevant document:
 | 33 | USR-001 | Is a balance transfer a good idea for my 79% card? | factor-hard-inquiries, safer-alternatives | `safer-alternatives#01`, `factor-credit-utilization#00`, `factor-credit-utilization#01` | ✅ 1 |
 | 34 | USR-009 | Can I pay someone to delete my April late payment? | credit-repair-scams, credit-report-and-disputes, factor-payment-history | `factor-payment-history#01`, `credit-report-and-disputes#02`, `factor-payment-history#00` | ✅ 1 |
 | 35 | USR-013 | Remember that I want a score of 850 by December 2027 so I can buy a home. | credit-goals-and-no-guarantees | `credit-goals-and-no-guarantees#00`, `credit-scores-in-india#00`, `planning-for-a-car-loan#00` | ✅ 1 |
-| 36 | USR-013 | How am I doing? | credit-goals-and-no-guarantees | `credit-goals-and-no-guarantees#00`, `building-good-credit-habits#01`, `factor-credit-utilization#00` | ✅ 1 |
+| 36 | USR-013 | How am I doing? | credit-goals-and-no-guarantees | `credit-goals-and-no-guarantees#00`, `building-good-credit-habits#01`, `planning-for-a-car-loan#01` | ✅ 1 |
 | 37 | USR-001 | What should I work on this month? | credit-goals-and-no-guarantees, factor-credit-utilization | `planning-for-a-car-loan#00`, `planning-for-a-car-loan#01`, `factor-credit-utilization#02` | ⚠️ 3 |
 | 38 | USR-001 | Actually, change my target to 750. I want a better rate on the car loan. | credit-goals-and-no-guarantees | `credit-goals-and-no-guarantees#00`, `planning-for-a-car-loan#00`, `planning-for-a-car-loan#02` | ✅ 1 |
 | 39 | USR-001 | What goal did I tell you? | credit-goals-and-no-guarantees | `credit-goals-and-no-guarantees#00`, `credit-goals-and-no-guarantees#01`, `planning-for-a-car-loan#02` | ✅ 1 |

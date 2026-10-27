@@ -319,7 +319,7 @@
        {"tool": "history", "period": "2026-08", "path": "points.0.factor_change", "equals": "Utilization spike"},
        {"tool": "history", "period": "2026-09", "path": "points.0.factor_change", "equals": "Hard inquiry + utilization spike"}],
      "figures": [],
-     "behavior": [["reporting cycle", "statement cycle", "billing cycle", "next statement", "next cycle"]]},
+     "behavior": [["reporting cycle", "statement cycle", "billing cycle", "next statement", "next cycle", "within a cycle", "statement date"]]},
     {"id": 42, "user_id": "USR-009", "tools": [["history"]],
      "facts": [
        {"tool": "history", "period": "latest", "path": "points.0.score", "equals": 760},

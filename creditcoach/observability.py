@@ -230,6 +230,33 @@ def as_dict(s: ReadableSpan) -> dict:
                         "attributes": dict(e.attributes or {})} for e in s.events]}
 
 
+def langfuse_status(timeout: float = 5.0) -> tuple[bool | None, str]:
+    """Whether Langfuse accepts the configured keys: ``(None, ...)`` without keys, else ``(accepted, message)``.
+
+    Langfuse keys belong to one region, so keys used against another region's host are refused (401) and every
+    trace is silently dropped. Found on Railway, where ``LANGFUSE_HOST`` was missing and the default EU host refused
+    the team's Japan-region keys. The app logs a warning at startup when this fails.
+    """
+    if not (config.LANGFUSE_PUBLIC_KEY and config.LANGFUSE_SECRET_KEY):
+        return None, "no Langfuse keys set"
+    import urllib.error
+    import urllib.request
+
+    auth = base64.b64encode(f"{config.LANGFUSE_PUBLIC_KEY}:{config.LANGFUSE_SECRET_KEY}".encode()).decode()
+    request = urllib.request.Request(config.LANGFUSE_HOST.rstrip("/") + "/api/public/projects",
+                                     headers={"Authorization": f"Basic {auth}"})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout):
+            return True, f"Langfuse ({config.LANGFUSE_HOST}, keys accepted)"
+    except urllib.error.HTTPError as exc:
+        if exc.code in (401, 403):
+            return False, (f"Langfuse at {config.LANGFUSE_HOST} refused the keys ({exc.code}): check that "
+                           "LANGFUSE_HOST is your project's region (for example https://jp.cloud.langfuse.com)")
+        return False, f"Langfuse at {config.LANGFUSE_HOST} answered {exc.code}"
+    except Exception as exc:
+        return False, f"Langfuse at {config.LANGFUSE_HOST} not reachable ({type(exc).__name__})"
+
+
 def score(trace_id: str, name: str, value: bool | float | str, comment: str | None = None) -> bool:
     """Attach a score to a trace in Langfuse (the eval harness's verdicts, Task 27), so a trace and how it was
     judged sit side by side. Booleans are sent as BOOLEAN, numbers as NUMERIC, text as CATEGORICAL. The score's id

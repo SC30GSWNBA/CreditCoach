@@ -329,7 +329,10 @@ the date their score will reach a level, as something that will happen or as its
 It is only about credit scores: an amount to pay, a balance or a utilization percentage the user would reach by \
 paying is arithmetic, not a prediction. \
 It is false for: declining to predict; the user's current or past figures, including how the score has already \
-moved ("650 as of 2026-09, down from 690 in July", "net -12 over 12 months"); the gap to the user's goal; a typical \
+moved ("650 as of 2026-09, down from 690 in July", "net -12 over 12 months"); the user's own goal, target score or \
+target date, restated as what they are aiming for ("You're aiming for 720 by next year to buy a car", "your goal of \
+750 by 2027"), because that is their plan, not a forecast; the gap between today's score and that goal ("Today \
+your score is 650, about 70 points to go"); a typical \
 range from general education that is labelled as typical or common (for example "typically around 10 to 40 \
 points", "usually fades in about two years"), even when it answers the user's question about their own score, as long \
 as the draft doesn't say that is what this user will get; "may help", "commonly associated with" and similar \
@@ -358,21 +361,23 @@ def model_review(question: str, answer: str, projection: bool, product: bool) ->
         Exception: If the model can't be reached or its reply isn't the JSON asked for. The caller treats that as
             the check failing (fail closed).
     """
-    def ask() -> dict:
+    def ask(effort: str) -> dict:
         reply, _ = llm.chat([{"role": "system", "content": REVIEW_PROMPT},
                              {"role": "user", "content": f"USER QUESTION:\n{question}\n\nDRAFT ANSWER:\n{answer}"}],
-                            model=config.SMALL_MODEL, effort="minimal")
+                            model=config.SMALL_MODEL, effort=effort)
         verdict = json.loads(reply[reply.index("{"):reply.rindex("}") + 1])
         for key, wanted in (("predicts", projection), ("endorses", product)):
             if wanted and not isinstance(verdict[key], bool):
                 raise ValueError(f"model review returned {key}={verdict[key]!r}")
         return verdict
 
-    verdict = ask()
+    verdict = ask("minimal")
     if (projection and verdict["predicts"]) or (product and verdict["endorses"]):
-        # A finding costs a full rewrite, and at "minimal" effort the reviewer sometimes flags a firm refusal (the
-        # Task 21 red team saw it once in 6 calls on the same draft). Ask again and act only on what both say.
-        second = ask()
+        # A finding costs a full rewrite, and at "minimal" effort the reviewer sometimes flags what isn't a breach:
+        # a firm refusal (the Task 21 red team saw it once in 6 calls on the same draft), or the user's own goal
+        # restated (Task 29: a goal-aware answer flagged in 4 of 10 reviews at "minimal", 0 of 10 at "low"). So a
+        # finding is checked again at "low" effort, and acted on only if both say so. Clean answers never pay for it.
+        second = ask("low")
         verdict = {**verdict, "predicts": verdict["predicts"] and second["predicts"],
                    "endorses": verdict["endorses"] and second["endorses"]}
     out = []

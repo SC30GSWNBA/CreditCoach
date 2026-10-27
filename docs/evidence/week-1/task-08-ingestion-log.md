@@ -1,6 +1,6 @@
 # Task 8 Evidence: Ingestion Pipeline Log
 
-*2026-10-02 · Command: `uv run python -m creditcoach.rag.ingest` (evidence: `uv run python scripts/task08_ingestion_report.py`) · Code: `creditcoach/rag/ingest.py`*
+*2026-10-27 · Command: `uv run python -m creditcoach.rag.ingest` (evidence: `uv run python scripts/task08_ingestion_report.py`) · Code: `creditcoach/rag/ingest.py`*
 
 **Pipeline:** load 17 Markdown documents from `corpus/` → split into semantic blocks (paragraphs, whole lists, whole tables) → pack into chunks of at most 240 tokens, each prefixed with its document title → embed locally with `all-MiniLM-L6-v2` (384 dimensions, normalized, cosine) → store in a persistent ChromaDB collection with metadata (document id, title, category, source, tags for the requirements.md queries #1–50). Each run rebuilds the collection, so re-running never duplicates chunks.
 
@@ -10,7 +10,7 @@
 
 ```
 [ingest] Loaded 17 documents from corpus/
-[ingest] Chunked into 45 chunks (max 240 tokens each; model limit 256) - words min 25 / max 185 / avg 113, tokens max 233
+[ingest] Chunked into 45 chunks (max 240 tokens each; model limit 256) - words min 25 / max 185 / avg 114, tokens max 233
 [ingest] Embedded 45 chunks with sentence-transformers/all-MiniLM-L6-v2 (dimension 384)
 [ingest] Stored 45 chunks in ChromaDB collection 'creditcoach_corpus' at .chroma/
 [ingest]   scoring_factor     18 chunks
@@ -34,7 +34,7 @@
 [ingest]   credit-repair-scams                2 chunks
 [ingest]   safer-alternatives                 4 chunks
 [ingest] Check: expected 45 chunks, store has 45; chunks truncated by the model: 0 -> OK
-[ingest] Done in 6.9s
+[ingest] Done in 5.2s
 ```
 
 ## Result

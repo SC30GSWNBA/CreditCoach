@@ -83,8 +83,10 @@ def criteria(qid: int, a, goal, goal_before) -> list[tuple[str, bool | None, str
             ("Reports the real ratio (37.4%)", has(t, ["37.4%"]), "tool: overall_utilization_ratio 0.374"),
             ("Shows the balances and limits it comes from (₹74,750 ÷ ₹2,00,000)", has(t, ["74750"], ["200000"]),
              "tool: revolving balance 74,750, limit 2,00,000"),
-            ("Does not estimate", not stray and not re.search(r"\b(?:roughly|approximately|around|about|estimate\w*)\s+3[0-9](?:\.\d)?\s?%",
-                                                              t, re.I), "no hedged or untraced ratio"),
+            # a hedged ratio near the real 37.4% is an estimate; "about 30%" is the general guideline (Task 30)
+            ("Does not estimate", not stray and not re.search(r"\b(?:roughly|approximately|around|about|estimate\w*)\s+"
+                                                              r"3(?:[1-9](?:\.\d)?|0\.\d)\s?%", t, re.I),
+             "no hedged or untraced ratio"),
             no_invented]
     if qid == 3:
         steps = len(re.findall(r"(?m)^\s*(?:\d+[.)]|[-•*])\s+\S", t))

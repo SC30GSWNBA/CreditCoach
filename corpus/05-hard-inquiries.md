@@ -19,5 +19,6 @@ New credit makes up roughly 10% of most scoring models.
 **What helps**
 - Apply only for credit you actually need.
 - Before a big loan, such as a car or home loan, avoid other new applications for a few months.
+- When you are already shopping for that loan, submit full applications to a small number of lenders within a short window rather than spreading them out, so the inquiries land together instead of dragging on for months.
 - Use eligibility checks that say they don't affect your score before submitting a full application.
 - If you see an inquiry you don't recognise, check your report and dispute it with the bureau. It may be a sign of fraud.

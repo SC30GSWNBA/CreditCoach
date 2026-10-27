@@ -473,4 +473,13 @@ def test_a_model_review_finding_needs_a_second_call_to_agree(monkeypatch):
     monkeypatch.setattr(checks.llm, "chat", lambda messages, model=None, effort=None: (asked.append(effort), (next(replies), "m"))[1])
     assert checks.model_review("q", "a", True, True) == [] and len(asked) == 2
     assert [f.rule for f in checks.model_review("q", "a", True, True)] == ["G1"] and len(asked) == 4
-    assert checks.model_review("q", "a", True, True) == [] and asked == ["minimal"] * 5
+    assert checks.model_review("q", "a", True, True) == [] and asked == ["minimal", "low", "minimal", "low", "minimal"]
+
+
+def test_the_review_prompt_says_the_users_own_goal_and_its_gap_are_not_predictions():
+    """Task 29: §3 #3 was blocked because the reviewer read "You're aiming for 720 by next year to buy a car" (the
+    user's stored goal) as a prediction, in 5 of 5 reviews of both drafts. Checked live in Task 30 with the prompt
+    below and a second opinion at "low": 0 of 10 flags on those drafts, and 20 of 20 on drafts that do predict."""
+    prompt = " ".join(checks.REVIEW_PROMPT.split())
+    assert "the user's own goal, target score or target date, restated as what they are aiming for" in prompt
+    assert "You're aiming for 720 by next year to buy a car" in prompt and "about 70 points to go" in prompt

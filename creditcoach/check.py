@@ -140,17 +140,10 @@ def main() -> int:
         folder = folder.relative_to(config.ROOT) if folder.is_relative_to(config.ROOT) else folder
         where = ["local files off" if config.TRACES == "off" else f"{folder}/"]
         if config.LANGFUSE_PUBLIC_KEY and config.LANGFUSE_SECRET_KEY:
-            import base64
-            import urllib.request
+            from creditcoach import observability
 
-            auth = base64.b64encode(f"{config.LANGFUSE_PUBLIC_KEY}:{config.LANGFUSE_SECRET_KEY}".encode()).decode()
-            request = urllib.request.Request(config.LANGFUSE_HOST.rstrip("/") + "/api/public/projects",
-                                             headers={"Authorization": f"Basic {auth}"})
-            try:
-                with urllib.request.urlopen(request, timeout=5):
-                    where.append(f"Langfuse ({config.LANGFUSE_HOST}, keys accepted)")
-            except Exception as exc:
-                where.append(f"Langfuse NOT reachable or keys refused ({type(exc).__name__}); traces stay local")
+            accepted, message = observability.langfuse_status()
+            where.append(message if accepted else f"NOT Langfuse: {message}; traces stay local")
         elif config.OTLP_ENDPOINT:
             where.append(f"OTLP collector at {config.OTLP_ENDPOINT}")
         print(f"[INFO] Traces - {', '.join(where)}"
