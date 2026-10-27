@@ -12,7 +12,7 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 | 31 | Dashboard | | | ⬜ | ⬜ |
 | 32 | Edge cases | | | ⬜ | ⬜ |
 | 33 | Demo script | | | ⬜ | ⬜ |
-| 34 | Final rehearsal, deploy, backup video | | | ⬜ | ⬜ |
+| 34 | Final rehearsal, deploy, backup video | Deployed early, for testers (2026-10-27): **https://creditcoach-production.up.railway.app**, built by Railway from the repo's [Dockerfile](../../../Dockerfile) on every merge to `main` (README, Deployment) | Rehearsal and backup video still to do. Deployment checked live: HTTP redirects to HTTPS, the welcome page loads in 0.6 s with every asset over HTTPS, sign-up asks for the invite code, signed-out visits go to the welcome page. Found and fixed while testing the image: the tool server never got `DATABASE_URL` without a `.env`, so every tool call failed (#56) | ⬜ (deploy done) | ⬜ |
 
 ## Week 4 demo goal
 
@@ -24,4 +24,5 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 | Observability dashboard | ⬜ Traces recorded (Task 26); dashboard in Task 31 | [task-26-trace.md](task-26-trace.md) |
 | Eval score before and after the error-analysis fixes | ⬜ Harness built (Task 27); baseline 36 of 50, 72% (Task 28); fixes and re-run in Tasks 29–30 | [task-27-eval-harness.md](task-27-eval-harness.md), [task-28-baseline.md](task-28-baseline.md) |
 | Predatory-product refusal on demand | ✅ (Week 3) | [Task 21](../week-3/task-21-guardrail-tests.md), [Task 25](../week-3/task-25-badges.md) |
+| Deployed build | ✅ (Railway, ahead of Task 34) | https://creditcoach-production.up.railway.app |
 | Team sign-off | ⬜ | Sign-off column above |

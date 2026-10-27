@@ -770,6 +770,40 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
     </section>
 
     <section class="l2">
+      <h3>Evaluation: one command, four scorers</h3>
+      <div class="tbl"><table>
+        <tr><th>Scorer</th><th>A case passes it when</th></tr>
+        <tr><td>Expected</td><td>Every separate thing requirements.md expects of the question holds, checked automatically</td></tr>
+        <tr><td>Figures</td><td>Every number in the answer traces to the tools or the library</td></tr>
+        <tr><td>Judge</td><td>An independent small model says it does what is expected, is grounded and is clear</td></tr>
+        <tr><td>Run</td><td>No crash, the main model answered, and the guardrail layer didn't block it</td></tr>
+      </table></div>
+      <ul>
+        <li><code>python -m creditcoach.evals</code> runs the 6 sample questions the whole way through the board above; <code>--all</code> adds the other 44.</li>
+        <li>Each case is one trace, and its scores are attached to that trace in Langfuse, so a failing case opens onto the steps that explain it.</li>
+        <li>Runs skip the cache and use throwaway memory, so they measure the agent and touch no one's history.</li>
+        <li>Baseline (Task 28): 36 of 50 cases pass.</li>
+      </ul>
+    </section>
+
+    <section class="l2">
+      <h3>Where it runs</h3>
+      <div class="tbl"><table>
+        <tr><th>Piece</th><th>Where</th></tr>
+        <tr><td>Front end, back end, guardrails, RAG, MCP tools</td><td>One container on Railway, built from the repo's Dockerfile on every merge to main</td></tr>
+        <tr><td>Embedding and reranker models, vector store</td><td>Inside the container image, so it starts in seconds</td></tr>
+        <tr><td>Cache</td><td>Railway's Redis</td></tr>
+        <tr><td>Users, logins, memory, dataset</td><td>Neon Postgres</td></tr>
+        <tr><td>Language models</td><td>OpenRouter</td></tr>
+        <tr><td>Traces and eval scores</td><td>Langfuse Cloud</td></tr>
+      </table></div>
+      <ul>
+        <li>Secrets are set as Railway variables and never go into the image.</li>
+        <li>Locally the same app runs with <code>python -m creditcoach.app</code>, or the same image with <code>docker run</code>.</li>
+      </ul>
+    </section>
+
+    <section class="l2">
       <h3>When something breaks</h3>
       <div class="tbl"><table>
         <tr><th>If this fails</th><th>This happens</th></tr>

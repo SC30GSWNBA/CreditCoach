@@ -540,7 +540,8 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "7860")))
     parser.add_argument("--host", default=os.getenv("HOST", "127.0.0.1"))
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    # stdout, not the default stderr: Railway labels every stderr line as an error
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", stream=sys.stdout)
 
     if not auth.logins():
         log.error("No logins found in %s, so nobody could sign in. Add one with scripts/set_login.py.",
