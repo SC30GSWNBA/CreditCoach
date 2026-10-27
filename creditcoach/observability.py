@@ -232,7 +232,8 @@ def as_dict(s: ReadableSpan) -> dict:
 
 def score(trace_id: str, name: str, value: bool | float | str, comment: str | None = None) -> bool:
     """Attach a score to a trace in Langfuse (the eval harness's verdicts, Task 27), so a trace and how it was
-    judged sit side by side. Booleans are sent as BOOLEAN, numbers as NUMERIC, text as CATEGORICAL.
+    judged sit side by side. Booleans are sent as BOOLEAN, numbers as NUMERIC, text as CATEGORICAL. The score's id
+    is the trace and the name, so sending it again replaces it instead of adding a second one.
 
     Returns True if Langfuse accepted it; False without Langfuse keys or on any error (logged, never raised).
     """
@@ -241,7 +242,7 @@ def score(trace_id: str, name: str, value: bool | float | str, comment: str | No
     import urllib.request
 
     kind = "BOOLEAN" if isinstance(value, bool) else "NUMERIC" if isinstance(value, (int, float)) else "CATEGORICAL"
-    body = {"traceId": trace_id, "name": name, "value": float(value) if kind != "CATEGORICAL" else value,
+    body = {"id": f"{trace_id}-{name}", "traceId": trace_id, "name": name, "value": float(value) if kind != "CATEGORICAL" else value,
             "dataType": kind, **({"comment": comment[:MAX_TEXT]} if comment else {})}
     auth = base64.b64encode(f"{config.LANGFUSE_PUBLIC_KEY}:{config.LANGFUSE_SECRET_KEY}".encode()).decode()
     req = urllib.request.Request(config.LANGFUSE_HOST.rstrip("/") + "/api/public/scores", method="POST",
