@@ -322,6 +322,35 @@ Someone without a login creates one on the **Sign up** tab. It needs Neon (`DATA
 - **The CSVs are untouched.** Sign-up users exist only in Neon. `scripts/data_import.py` keeps them when it reloads the CSVs, and the "Neon matches data/*.csv" check ignores them.
 - **Remove a sign-up user** in the Neon SQL editor: delete their rows from `app_usage`, `app_logins`, `dataset_score_history`, `dataset_accounts` and `dataset_users`, in that order. Remove the newest user first, since User IDs are numbered by how many users exist.
 
+## Deployment (Railway)
+
+The app runs on [Railway](https://railway.com) from the `Dockerfile`, so testers can use it without running anything. `railway.json` tells Railway to build from the Dockerfile and to wait for `/welcome/` before sending traffic.
+
+**What the image does.** It installs the dependencies with CPU-only PyTorch (`pyproject.toml` pins it for Linux, which avoids several GB of NVIDIA packages), downloads the embedding and reranker models and builds the vector store at build time, then runs `python -m creditcoach.app` on `0.0.0.0` and the port Railway sets (`PORT`). The image is about 1.2 GB. A container starts in about 12 s and uses about 900 MB of memory, so give the service at least 1 GB (2 GB leaves room for several users at once).
+
+**Setting it up.** In Railway, create a project from this GitHub repository (branch `main`, so every merge redeploys). Add these variables on the service's **Variables** tab, never in the repository:
+
+| Variable | Needed | Why |
+|---|---|---|
+| `OPENROUTER_API_KEY` | Yes | Every answer. A separate key with a spending limit is safest on a public link. |
+| `DATABASE_URL` | Yes | Neon: sign-up, logins, memory and the dataset. |
+| `CREDITCOACH_SESSION_SECRET` | Yes | Signs the sign-in cookie. Without it, every redeploy signs everyone out. `openssl rand -hex 32` makes one. |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Recommended | Testers' traces, tagged with the environment `railway`. |
+| `REDIS_URL` | Recommended | Add Railway's Redis to the project and reference its URL. Without it the cache lives in memory and is lost on every redeploy. |
+| `CREDITCOACH_INVITE_CODE`, `CREDITCOACH_SIGNUP_MAX`, `CREDITCOACH_WEEKLY_QUESTIONS` | Optional | Who may sign up and how much they may ask (see [.env.example](.env.example)). |
+| `SMTP_*` | Optional | The "email me my login" option at sign-up. |
+
+Then open **Settings → Networking → Generate Domain** for a public `*.up.railway.app` address.
+
+**Testing the image locally** (Docker running):
+
+```bash
+docker build -t creditcoach .
+docker run -p 7860:7860 --env-file .env -e REDIS_URL= creditcoach   # then open http://localhost:7860
+```
+
+(`REDIS_URL` is blanked because `localhost` inside the container isn't your machine's Redis.)
+
 ## Branch Strategy
 
 We use **main + short-lived feature branches**, one branch per task.

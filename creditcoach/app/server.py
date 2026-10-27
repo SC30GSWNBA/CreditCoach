@@ -74,16 +74,22 @@ def create(demo: gr.Blocks, css: str = "") -> FastAPI:
     return app
 
 
-def run(demo: gr.Blocks, port: int = 7860, share: bool = False, css: str = "") -> None:
-    """Serve the app on ``127.0.0.1:port`` until Ctrl+C, optionally with a public gradio.live link."""
-    server = uvicorn.Server(uvicorn.Config(create(demo, css), host="127.0.0.1", port=port, log_level="warning"))
+def run(demo: gr.Blocks, port: int = 7860, share: bool = False, css: str = "", host: str = "127.0.0.1") -> None:
+    """Serve the app on ``host:port`` until Ctrl+C, optionally with a public gradio.live link.
+
+    ``host`` is 127.0.0.1 locally. A hosted deployment (Railway) passes 0.0.0.0 to accept its proxy's
+    connections, and then the proxy's X-Forwarded-* headers are trusted, so the app sees the visitor's HTTPS.
+    """
+    hosted = host != "127.0.0.1"
+    server = uvicorn.Server(uvicorn.Config(create(demo, css), host=host, port=port, log_level="warning",
+                                           forwarded_allow_ips="*" if hosted else None))
     thread = threading.Thread(target=server.run, name="creditcoach-server", daemon=True)
     thread.start()
     while not server.started and thread.is_alive():
         time.sleep(0.05)
     if not thread.is_alive():
         raise SystemExit(f"Couldn't start the server on port {port} (is it already in use?)")
-    log.info("CreditCoach running at http://127.0.0.1:%d (login required; %d team logins; sign-up %s)", port,
+    log.info("CreditCoach running at http://%s:%d (login required; %d team logins; sign-up %s)", host, port,
              len(auth.logins()), "open" if welcome.store.available() else "off: no Neon database")
     if share:
         try:

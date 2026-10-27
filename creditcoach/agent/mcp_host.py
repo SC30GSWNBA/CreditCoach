@@ -50,9 +50,16 @@ def server_params() -> StdioServerParameters:
 
     Built when a session opens, not at import, so a backend set at run time (tests force "files") reaches the
     server too; on its own the server would pick Neon whenever ``.env`` has ``DATABASE_URL``.
+
+    The MCP client starts the server with only a minimal environment, so ``DATABASE_URL`` is passed on too. Locally
+    the server would also find it in ``.env``, but a hosted deployment (Railway) has no ``.env``: its secrets are
+    environment variables only, and without this every tool call failed with ``DATA_UNAVAILABLE``.
     """
+    env = {**get_default_environment(), "CREDITCOACH_DATA_BACKEND": config.DATA_BACKEND}
+    if config.DATABASE_URL:
+        env["DATABASE_URL"] = config.DATABASE_URL
     return StdioServerParameters(command=sys.executable, args=["-m", "creditcoach.tools.server"], cwd=str(config.ROOT),
-                                 env={**get_default_environment(), "CREDITCOACH_DATA_BACKEND": config.DATA_BACKEND})
+                                 env=env)
 
 
 @dataclass
