@@ -56,7 +56,22 @@ They are not regressions. These four are unstable under both versions and fail m
 
 **2. The judge.** Judging the re-run's answers a second time changed only one verdict, #39, which is the judge-input fix above. The baseline's two judgings differed on 6 verdicts.
 
-**3. The targeted cases.** The checks in the table above for fixes 1 and 3 were repeated (10 reviews and 3 answers), and fix 2's retrieval is deterministic. A planned repeat of #9, #11, #16, #22, #27 and #46, three times on each code version, **didn't run**: the OpenRouter key reached its $9 spending limit partway through, and every call returned 403. That batch was discarded. It should be repeated once the key is topped up, along with a latency run made close in time to a fresh baseline.
+**3. The cases that changed to pass.** #9, #11, #16, #22, #27 and #46 were each run 3 times on both code versions **at the same time**, so both saw the same model speed. (A first attempt was cut short when the OpenRouter key reached its $9 limit and every call returned 403; that batch was discarded and run again after the limit was raised.)
+
+| Case | Before the fixes | After the fixes | Reading |
+|---|---|---|---|
+| #11 | 0 of 3 | **3 of 3** | Fixed by data-aware retrieval, reliably |
+| #46 | 1 of 3 | **3 of 3** | Fixed by the out-of-range rule, reliably |
+| #16 | 3 of 3 | 3 of 3 | Passes reliably either way: its baseline failure was chance |
+| #27 | 3 of 3 | 2 of 3 | The same: the fix wasn't needed |
+| #22 | 1 of 3 | 1 of 3 | Unstable either way |
+| #9 | 2 of 3 | **0 of 3**, then **3 of 5** after the library fix below | Made worse by data-aware retrieval, then fixed in the library |
+| **Total** | **10 of 18** | **12 of 18** | |
+| Median time per answer | 18.1 s | 18.7 s | Run together, the fixes cost no noticeable time |
+
+**#9: a regression found and fixed.** Data-aware retrieval now reliably adds the hard-inquiry passage for #9. That passage said to avoid other applications before a big loan, and never that, once you are shopping for the loan, the applications should go in within a short window. That advice was only in the car-loan document. So the answer said "hold off", the opposite of what requirements.md expects. The library contradicted itself: the hard-inquiry document's "What helps" list now also says to submit full applications within a short window when already shopping for the loan, in the car-loan document's words ([corpus/05-hard-inquiries.md](../../../corpus/05-hard-inquiries.md), rebuilt: still 45 chunks, every check passing). #9 then passed 3 of 5; both remaining failures are judge-only (it doesn't always link the dips to car-loan shopping).
+
+So for the cases the fixes targeted: #11 and #46 went from mostly failing to always passing, and #9 went from failing to passing more often than not. Of the six cases that changed to pass in the re-run, #16 and #27 would have passed anyway, so the single-run like-for-like +3 is about right but rests partly on luck. The repeated runs are the firmer evidence.
 
 ## Latency
 
@@ -68,13 +83,13 @@ They are not regressions. These four are unstable under both versions and fail m
 | Time per GPT-5 call | 9.2 s (about 90 tokens/s) | 14.1 s (about 58 tokens/s) |
 | Small-model calls in the run | 30 | 29 |
 
-The answers got slower, but not because of the fixes. GPT-5 wrote the same amount and took 50 % longer per call: the provider was slower during the re-run. The fixes added 4 % to the prompt and no small-model calls. Fix 1 removes the worst case, a guardrail block or rewrite (*run* 50 of 50 after, 49 before). **Latency should only be compared between runs made close together in time.** The latency fix itself (reasoning effort) is still to be tried, as Task 29 recommended.
+The answers got slower, but not because of the fixes. GPT-5 wrote the same amount and took 50 % longer per call: the provider was slower during the re-run. The fixes added 4 % to the prompt and no small-model calls. Confirmed by running both code versions at the same time on six cases: median 18.1 s before the fixes, 18.7 s after. Fix 1 removes the worst case, a guardrail block or rewrite (*run* 50 of 50 after, 49 before). **Latency should only be compared between runs made close together in time.** The latency fix itself (reasoning effort) is still to be tried, as Task 29 recommended.
 
 ## What still fails (5 of 50)
 
 | Case | Category (Task 29) | Next step |
 |---|---|---|
-| §4 #9 | Retrieval miss (partly fixed) | The "short window" advice lives in the car-loan passage. Map "Hard inquiry" to the rate-shopping advice as well, or add that advice to `factor-hard-inquiries` |
+| §4 #9 | Retrieval miss (fixed after the re-run: the library fix above; now 3 of 5) | Linking the dips to car-loan shopping more consistently |
 | §4 #12, #15, #21, #28 | Generation gaps, unstable (pass about 1 in 3 under both versions) | System-prompt guidance for each (suggest credit counselling when a card is very high; say loans don't count toward utilization; suggest a payment plan or EMI conversion; don't propose a goal the user didn't set), checked with repeated runs |
 
 ## Reproducing
@@ -93,6 +108,7 @@ uv run python -m creditcoach.evals --compare baseline --label after-fixes   # th
 | [creditcoach/rag/personal.py](../../../creditcoach/rag/personal.py), [agent/pipeline.py](../../../creditcoach/agent/pipeline.py) | Fix 2: data-aware retrieval (`gather_passages`), recorded on the retrieval span as `retrieval.data_probes` |
 | [creditcoach/prompts/system_prompt.md](../../../creditcoach/prompts/system_prompt.md) | Fix 3: no substitute month |
 | [creditcoach/evals/harness.py](../../../creditcoach/evals/harness.py), [sample_rows.py](../../../creditcoach/evals/sample_rows.py), [golden_queries.json](../../../creditcoach/evals/golden_queries.json), [\_\_main\_\_.py](../../../creditcoach/evals/__main__.py) | Goals stored first (`GOAL_SEEDS`), and shown to the judge; the two corrected checks; `--compare` |
+| [corpus/05-hard-inquiries.md](../../../corpus/05-hard-inquiries.md) | The shopping-window advice, so the library no longer contradicts itself (found by the repeated runs of #9) |
 | Tests | [test_personal_retrieval.py](../../../tests/test_personal_retrieval.py) (13); [test_guardrails.py](../../../tests/test_guardrails.py), [test_eval_harness.py](../../../tests/test_eval_harness.py) (4 new) |
 
 ## Team sign-off
