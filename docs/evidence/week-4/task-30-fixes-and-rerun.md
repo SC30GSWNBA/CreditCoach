@@ -18,8 +18,8 @@
 
 | | Before | After |
 |---|---|---|
-| Cases passing *expected* (automatic checks) | 44 | 47 |
-| Cases passing *judge* | 39 | 44 |
+| Cases passing *expected* (automatic checks) | 44 | 48 |
+| Cases passing *judge* | 39 | 45 |
 | Cases passing *run* (no crash, main model, not blocked) | 49 | **50** |
 | Judge averages (grounded, clear) | 4.82, 4.92 | 4.98, 4.98 |
 
