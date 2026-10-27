@@ -11,6 +11,7 @@ dependencies = [
     "openpyxl>=3.1",
     "chromadb>=0.5",
     "sentence-transformers>=3.0",
+    "torch>=2.4",  # listed so Linux (the Railway image) gets the CPU-only build below
     "gradio>=4.40",
     "fastapi>=0.115",
     "uvicorn>=0.30",
@@ -22,6 +23,16 @@ dependencies = [
     "opentelemetry-sdk>=1.39",
     "opentelemetry-exporter-otlp-proto-http>=1.39",
 ]
+
+# On Linux, torch comes from PyTorch's CPU-only index: the default Linux build pulls in about 40 NVIDIA packages
+# (several GB) that a CPU server never uses. macOS is unchanged.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
 
 [dependency-groups]
 dev = [

@@ -63,3 +63,11 @@ def test_tool_server_gets_this_processs_backend(monkeypatch):
     assert mcp_host.server_params().env["CREDITCOACH_DATA_BACKEND"] == "files"
     monkeypatch.setattr(config, "DATA_BACKEND", "postgres")
     assert mcp_host.server_params().env["CREDITCOACH_DATA_BACKEND"] == "postgres"
+
+
+def test_tool_server_gets_the_database_url_from_this_process(monkeypatch):
+    """Found deploying to Railway: with no .env file, the tool server never saw DATABASE_URL and every call failed."""
+    monkeypatch.setattr(config, "DATABASE_URL", "postgresql://u:p@example.neon.tech/db")
+    assert mcp_host.server_params().env["DATABASE_URL"] == "postgresql://u:p@example.neon.tech/db"
+    monkeypatch.setattr(config, "DATABASE_URL", "")
+    assert "DATABASE_URL" not in mcp_host.server_params().env

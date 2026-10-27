@@ -53,6 +53,7 @@ How to run:
     uv run python -m creditcoach.app                 # local only: http://127.0.0.1:7860
     uv run python -m creditcoach.app --share         # also create a public gradio.live link (about 1 week)
     uv run python -m creditcoach.app --port 7861     # use a different local port
+    docker run -p 7860:7860 --env-file .env creditcoach   # the Railway image (see Dockerfile)
 
 Login is always required, locally and on a share link. The team's logins are committed as password hashes in
 ``creditcoach/app/logins.json``; the passwords are shared with the team privately. A share link is public, anyone
@@ -528,13 +529,16 @@ def main() -> None:
 
     Command-line options:
         --share   Also create a public gradio.live link.
-        --port    Local port to serve on (default 7860).
+        --port    Port to serve on (default: ``PORT`` from the environment, as Railway sets it, else 7860).
+        --host    Address to listen on (default: ``HOST`` from the environment, else 127.0.0.1; the Docker image
+                  sets 0.0.0.0).
 
     Blocks until the app is stopped with Ctrl+C.
     """
     parser = argparse.ArgumentParser(description="Run the CreditCoach chat UI.")
     parser.add_argument("--share", action="store_true", help="create a public gradio.live link")
-    parser.add_argument("--port", type=int, default=7860)
+    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "7860")))
+    parser.add_argument("--host", default=os.getenv("HOST", "127.0.0.1"))
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -543,7 +547,7 @@ def main() -> None:
                   config.LOGINS_FILE)
         sys.exit(1)
     warm_up()
-    server.run(build(), port=args.port, share=args.share, css=theme.CSS + charts.CSS + badges.CSS)
+    server.run(build(), port=args.port, share=args.share, css=theme.CSS + charts.CSS + badges.CSS, host=args.host)
 
 
 if __name__ == "__main__":

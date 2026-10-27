@@ -1,0 +1,29 @@
+# Secrets: Railway passes them as variables, never in the image
+.env
+.env.*
+!.env.example
+
+# Local stores and caches: the image builds its own vector store
+.venv/
+.chroma/
+.cache/
+.traces/
+.gradio/
+.pytest_cache/
+.ruff_cache/
+**/__pycache__/
+*.py[cod]
+
+# Not needed to run the app
+.git/
+.github/
+.vscode/
+.idea/
+.DS_Store
+docs/
+tests/
+scripts/
+memory/
+suggestions/
+user_interviews/
+*.pdf
