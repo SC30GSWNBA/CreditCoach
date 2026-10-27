@@ -70,7 +70,7 @@ This run checks that the harness works end to end. Task 28 records the baseline.
 
 The judge gave every answer 5/5. That fits answers that also pass every automatic check, but it may also mean the judge is lenient. Task 29 can check this by comparing the judge's verdicts with the testers'.
 
-**The §4 path.** `--all` runs the 44 additional queries through `live.run`, one turn each, signed in as each query's user. It was checked live on #26 (a normal question) and #45 (the account tool forced to time out): both answered, every one of the four scorers ran, and both passed. Twelve §4 queries depend on a stored goal or an earlier turn that this run doesn't set up. The report flags them (⚑) so their failures are read with that in mind. The full 50-query run is Task 28's.
+**The §4 path.** `--all` runs the 44 additional queries through `live.run`, one turn each, signed in as each query's user. It was checked live on #26 (a normal question) and #45 (the account tool forced to time out): both answered, every one of the four scorers ran, and both passed. Ten §4 queries depend on a stored goal or an earlier turn that this run doesn't set up. The report flags them (⚑) so their failures are read with that in mind. The full 50-query run is Task 28's.
 
 ## What changed
 

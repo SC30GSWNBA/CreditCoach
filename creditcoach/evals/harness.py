@@ -4,13 +4,14 @@
     uv run python -m creditcoach.evals --all            # and the 44 §4 queries: all 50
     uv run python -m creditcoach.evals --label baseline # name the run (Task 28's baseline, Task 30's re-run)
     uv run python -m creditcoach.evals --rescore        # score the saved run again: no answers, no judge calls
+    uv run python -m creditcoach.evals --rejudge        # judge the saved answers again, then score: no new answers
 
 Cases
     §3 #1-6   Run as Task 24 did, through the chat UI's own sign-in, message and log-out functions, signed in as
               Aravind (USR-001): #5 alone in session 1 (it stores the goal), then #1, #2, #3, #4, #6 in session 2,
               where #3 must use that goal without being told it.
     §4 #7-50  With ``--all``: each as one turn signed in as its user (``live.run``; #45 with the account tool forced
-              to time out). Twelve depend on a stored goal or an earlier turn that this run doesn't set up (the
+              to time out). Ten depend on a stored goal or an earlier turn that this run doesn't set up (the
               golden ``needs``); they are scored as asked and flagged, so a failure there is read with that in mind.
 
 Scorers (each gives a ``Score``: name, passed, value from 0 to 1, detail)
@@ -62,6 +63,7 @@ from creditcoach import cache, config, llm
 from creditcoach import observability as obs
 from creditcoach.evals import golden, live, sample_rows
 from creditcoach.guardrails import checks as rails
+from creditcoach.user_data import load_user_data
 
 WEEK4 = config.ROOT / "docs" / "evidence" / "week-4"
 USER_ID, USERNAME = "USR-001", "creditcoach_user1"  # Aravind, as in Task 24
@@ -179,7 +181,8 @@ def sources(rec: dict) -> str:
     """The data the agent had for this answer: what its figures may come from and what the judge reads."""
     if rec["section"] == "3":
         return rec["snapshot"]["sources"] if rec["snapshot"] else ""
-    return live.sources({**rec, "passages": rec["passages_full"]})
+    profile = json.dumps(load_user_data(rec["user_id"])["user_profile"], indent=1, ensure_ascii=False)
+    return f"USER PROFILE:\n{profile}\n" + live.sources({**rec, "passages": rec["passages_full"]})
 
 
 def judge(rec: dict) -> dict:
@@ -201,6 +204,14 @@ def judge(rec: dict) -> dict:
                 "clear": int(verdict["clear"]), "why": str(verdict.get("why", "")), "model": model}
     except Exception as exc:  # a judge failure fails that scorer, not the run
         return {"error": f"{type(exc).__name__}: {exc}"}
+
+
+def judge_all(recs: list[dict]) -> None:
+    """Judge every answer, six at a time, storing each verdict in its record."""
+    print(f"Judging {len(recs)} answers with {config.SMALL_MODEL}", flush=True)
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        for r, j in zip(recs, pool.map(judge, recs)):
+            r["judge"] = j
 
 
 def judge_score(j: dict) -> Score:
@@ -297,10 +308,7 @@ def run(label: str = "latest", everything: bool = False) -> dict:
         if everything:
             print("Running the additional queries (requirements.md §4)", flush=True)
             recs += run_additional(label)
-    print(f"Judging {len(recs)} answers with {config.SMALL_MODEL}", flush=True)
-    with ThreadPoolExecutor(max_workers=6) as pool:
-        for r, j in zip(recs, pool.map(judge, recs)):
-            r["judge"] = j
+    judge_all(recs)
     result = {"created": datetime.now().isoformat(timespec="seconds"), "label": label,
               "scope": "all" if everything else "sample", "model": config.CHAT_MODEL, "judge_model": config.SMALL_MODEL,
               "minutes": round((time.perf_counter() - started) / 60, 1), "records": sorted(recs, key=lambda r: r["id"])}
@@ -317,11 +325,19 @@ def save(result: dict, path: Path) -> None:
     path.write_text(json.dumps(result, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-def rescore(label: str = "latest") -> dict:
-    """Score a saved run again with the current scorers (no answers, no judge calls) and rewrite its report."""
+def rescore(label: str = "latest", rejudge: bool = False) -> dict:
+    """Score a saved run again with the current scorers and rewrite its report. No new answers; with ``rejudge``,
+    the judge reads every saved answer again (after a change to the judge or what it is shown) and the new scores
+    replace the old ones in Langfuse."""
     report_path, run_path = paths(label)
     result = json.loads(run_path.read_text(encoding="utf-8"))
+    if rejudge:
+        judge_all(result["records"])
+        result["rejudged"] = datetime.now().isoformat(timespec="seconds")
     score_run(result)
+    if rejudge:
+        result["langfuse_cases"] = push_scores(result["records"])
+        obs.flush()
     save(result, run_path)
     write_report(result, report_path, run_path)
     return result
@@ -360,8 +376,9 @@ def cell(text: str) -> str:
 def write_report(result: dict, path: Path, run_path: Path) -> None:
     s, recs = summary(result), result["records"]
     a = s["all"]
+    judged = f", judged again {result['rejudged'].replace('T', ' ')[:16]}" if result.get("rejudged") else ""
     lines = [f"# Eval Run: {result['label']}", "",
-             f"*{result['created'].replace('T', ' ')[:16]} · `uv run python -m creditcoach.evals"
+             f"*{result['created'].replace('T', ' ')[:16]}{judged} · `uv run python -m creditcoach.evals"
              f"{' --all' if result['scope'] == 'all' else ''} --label {result['label']}` · "
              f"Data: [{run_path.name}](runs/{run_path.name})*", "",
              f"**Score: {a['passed']} of {a['cases']} cases pass ({a['score']:.0%})**", "",

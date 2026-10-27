@@ -113,6 +113,26 @@ def test_additional_queries_are_scored_with_the_golden_checks_and_figure_tracing
     assert not r["pass"] and not by_name(r)["expected"]["passed"]
 
 
+def test_the_judge_sees_the_users_profile_for_additional_queries():
+    """Found by the Task 28 baseline: #24's judge called the user's name and emergency fund unsupported, because
+    the §4 judge saw the passages and tool results but not the profile they come from."""
+    q = golden.by_id()[24]
+    rec = {**harness._base(q), "query": q.query, "passages_full": [], "tool_calls": []}
+    assert "Manish" in harness.sources(rec) and "More than 6 months" in harness.sources(rec)
+
+
+def test_rejudge_judges_saved_answers_again_without_new_answers(monkeypatch, tmp_path):
+    monkeypatch.setattr(harness, "WEEK4", tmp_path)
+    run = {"created": "2026-10-26T10:00:00", "label": "unit", "scope": "sample", "model": "openai/gpt-5",
+           "judge_model": "m", "minutes": 1.0, "records": [sample_record(judge={**GOOD_JUDGE, "grounded": 3})]}
+    harness.save(run, harness.paths("unit")[1])
+    monkeypatch.setattr(harness, "judge", lambda rec: dict(GOOD_JUDGE))
+    monkeypatch.setattr(harness, "push_scores", lambda recs: len(recs))
+    assert not harness.rescore("unit")["records"][0]["pass"]  # --rescore keeps the saved verdict
+    result = harness.rescore("unit", rejudge=True)
+    assert result["records"][0]["pass"] and result["rejudged"] and result["langfuse_cases"] == 1
+
+
 # ---- Judge ----
 
 def test_the_judge_uses_the_small_model_and_reads_json_from_its_reply(monkeypatch):
@@ -161,7 +181,7 @@ def test_score_posts_to_langfuse_only_with_keys(monkeypatch):
     assert obs.score("ab" * 16, "eval.pass", True, "every scorer passed") is True
     [req] = calls
     assert req.full_url == "https://lf.example/api/public/scores" and req.get_header("Authorization").startswith("Basic ")
-    assert json.loads(req.data) == {"traceId": "ab" * 16, "name": "eval.pass", "value": 1.0, "dataType": "BOOLEAN",
+    assert json.loads(req.data) == {"id": "ab" * 16 + "-eval.pass", "traceId": "ab" * 16, "name": "eval.pass", "value": 1.0, "dataType": "BOOLEAN",
                                     "comment": "every scorer passed"}
 
 
