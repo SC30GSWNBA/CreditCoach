@@ -510,9 +510,9 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
 <text class="t" x="904" y="2203.8">question?</text>
 <text class="b" x="904" y="2223.8">Asked only about a</text>
 <text class="b" x="904" y="2238.2">rewording that is at</text>
-<text class="b" x="904" y="2252.8">least 0.90 similar. Any</text>
+<text class="b" x="904" y="2252.8">least 0.80 similar. Any</text>
 <text class="b" x="904" y="2267.2">doubt means no. About</text>
-<text class="b" x="904" y="2281.8">1.4 s.</text>
+<text class="b" x="904" y="2281.8">2 s.</text>
 </g>
 <g class="bx l8"><rect x="1107" y="2155.5" width="170" height="150.0" rx="7"/>
 <text class="t" x="1120" y="2178.5">Two small local</text>
@@ -668,7 +668,7 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
         <tr><td>Answer</td><td>A finished, safety-checked answer</td><td>1 hour</td><td>~11 s + one GPT-5 call</td></tr>
       </table></div>
       <ul>
-        <li>"Same question" is decided in three steps: exact match; same meaningful words with similarity of at least 0.90; or a rewording that GPT-5 mini confirms.</li>
+        <li>"Same question" is decided in three steps: exact match; same meaningful words with similarity of at least 0.90; or a rewording at least 0.80 similar that GPT-5 mini confirms.</li>
         <li>Before a stored answer is served, your figures are read again and compared. If they changed, the stored answer is deleted and a fresh one is written.</li>
         <li>Measured: 11.05 s uncached against 0.009 s cached (median), and $0.0122 of model cost against none.</li>
         <li>Keys include your user ID, so one user can never read another's entries.</li>
@@ -782,7 +782,7 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
         <li><code>python -m creditcoach.evals</code> runs the 6 sample questions the whole way through the board above; <code>--all</code> adds the other 44.</li>
         <li>Each case is one trace, and its scores are attached to that trace in Langfuse, so a failing case opens onto the steps that explain it.</li>
         <li>Runs skip the cache and use throwaway memory, so they measure the agent and touch no one's history.</li>
-        <li>Baseline (Task 28): 36 of 50 cases pass.</li>
+        <li>Baseline (Task 28): 36 of 50 cases pass. After the Task 30 fixes: 45 of 50.</li>
       </ul>
     </section>
 

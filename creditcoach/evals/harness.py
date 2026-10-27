@@ -11,8 +11,9 @@ Cases
               Aravind (USR-001): #5 alone in session 1 (it stores the goal), then #1, #2, #3, #4, #6 in session 2,
               where #3 must use that goal without being told it.
     §4 #7-50  With ``--all``: each as one turn signed in as its user (``live.run``; #45 with the account tool forced
-              to time out). Ten depend on a stored goal or an earlier turn that this run doesn't set up (the
-              golden ``needs``); they are scored as asked and flagged, so a failure there is read with that in mind.
+              to time out). Seven assume a stored goal (``GOAL_SEEDS``): since Task 30 each runs in its own memory,
+              with that goal stored in a first session. The three left that depend on something this run doesn't
+              set up (#35's own storing turn, #45, #47: the golden ``needs``) are flagged.
 
 Scorers (each gives a ``Score``: name, passed, value from 0 to 1, detail)
     expected  §3: every separate thing the row's expected behavior asks for (``sample_rows.criteria``), including
@@ -50,8 +51,10 @@ Cost: 6 GPT-5 answers, 1 ``SMALL_MODEL`` dream and 6 judge calls; with ``--all``
 
 import json
 import re
+import shutil
 import statistics
 import tempfile
+import traceback
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
@@ -68,6 +71,18 @@ from creditcoach.user_data import load_user_data
 WEEK4 = config.ROOT / "docs" / "evidence" / "week-4"
 USER_ID, USERNAME = "USR-001", "creditcoach_user1"  # Aravind, as in Task 24
 SOURCES_FOR_JUDGE = 12000  # characters of the agent's data the judge reads
+
+# §4 queries whose requirements.md row says a goal is already stored (the User column, e.g. "goal: 720 stored").
+# Since Task 30 the harness stores it in a first session and asks in a second, each case in its own empty memory, as
+# §3 does for #5 then #3. Before that they ran with no memory and were flagged (Task 29: 5 of the 14 failures).
+CAR_720 = ({"target_score": 720, "target_date": "2027", "purpose": "saving for a car"},
+           "Remember that I'm saving for a car and want to hit a 720 score by next year.")  # what #5 stores
+GOAL_SEEDS = {
+    23: ({"target_score": None, "target_date": None, "purpose": "buy a car"}, "I'm saving up to buy a car."),
+    25: CAR_720, 37: CAR_720, 38: CAR_720, 39: CAR_720, 40: CAR_720,
+    36: ({"target_score": 850, "target_date": "2027-12", "purpose": "buy a home"},
+         "Remember that I want a score of 850 by December 2027 so I can buy a home."),  # what #35 stores
+}
 
 JUDGE_PROMPT = """You grade one reply from CreditCoach, a credit coach for first-time borrowers in India. You get the \
 user's message, what the reply is expected to do (from the product requirements), the data CreditCoach had for this \
@@ -158,11 +173,35 @@ def run_sample_rows(label: str) -> list[dict]:
     return records
 
 
+def run_with_stored_goal(q: golden.Query, label: str) -> dict:
+    """Store the goal ``q`` assumes (``GOAL_SEEDS``) in a first session, then ask ``q`` in a second, in a memory
+    holding nothing else for that user; a live-style record (``live._record``)."""
+    from creditcoach.agent import pipeline
+    from creditcoach.memory import store
+
+    goal, quote = GOAL_SEEDS[q.id]
+    shutil.rmtree(store.user_dir(q.user_id), ignore_errors=True)  # only the temporary eval memory (run_sample_rows)
+    store.set_goal(store.start_session(q.user_id, source="eval"), goal, quote)
+    session = store.start_session(q.user_id, source="eval")
+    start = time.perf_counter()
+    with case_span(q, label):
+        try:
+            rec = live._record(q, "tools", pipeline.answer(q.query, user_id=q.user_id, session=session), None,
+                               time.perf_counter() - start)
+        except Exception:  # recorded, so one crash doesn't lose the run
+            rec = live._record(q, "tools", None, traceback.format_exc(limit=3), time.perf_counter() - start)
+            rec["trace_id"] = obs.trace_id()
+    return {**rec, "seeded_goal": goal}
+
+
 def run_additional(label: str) -> list[dict]:
-    """Run the 44 §4 queries live, each as one turn signed in as its user; one record each."""
-    ids = [q.id for q in golden.load() if q.section != "3"]
-    print(f"  §4: {len(ids)} queries, 4 at a time", flush=True)
-    recs = live.run("tools", ids=ids, case_span=lambda q: case_span(q, label))
+    """Run the 44 §4 queries live, each as one turn signed in as its user; one record each. Those that assume a
+    stored goal run one at a time after the rest, each with that goal stored first (``run_with_stored_goal``)."""
+    plain = [q.id for q in golden.load() if q.section != "3" and q.id not in GOAL_SEEDS]
+    print(f"  §4: {len(plain)} queries, 4 at a time", flush=True)
+    recs = live.run("tools", ids=plain, case_span=lambda q: case_span(q, label))
+    print(f"  §4: {len(GOAL_SEEDS)} queries with their stored goal, one at a time", flush=True)
+    recs += [run_with_stored_goal(golden.by_id()[i], label) for i in sorted(GOAL_SEEDS)]
     by_id = golden.by_id()
     return [{**r, **_base(by_id[r["id"]]),
              "tools": [{"tool": c["tool"], "ok": c["ok"], "code": c["code"]} for c in r["tool_calls"]],
@@ -182,7 +221,10 @@ def sources(rec: dict) -> str:
     if rec["section"] == "3":
         return rec["snapshot"]["sources"] if rec["snapshot"] else ""
     profile = json.dumps(load_user_data(rec["user_id"])["user_profile"], indent=1, ensure_ascii=False)
-    return f"USER PROFILE:\n{profile}\n" + live.sources({**rec, "passages": rec["passages_full"]})
+    memory = ""
+    if goal := rec.get("seeded_goal"):  # the agent saw this goal in its MEMORY section, so the judge must too
+        memory = f"MEMORY:\n- Stored goal: {json.dumps(goal, ensure_ascii=False)} (saved in an earlier session)\n"
+    return f"USER PROFILE:\n{profile}\n{memory}" + live.sources({**rec, "passages": rec["passages_full"]})
 
 
 def judge(rec: dict) -> dict:
@@ -366,7 +408,7 @@ def summary(result: dict) -> dict:
 def unset(rec: dict) -> bool:
     """True if the case depends on a stored goal or an earlier turn this run doesn't set up (§4 only: the §3
     sessions set up what #3 and #5 need)."""
-    return rec["section"] != "3" and bool(rec["needs"])
+    return rec["section"] != "3" and bool(rec["needs"]) and not rec.get("seeded_goal")
 
 
 def cell(text: str) -> str:
@@ -441,3 +483,59 @@ def write_report(result: dict, path: Path, run_path: Path) -> None:
                   "", "</details>", ""]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+# ---- Before and after (Task 30) ----
+
+# Cases whose measurement changed in Task 30, so their before/after difference isn't the agent's alone
+MEASUREMENT_CHANGES = {41: "the check also accepts \"within a cycle\" and \"statement date\"",
+                       2: "\"Does not estimate\" no longer fires on the general \"about 30%\" guideline",
+                       **{i: "the goal its row assumes is now stored first" for i in GOAL_SEEDS}}
+
+
+def compare(before: str, after: str) -> Path:
+    """Write the before/after report for two saved runs; returns its path.
+
+    The headline is like for like: the cases whose measurement didn't change between the runs. The cases in
+    ``MEASUREMENT_CHANGES`` are reported apart, and the earlier run is also re-scored with today's checks (no model
+    calls) so a change in the checks alone shows up as such.
+    """
+    b, a = (json.loads(paths(label)[1].read_text(encoding="utf-8")) for label in (before, after))
+    rescored = json.loads(json.dumps(b))
+    score_run(rescored)
+    rb, rr, ra = ({r["id"]: r for r in run["records"]} for run in (b, rescored, a))
+    ids = sorted(set(rb) & set(ra))
+    same = [i for i in ids if i not in MEASUREMENT_CHANGES]
+    changed = [i for i in ids if i in MEASUREMENT_CHANGES]
+    count = lambda recs, sel: sum(recs[i]["pass"] for i in sel)  # noqa: E731
+    pct = lambda n, d: f"{n / d:.0%}" if d else "–"  # noqa: E731
+    sb, sa = summary(b), summary(a)
+    path = WEEK4 / f"eval-{before}-vs-{after}.md"
+    lines = [f"# Eval: {before} vs {after}", "",
+             f"*Before: [{paths(before)[0].name}]({paths(before)[0].name}) ({b['created'][:16].replace('T', ' ')}) · "
+             f"After: [{paths(after)[0].name}]({paths(after)[0].name}) ({a['created'][:16].replace('T', ' ')}) · "
+             f"`uv run python -m creditcoach.evals --compare {before} --label {after}`*", "",
+             "| | Cases | Before | After | Change |", "|---|---|---|---|---|"]
+    for name, sel in (("**Like for like** (measurement unchanged)", same),
+                      ("Measurement changed (see below)", changed), ("**All**", ids)):
+        nb, na = count(rb, sel), count(ra, sel)
+        lines.append(f"| {name} | {len(sel)} | {nb} ({pct(nb, len(sel))}) | {na} ({pct(na, len(sel))}) | "
+                     f"{na - nb:+d} |")
+    lines += ["", f"Re-scored with today's checks (no new answers), the earlier run passes {count(rr, ids)} of "
+              f"{len(ids)}, so changed checks alone account for {count(rr, ids) - count(rb, ids):+d}.", "",
+              "| | Before | After |", "|---|---|---|",
+              *(f"| Cases passing {k} | {sb['by_scorer'][k]} | {sa['by_scorer'][k]} |" for k in sb["by_scorer"]),
+              f"| Judge averages (grounded, clear) | {sb['judge_grounded']}, {sb['judge_clear']} | "
+              f"{sa['judge_grounded']}, {sa['judge_clear']} |",
+              f"| Time per answer (median, longest) | {sb['median_seconds']} s, {sb['max_seconds']} s | "
+              f"{sa['median_seconds']} s, {sa['max_seconds']} s |", "",
+              "## Cases that changed", "", "| Case | Before | After | Measurement changed? | Still failing on |",
+              "|---|---|---|---|---|"]
+    mark = lambda r: "✅ Pass" if r["pass"] else "❌ Fail"  # noqa: E731
+    for i in ids:
+        if rb[i]["pass"] != ra[i]["pass"] or not ra[i]["pass"]:
+            left = "; ".join(f"{s['name']}: {s['detail']}" for s in ra[i]["scores"] if not s["passed"])
+            lines.append(f"| {ra[i]['label']} | {mark(rb[i])} | {mark(ra[i])} | {MEASUREMENT_CHANGES.get(i, 'no')} | "
+                         f"{cell(left[:300]) or '–'} |")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path

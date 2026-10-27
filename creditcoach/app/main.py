@@ -67,12 +67,15 @@ turned off.
 
 import argparse
 import contextvars
+import hashlib
+import json
 import logging
 import os
 import queue
 import sys
 import threading
 import time
+from collections import OrderedDict
 from collections.abc import Iterator
 
 os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")  # before importing gradio, so startup pings are off too
@@ -80,6 +83,7 @@ os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")  # before importing g
 import gradio as gr  # noqa: E402
 
 from creditcoach import auth, config, guardrails  # noqa: E402
+from creditcoach import observability as obs  # noqa: E402
 from creditcoach.agent.pipeline import answer  # noqa: E402
 from creditcoach.app import badges, charts, confidence, limits, server, theme  # noqa: E402
 from creditcoach.app.trace import Trace  # noqa: E402
@@ -165,6 +169,55 @@ def answer_meta(a) -> dict:
             "tools": [{"tool": c.tool, "arguments": c.arguments, "ok": c.ok, "code": c.code} for c in a.tool_calls],
             "seconds": round(a.retrieval_seconds + a.generation_seconds, 1),
             **({"trace_id": a.trace_id} if getattr(a, "trace_id", None) else {})}
+
+
+# Tester feedback (Task 29): a 👎 can carry one of these reasons, matching the error-analysis categories
+FEEDBACK_OPTIONS = ("Wrong or missing figure", "Didn't answer my question", "Too slow", "Hard to follow")
+_answer_traces: OrderedDict[str, str] = OrderedDict()  # hash of a reply shown in the chat -> its trace ID
+MAX_REMEMBERED_REPLIES = 2000
+
+
+def _reply_key(content) -> str:
+    """A stable key for a reply's text, however Gradio hands it back (a string, a message dict or a list of parts)."""
+    if isinstance(content, dict):
+        content = content.get("content", content.get("value", ""))
+    if isinstance(content, (list, tuple)):
+        content = "".join(c.get("text", "") if isinstance(c, dict) else str(c) for c in content)
+    return hashlib.sha256(str(content).strip().encode()).hexdigest()
+
+
+def remember_trace(content: str, trace_id: str | None) -> None:
+    """Note which trace a reply came from, so a 👍 or 👎 on it can be attached to that trace."""
+    if trace_id:
+        _answer_traces[_reply_key(content)] = trace_id
+        while len(_answer_traces) > MAX_REMEMBERED_REPLIES:
+            _answer_traces.popitem(last=False)
+
+
+def feedback(data: gr.LikeData, request: gr.Request) -> None:
+    """Record a 👍 or 👎 (with its reason, if one was picked) on the answer's trace in Langfuse and in the log.
+
+    Only CreditCoach's answers count: a rating on the agent trace or on the user's own message is ignored, and so is
+    a rating on a reply from before the last restart (its trace is no longer known).
+    """
+    user_id = auth.user_id_for(getattr(request, "username", None))
+    trace_id = _answer_traces.get(_reply_key(data.value))
+    if user_id is None or trace_id is None:
+        return
+    liked = data.liked
+    if liked is True:
+        verdict, reason = "helpful", None
+    elif liked is False:
+        verdict, reason = "not helpful", None
+    elif liked in FEEDBACK_OPTIONS:
+        verdict, reason = "not helpful", liked
+    else:  # un-liking, or a value this version doesn't send
+        return
+    log.info(json.dumps({"event": "feedback", "user_id": user_id, "trace_id": trace_id, "verdict": verdict,
+                         "reason": reason}))
+    obs.score(trace_id, "user.feedback", verdict == "helpful", reason or verdict)
+    if reason:
+        obs.score(trace_id, "user.feedback.reason", reason)
 
 
 REFRESH_SECONDS = 1.0  # how often the trace redraws while waiting (timers and tips move even with no new event)
@@ -259,7 +312,9 @@ def respond(message: str, history: list, request: gr.Request) -> Iterator[str | 
     remember(request, user_id, "assistant_message", a.text, answer_meta(a))
     trace.finish()
     left = limits.footer(grant) if grant else ""
-    yield trace.messages() + [gr.ChatMessage(role="assistant", content=format_reply(a) + left)]
+    reply = format_reply(a) + left
+    remember_trace(reply, getattr(a, "trace_id", None))
+    yield trace.messages() + [gr.ChatMessage(role="assistant", content=reply)]
 
 
 def final_reply(message: str, history: list, request) -> str:
@@ -452,7 +507,8 @@ def build() -> gr.Blocks:
             with gr.Tab("Ask CreditCoach", id="chat"):
                 chat = gr.ChatInterface(
                     fn=respond,
-                    chatbot=gr.Chatbot(height=680, show_label=False),  # room for the agent trace above each answer
+                    chatbot=gr.Chatbot(height=680, show_label=False,  # room for the agent trace above each answer
+                                       feedback_options=FEEDBACK_OPTIONS),
                     title=TITLE,
                     description=DESCRIPTION,
                     examples=EXAMPLES,
@@ -504,6 +560,7 @@ def build() -> gr.Blocks:
         reasons.change(credit_highlight, inputs=[reasons, period], outputs=story)
         card.input(credit_card_picked, inputs=card, outputs=[pay, cards, note])
         pay.change(credit_cards, inputs=[card, pay], outputs=[cards, note], show_progress="hidden")
+        chat.chatbot.like(feedback)
         ask.click(ask_about_month, inputs=month, outputs=[chat.textbox, tabs])
         start_ask.click(lambda: ask_in_chat(charts.START_QUESTION), outputs=[chat.textbox, tabs])
         demo.load(start, outputs=[who, panel])
@@ -522,6 +579,17 @@ def warm_up() -> None:
     t0 = time.perf_counter()
     retrieve("warm up")
     log.info("Retrieval models loaded in %.1fs", time.perf_counter() - t0)
+
+
+def check_langfuse() -> None:
+    """Log whether Langfuse accepts the keys, so traces dropped by a wrong region show up in the logs at startup."""
+    from creditcoach import observability
+
+    accepted, message = observability.langfuse_status()
+    if accepted is False:
+        log.warning("Traces are NOT reaching Langfuse: %s", message)
+    elif accepted:
+        log.info("Traces go to %s", message)
 
 
 def main() -> None:
@@ -548,6 +616,7 @@ def main() -> None:
                   config.LOGINS_FILE)
         sys.exit(1)
     warm_up()
+    threading.Thread(target=check_langfuse, name="langfuse-check", daemon=True).start()
     server.run(build(), port=args.port, share=args.share, css=theme.CSS + charts.CSS + badges.CSS, host=args.host)
 
 

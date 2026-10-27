@@ -142,7 +142,7 @@ The layer is built with **NVIDIA NeMo Guardrails** (0.24.1, Colang 1.0). [config
 | `check figures` | Output | G3 | `golden.untraced_numbers` against this turn's tool output, passages, profile, memory and conversation |
 | `check product answer` | Output, product-related answers | G2 | Risk flag present, safer alternative present, no "if you still go ahead" advice |
 | `check disclosure` | Output | S2, S4 | 14 words in a row copied from the system prompt; a figure next to a user ID other than the signed-in one |
-| `review wording` | Output: projections, product-related answers, and questions flagged as attack attempts | G1, G2 | One `SMALL_MODEL` call: does the draft predict a score, a gain or a date, or endorse a product? A finding is acted on only if a second call agrees |
+| `review wording` | Output: projections, product-related answers, and questions flagged as attack attempts | G1, G2 | One `SMALL_MODEL` call: does the draft predict a score, a gain or a date, or endorse a product? A finding is acted on only if a second call, with more reasoning (`low`), agrees. Since Task 30 the prompt also says the user's own goal and the gap to it are not predictions |
 
 How it behaves:
 

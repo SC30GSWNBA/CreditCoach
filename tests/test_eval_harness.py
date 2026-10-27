@@ -121,6 +121,13 @@ def test_the_judge_sees_the_users_profile_for_additional_queries():
     assert "Manish" in harness.sources(rec) and "More than 6 months" in harness.sources(rec)
 
 
+def test_the_judge_sees_a_goal_the_harness_stored_first():
+    """Found in Task 30: #39's judge called the stored 720 and 2027 invented, because it couldn't see the memory."""
+    q = golden.by_id()[39]
+    rec = {**harness._base(q), "passages_full": [], "tool_calls": [], "seeded_goal": harness.CAR_720[0]}
+    assert '"target_score": 720' in harness.sources(rec) and "Stored goal" in harness.sources(rec)
+
+
 def test_rejudge_judges_saved_answers_again_without_new_answers(monkeypatch, tmp_path):
     monkeypatch.setattr(harness, "WEEK4", tmp_path)
     run = {"created": "2026-10-26T10:00:00", "label": "unit", "scope": "sample", "model": "openai/gpt-5",
@@ -131,6 +138,48 @@ def test_rejudge_judges_saved_answers_again_without_new_answers(monkeypatch, tmp
     assert not harness.rescore("unit")["records"][0]["pass"]  # --rescore keeps the saved verdict
     result = harness.rescore("unit", rejudge=True)
     assert result["records"][0]["pass"] and result["rejudged"] and result["langfuse_cases"] == 1
+
+
+def test_a_query_that_assumes_a_stored_goal_gets_it_in_its_own_memory(monkeypatch, tmp_path):
+    """Task 30: the §4 memory queries ran with no memory (Task 29: 5 of the 14 failures). Each now gets the goal its
+    requirements.md row assumes, stored in a first session, and nothing else from earlier cases."""
+    from creditcoach.agent import pipeline
+    from creditcoach.memory import store
+
+    monkeypatch.setattr(config, "MEMORY_DIR", tmp_path / "memory")
+    store.set_goal(store.start_session("USR-001", source="eval"), {"target_score": 750, "target_date": None,
+                                                                    "purpose": "x"}, "an earlier case changed it")
+    seen = {}
+
+    def fake_answer(question, user_id, session=None, **kw):
+        seen.update(goal=store.load(user_id).goal, session=session)
+        return answer(tools=())
+    monkeypatch.setattr(pipeline, "answer", fake_answer)
+    rec = harness.run_with_stored_goal(golden.by_id()[38], "unit")
+    assert (seen["goal"].target_score, seen["goal"].target_date) == (720, "2027")  # #5's goal, not the 750 left over
+    assert seen["session"] is not None and rec["seeded_goal"]["target_score"] == 720 and rec["error"] is None
+    assert not harness.unset({**harness._base(golden.by_id()[38]), "seeded_goal": rec["seeded_goal"]})
+    assert harness.unset(harness._base(golden.by_id()[47]))  # still needs a follow-up turn this run doesn't set up
+
+
+def test_compare_keeps_measurement_changes_out_of_the_like_for_like_score(monkeypatch, tmp_path):
+    monkeypatch.setattr(harness, "WEEK4", tmp_path)
+    monkeypatch.setattr(harness, "MEASUREMENT_CHANGES", {38: "the goal its row assumes is now stored first"})
+    bad = {**GOOD_JUDGE, "meets_expected": False}
+
+    def run(label, judge):  # one §3 row (unchanged measurement), and the same scored as #38 (goal now stored first)
+        r = {"created": "2026-10-27T10:00:00", "label": label, "scope": "all", "model": "openai/gpt-5",
+             "judge_model": "m", "minutes": 1.0, "records": [sample_record(2, judge=judge)]}
+        harness.score_run(r)
+        r["records"].append({**r["records"][0], "id": 38, "label": "§4 #38"})
+        harness.save(r, harness.paths(label)[1])
+    run("before", bad)
+    run("after", GOOD_JUDGE)
+    monkeypatch.setattr(harness, "score_run", lambda run: None)  # the re-score of "before" is tested elsewhere
+    text = harness.compare("before", "after").read_text()
+    assert "| **Like for like** (measurement unchanged) | 1 | 0 (0%) | 1 (100%) | +1 |" in text
+    assert "| Measurement changed (see below) | 1 | 0 (0%) | 1 (100%) | +1 |" in text
+    assert "| **All** | 2 | 0 (0%) | 2 (100%) | +2 |" in text and "the goal its row assumes is now stored first" in text
 
 
 # ---- Judge ----
@@ -183,6 +232,22 @@ def test_score_posts_to_langfuse_only_with_keys(monkeypatch):
     assert req.full_url == "https://lf.example/api/public/scores" and req.get_header("Authorization").startswith("Basic ")
     assert json.loads(req.data) == {"id": "ab" * 16 + "-eval.pass", "traceId": "ab" * 16, "name": "eval.pass", "value": 1.0, "dataType": "BOOLEAN",
                                     "comment": "every scorer passed"}
+
+
+def test_langfuse_status_names_the_region_when_the_keys_are_refused(monkeypatch):
+    """Found on Railway: without LANGFUSE_HOST the EU host refused Japan-region keys and every trace was dropped."""
+    import urllib.error
+    import urllib.request
+
+    def refused(req, timeout):
+        raise urllib.error.HTTPError(req.full_url, 401, "Unauthorized", {}, None)
+    monkeypatch.setattr(urllib.request, "urlopen", refused)
+    monkeypatch.setattr(config, "LANGFUSE_PUBLIC_KEY", "pk")
+    monkeypatch.setattr(config, "LANGFUSE_SECRET_KEY", "sk")
+    accepted, message = obs.langfuse_status()
+    assert accepted is False and "401" in message and "LANGFUSE_HOST" in message
+    monkeypatch.setattr(config, "LANGFUSE_PUBLIC_KEY", "")
+    assert obs.langfuse_status() == (None, "no Langfuse keys set")
 
 
 def test_a_langfuse_error_never_stops_the_run(monkeypatch):

@@ -56,6 +56,8 @@ Every trace carries `deployment.environment` (`CREDITCOACH_ENV`, default `local`
 
 Since Task #27 the eval harness runs each case inside an `eval.case` span, so the whole answer is under that case's trace (tagged `eval` and `eval:<label>`), and attaches the case's scores to the trace in Langfuse (`eval.pass`, `eval.expected`, `eval.judge.grounded`, `eval.judge.clear`) with `observability.score()`. A failing eval case opens straight onto the trace that explains it ([task-27-eval-harness.md](evidence/week-4/task-27-eval-harness.md)).
 
+Since Task #29 testers can rate an answer in the chat. A 👍 or 👎 is attached to that answer's trace as the score `user.feedback` (true or false, with the verdict as its comment), and a 👎's reason as `user.feedback.reason` (*Wrong or missing figure*, *Didn't answer my question*, *Too slow*, *Hard to follow*). In Langfuse, filter traces by those scores to read every rated answer with everything that went into it ([task-29-error-analysis.md](evidence/week-4/task-29-error-analysis.md)).
+
 The trace made one cost visible straight away: `context.build` takes about 1.3 s, almost all of it loading the user's profile from Neon on every question. That is a lead for the Task #29 error analysis.
 
 ## 5. Open questions for team review

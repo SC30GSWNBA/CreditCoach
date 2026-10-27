@@ -1,4 +1,4 @@
-"""Run the eval harness (Task 27): ``uv run python -m creditcoach.evals [--all] [--label NAME] [--rescore | --rejudge]``.
+"""Run the eval harness (Task 27): ``uv run python -m creditcoach.evals [--all] [--label NAME] [--rescore | --rejudge | --compare BEFORE]``.
 
 See ``creditcoach.evals.harness`` for the cases, the scorers and what is written. Exits 1 if any case fails.
 """
@@ -16,7 +16,11 @@ def main() -> int:
     redo = parser.add_mutually_exclusive_group()
     redo.add_argument("--rescore", action="store_true", help="score the saved run again, with no model calls")
     redo.add_argument("--rejudge", action="store_true", help="judge the saved answers again, then score them")
+    redo.add_argument("--compare", metavar="BEFORE", help="write the before/after report of run BEFORE vs --label")
     args = parser.parse_args()
+    if args.compare:
+        print(f"wrote {harness.compare(args.compare, args.label).relative_to(harness.config.ROOT)}")
+        return 0
     if args.rescore or args.rejudge:
         result = harness.rescore(args.label, rejudge=args.rejudge)
     else:

@@ -277,6 +277,21 @@ def test_match_is_exact_then_same_words_then_model_confirmed(monkeypatch):
     assert asked == [("What made my credit score fall 20 points this month?", DROP)]
 
 
+def test_rewordings_below_the_same_words_threshold_still_go_to_the_model(monkeypatch):
+    """Found on Railway: "What can I do to raise my credit score?" scored 0.852 against "How do I improve my credit
+    score?", below the 0.90 the model check used to need, so a true rewording always missed."""
+    asked = []
+    monkeypatch.setattr(answers, "confirm", lambda a, b: (asked.append(a), True)[1])
+    stored = [entry("How do I improve my credit score?")]
+    found, how, similarity = answers.match("What can I do to raise my credit score?", [0.852, 0.523], stored)
+    assert found is not None and how == "model-confirmed" and asked == ["What can I do to raise my credit score?"]
+    asked.clear()  # same words but below THRESHOLD: not matched on words alone, the model decides
+    assert answers.match("How can I improve my credit score?", [0.85, 0.527], stored)[1] == "model-confirmed" and asked
+    asked.clear()
+    found, reason, _ = answers.match("What hurts my credit score?", [0.66, 0.75], stored)
+    assert found is None and f"below {answers.CONFIRM_FROM}" in reason and not asked  # too far: no model call
+
+
 def test_match_refuses_low_similarity_vetoes_and_unconfirmed_questions(monkeypatch):
     asked = []
     monkeypatch.setattr(answers, "confirm", lambda a, b: (asked.append(a), False)[1])

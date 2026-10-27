@@ -12,7 +12,7 @@ Week 2 (account tools through MCP, goal memory and the agent trace) is built, wi
 
 Week 3 (guardrails, caching and the badges in the chat) is built and signed off by Sudip, with Aman's and Anil's sign-off still to come: the guardrail rules are written down (Task 19, [docs/guardrails.md](docs/guardrails.md)), since Task 20 every question and every answer passes through a guardrail layer built with NVIDIA NeMo Guardrails, Task 21 tested it live and red-teamed it, since Task 22 repeated lookups and repeated questions are served from a Redis cache, Task 23 measured it (median 11.05 s uncached against 0.009 s cached), since Task 25 the chat shows a guardrail badge and a cache badge above every answer, and all 6 sample queries pass end to end against the expected-answers table ([Task 24](docs/evidence/week-3/task-24-sample-queries.md)) (see [Caching](#caching), [Guardrails](#guardrails) and the [Week 3 tracker](docs/evidence/week-3/README.md)). 
 
-Week 4 (observability, evals and demo readiness) is under way: since Task 26 every question is one OpenTelemetry trace, so retrieval, each tool call and tool failure, the guardrail checks and what they triggered, every model call (with tokens and cost) and every cache lookup share one trace ID; traces are written locally and sent to Langfuse ([one exported trace](docs/evidence/week-4/task-26-trace.md); see [Observability](#observability) and the [Week 4 tracker](docs/evidence/week-4/README.md)). Since Task 27 one command, `uv run python -m creditcoach.evals`, runs the 6 expected-answers rows as test cases and scores each one, with the scores attached to each case's trace in Langfuse (first run: 6 of 6 pass; see [Evaluation queries](#evaluation-queries) and [the evidence](docs/evidence/week-4/task-27-eval-harness.md)). Task 28 recorded the baseline over all 50 queries: 36 of 50 pass, 72% ([baseline](docs/evidence/week-4/task-28-baseline.md)). The app is also deployed on Railway for testers at **https://creditcoach-production.up.railway.app** (sign-up needs the invite code; see [Deployment](#deployment-railway)), ahead of Task 34. Tasks 29–34 are still to come.
+Week 4 (observability, evals and demo readiness) is under way: since Task 26 every question is one OpenTelemetry trace, so retrieval, each tool call and tool failure, the guardrail checks and what they triggered, every model call (with tokens and cost) and every cache lookup share one trace ID; traces are written locally and sent to Langfuse ([one exported trace](docs/evidence/week-4/task-26-trace.md); see [Observability](#observability) and the [Week 4 tracker](docs/evidence/week-4/README.md)). Since Task 27 one command, `uv run python -m creditcoach.evals`, runs the 6 expected-answers rows as test cases and scores each one, with the scores attached to each case's trace in Langfuse (first run: 6 of 6 pass; see [Evaluation queries](#evaluation-queries) and [the evidence](docs/evidence/week-4/task-27-eval-harness.md)). Task 28 recorded the baseline over all 50 queries: 36 of 50 pass, 72% ([baseline](docs/evidence/week-4/task-28-baseline.md)). Task 29's error analysis traced all 14 failures to a root cause and picked three fixes, and testers can now rate each answer with 👍/👎 ([error analysis](docs/evidence/week-4/task-29-error-analysis.md)). Task 30 applied them and re-ran the suite: **36 → 45 of 50 (72 % → 90 %)**, with measurement fixes reported apart ([before/after](docs/evidence/week-4/task-30-fixes-and-rerun.md)). The app is also deployed on Railway for testers at **https://creditcoach-production.up.railway.app** (sign-up needs the invite code; see [Deployment](#deployment-railway)), ahead of Task 34. Tasks 31–34 are still to come.
 
 Every Week 1–2 evaluation, and the Task 20 guardrail run, uses all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
@@ -73,7 +73,8 @@ CreditCoach/
                       #   score history, password), store.py (writes the user and login to Neon), mailer.py (optional email)
     user_data.py      #   one signed-in user's profile, scores and accounts from the dataset (Neon or data/), nobody else's
     prompts/          #   system_prompt.md (tone, India context, hard rules)
-    rag/              #   corpus loader, ingestion (chunk, embed, store in .chroma/), retrieval (search + rerank)
+    rag/              #   corpus loader, ingestion (chunk, embed, store in .chroma/), retrieval (search + rerank);
+                      #   personal.py: extra searches from the user's own data (Task 30)
     agent/            #   pipeline.py: question -> guardrail input rails -> retrieval -> both tools prefetched over MCP -> agent loop
                       #   -> guardrail output rails -> grounded answer;
                       #   mcp_host.py: MCP client that runs tool calls for the signed-in user only (Task 15)
@@ -116,7 +117,9 @@ CreditCoach/
                       #   test_dataset.py: dataset loader (backend choice, Neon unreachable),
                       #   test_signup.py: the sign-up form and generated profile, sign-in sessions, the weekly allowance,
                       #   test_observability.py (Task 26): one trace ID per request, every event type, no identifiers,
-                      #   test_eval_harness.py (Task 27): every scorer, the judge, Langfuse scores, one trace per case
+                      #   test_eval_harness.py (Task 27): every scorer, the judge, Langfuse scores, one trace per case,
+                      #   test_feedback.py (Task 29): testers' 👍/👎 and reasons attached to the answer's trace,
+                      #   test_personal_retrieval.py (Task 30): data-aware retrieval
   scripts/
     synthetic/        #   step1-3: build data/ from the interviews and the sample
     task05_prompt_tests.py   # system prompt test runs (Task 5; --all: rule checks on all 50 answers)
@@ -133,6 +136,7 @@ CreditCoach/
     task20_guardrail_log.py  # guardrail layer live: log entries, 3 reframed responses, 50 saved answers (Task 20; paid calls)
     task21_guardrail_tests.py # the two required guardrail tests and the red-team set, live (Task 21; paid calls; --rescore: none)
     task22_cache_log.py      # the same question twice, live: cache miss, then hit (Task 22; paid calls)
+    task22_confirm_band.py   # from what similarity the answer cache asks the model about a rewording (Task 22 follow-up; paid calls)
     task23_cache_latency.py  # cache hit rate, latency and cost, cached vs. uncached (Task 23; paid calls; --report: none)
     task24_sample_queries.py # the 6 sample queries end to end through the chat UI functions, table filled in (Task 24; paid calls)
     task25_badges.py         # screenshots of the guardrail and cache badges in the real UI (Task 25; paid calls;
@@ -265,6 +269,7 @@ uv run python -m creditcoach.evals                    # the 6 expected-answers r
 uv run python -m creditcoach.evals --all              # all 50 queries
 uv run python -m creditcoach.evals --label baseline   # name the run; --rescore scores a saved run again for free
 uv run python -m creditcoach.evals --rejudge          # judge a saved run's answers again (no new answers)
+uv run python -m creditcoach.evals --compare baseline --label after-fixes   # before/after report
 ```
 
 Each row is a test case scored by **expected** (every separate thing the row asks for), **judge** (an independent `SMALL_MODEL`: meets the expected behavior, grounded ≥ 4/5, clear ≥ 3/5) and **run** (no crash, main model, not blocked). The §4 queries add **figures** (every figure traced to the data). A case passes when every scorer passes, and the run's score is the share that pass. The report goes to `docs/evidence/week-4/eval-<label>.md`. Each case is one trace, tagged `eval:<label>` in Langfuse with its scores attached. Runs are uncached and use a temporary memory folder. Details: [task-27-eval-harness.md](docs/evidence/week-4/task-27-eval-harness.md).
@@ -339,6 +344,7 @@ The app runs on [Railway](https://railway.com) from the `Dockerfile`, so testers
 | `DATABASE_URL` | Yes | Neon: sign-up, logins, memory and the dataset. |
 | `CREDITCOACH_SESSION_SECRET` | Yes | Signs the sign-in cookie. Without it, every redeploy signs everyone out. `openssl rand -hex 32` makes one. |
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Recommended | Testers' traces, tagged with the environment `railway`. |
+| `LANGFUSE_HOST` | With Langfuse keys | Your Langfuse project's region; the team's is `https://jp.cloud.langfuse.com`. Keys only work in their own region: without it the default EU host refuses them and every trace is dropped. The deploy logs show "Traces are NOT reaching Langfuse" when that happens. |
 | `REDIS_URL` | Recommended | Add Railway's Redis to the project and reference its URL. Without it the cache lives in memory and is lost on every redeploy. |
 | `CREDITCOACH_INVITE_CODE`, `CREDITCOACH_SIGNUP_MAX`, `CREDITCOACH_WEEKLY_QUESTIONS` | Optional | Who may sign up and how much they may ask (see [.env.example](.env.example)). |
 | `SMTP_*` | Optional | The "email me my login" option at sign-up. |
