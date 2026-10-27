@@ -165,7 +165,7 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
 <path class="e e-main" d="M1061.0 1178.0L1075.0 1178.0L1075.0 1420.8L1107.0 1420.8" fill="none" marker-end="url(#m-main)"/>
 <path class="e e-side" d="M1061.0 1444.8L1107.0 1444.8" fill="none" marker-end="url(#m-side)"/>
 <path class="e e-side" d="M1192.0 1323.5L1192.0 1238.5" fill="none" marker-end="url(#m-side)"/>
-<path class="e e-side" d="M1192.0 1542.0L1192.0 2155.5" fill="none" marker-end="url(#m-side)"/>
+<path class="e e-side" d="M1192.0 1556.5L1192.0 2155.5" fill="none" marker-end="url(#m-side)"/>
 <path class="e e-main" d="M1277.0 1432.8L1300.0 1432.8L1300.0 1703.2L1323.0 1703.2" fill="none" marker-end="url(#m-main)"/>
 <path class="e e-side" d="M1408.0 1604.5L1408.0 1230.0" fill="none" marker-end="url(#m-side)"/>
 <path class="e e-main" d="M1493.0 1703.2L1539.0 1703.2" fill="none" marker-end="url(#m-main)"/>
@@ -397,7 +397,7 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
 <text class="b" x="904" y="1500.5">money-basics, 11</text>
 <text class="b" x="904" y="1515.0">product-risk chunks.</text>
 </g>
-<g class="bx l5"><rect x="1107" y="1323.5" width="170" height="218.5" rx="7"/>
+<g class="bx l5"><rect x="1107" y="1323.5" width="170" height="233.0" rx="7"/>
 <text class="t" x="1120" y="1346.5">Search the library</text>
 <text class="b" x="1120" y="1366.5">“CIBIL” becomes “cibil</text>
 <text class="b" x="1120" y="1381.0">(credit)”.</text>
@@ -408,8 +408,9 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
 <text class="b" x="1120" y="1461.5">reorders them.</text>
 <text class="b" x="1120" y="1480.0">Max 2 per document; the</text>
 <text class="b" x="1120" y="1494.5">top 3 are kept.</text>
-<text class="b" x="1120" y="1513.0">Risky product? 2 risk</text>
-<text class="b" x="1120" y="1527.5">passages are added.</text>
+<text class="b" x="1120" y="1513.0">Risky product, or your</text>
+<text class="b" x="1120" y="1527.5">history explains it? Up</text>
+<text class="b" x="1120" y="1542.0">to 2 more are added.</text>
 </g>
 <circle class="step" cx="1107" cy="1323.5" r="11.5"/><text class="step-t" x="1107" y="1327.5" text-anchor="middle">7</text>
 <g class="bx l6"><rect x="243" y="1652.8" width="170" height="101.0" rx="7"/>
@@ -681,6 +682,7 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
       <ul>
         <li><b>Built ahead of time.</b> 17 Markdown documents are split at paragraphs, lists and tables into 45 chunks of at most 240 tokens. Each chunk starts with its document title and is stored in ChromaDB with its vector, category and source.</li>
         <li><b>At question time.</b> Normalise bureau names, embed, take the 12 nearest chunks by cosine similarity, rerank with a cross-encoder, keep at most 2 per document, return the top 3.</li>
+        <li><b>Searches from your own data</b> (Task 30). When your history explains the question, the library is searched for that too: the factor behind a month you name, the factors behind your last two falls, or the interest on a card balance you carry. At most 2 passages are added; most questions get none.</li>
         <li><b>Three shelves.</b> Scoring factors (18 chunks), money basics (16), product risks (11). A question about a risky product always gets 2 extra passages from the product-risk shelf.</li>
         <li><b>Cited.</b> The model must cite passages as [1], [2], [3], and the chat lists them under every answer.</li>
         <li><b>Not in the library?</b> The model says "I don't have specific information on that" and sticks to general principles.</li>
@@ -782,7 +784,7 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
         <li><code>python -m creditcoach.evals</code> runs the 6 sample questions the whole way through the board above; <code>--all</code> adds the other 44.</li>
         <li>Each case is one trace, and its scores are attached to that trace in Langfuse, so a failing case opens onto the steps that explain it.</li>
         <li>Runs skip the cache and use throwaway memory, so they measure the agent and touch no one's history.</li>
-        <li>Baseline (Task 28): 36 of 50 cases pass. After the Task 30 fixes: 45 of 50.</li>
+        <li>Baseline (Task 28): 36 of 50 cases pass. After the Task 30 fixes: 45 of 50. <code>--compare</code> writes the before/after report, with cases whose measurement changed counted apart.</li>
       </ul>
     </section>
 

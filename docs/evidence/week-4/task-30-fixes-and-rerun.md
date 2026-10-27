@@ -21,7 +21,7 @@
 | Cases passing *expected* (automatic checks) | 44 | 47 |
 | Cases passing *judge* | 39 | 44 |
 | Cases passing *run* (no crash, main model, not blocked) | 49 | **50** |
-| Judge averages (grounded, clear) | 4.82, 4.92 | 4.88, 4.98 |
+| Judge averages (grounded, clear) | 4.82, 4.92 | 4.98, 4.98 |
 
 Both runs: all 50 requirements.md queries against the synthetic data (13 users), cache off, the same harness. Re-scoring the baseline's saved answers with today's checks moves it from 36 to 37 (#41's check), so changed checks alone account for +1 of the +9.
 
@@ -83,7 +83,33 @@ So for the cases the fixes targeted: #11 and #46 went from mostly failing to alw
 | Time per GPT-5 call | 9.2 s (about 90 tokens/s) | 14.1 s (about 58 tokens/s) |
 | Small-model calls in the run | 30 | 29 |
 
-The answers got slower, but not because of the fixes. GPT-5 wrote the same amount and took 50 % longer per call: the provider was slower during the re-run. The fixes added 4 % to the prompt and no small-model calls. Confirmed by running both code versions at the same time on six cases: median 18.1 s before the fixes, 18.7 s after. Fix 1 removes the worst case, a guardrail block or rewrite (*run* 50 of 50 after, 49 before). **Latency should only be compared between runs made close together in time.** The latency fix itself (reasoning effort) is still to be tried, as Task 29 recommended.
+The answers got slower, but not because of the fixes. GPT-5 wrote the same amount and took 50 % longer per call: the provider was slower during the re-run. The fixes added 4 % to the prompt and no small-model calls. Confirmed by running both code versions at the same time on six cases: median 18.1 s before the fixes, 18.7 s after. Fix 1 removes the worst case, a guardrail block or rewrite (*run* 50 of 50 after, 49 before). **Latency should only be compared between runs made close together in time.** The latency fix Task 29 recommended trying, a lower reasoning effort, was tried next.
+
+## Reasoning-effort trial
+
+Task 29 found GPT-5's own writing time is about three quarters of each answer, and `REASONING_EFFORT=minimal` looked faster on three questions. So all 50 cases were run twice **at the same time**, once at `minimal` and once at the current `low`, with the fixes above in both. Only the answering model's effort changed: the judge, the guardrail review and the cache check set their own. Reports: [eval-effort-low.md](eval-effort-low.md), [eval-effort-minimal.md](eval-effort-minimal.md).
+
+| | `low` (current) | `minimal` |
+|---|---|---|
+| Cases passing | **43 of 50** | 39 of 50 |
+| Time per answer (median, 90th percentile, longest) | 20.4 s, 32.1 s, 48.2 s | **12.3 s, 19.6 s, 35.3 s** |
+| Time per GPT-5 call (median) | 16.2 s | 9.2 s |
+| GPT-5 output per call (mean, reasoning included) | 783 tokens | 361 tokens |
+| GPT-5 cost for the 50 cases | $0.59 | $0.35 |
+| Judge averages (grounded, clear) | 4.98, 4.98 | 4.90, 4.98 |
+
+`minimal` failed 6 cases that `low` passed and passed 2 that `low` failed. The 6 are real losses, not borderline calls:
+
+| Case | What `minimal` got wrong |
+|---|---|
+| §4 #8 | A misstated figure: May's drop as 684 → 676 instead of 682 → 676 |
+| §4 #46 | Gave January 2026 in place of January 2025: the substitute month fix 3 removed |
+| §4 #27 | Didn't say to pay the card in full first: the advice fix 2 retrieves |
+| §4 #16, #24, #25 | Left out one expected point each (the per-card amount for ACC-01, keeping old cards open, asking to update the goal's date) |
+
+The two it gained (#10, #28) are among the cases that pass about 1 run in 3 under either setting. **Decision: keep `low`.** `minimal` would take about 8 s off the median answer, but it writes half as much and drops exactly what the fixes added, plus one wrong figure. The latency goal needs another route, such as `minimal` only for plain lookups ("What's my credit score?"), checked the same way. Streaming the words as they are written doesn't fit as it stands, because the output guardrails check the whole draft before the user sees it.
+
+The `low` run also shows the run-to-run spread: 43 of 50 here, 45 of 50 in the re-run, with the same code. #39 and #44 failed in both trial runs after passing in the re-run: #39's judge counted the user's own words ("by next year"), quoted beside the saved goal, as changing it; #44 left out free credit counselling, as #12 does.
 
 ## What still fails (5 of 50)
 

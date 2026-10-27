@@ -5,6 +5,7 @@
     uv run python -m creditcoach.evals --label baseline # name the run (Task 28's baseline, Task 30's re-run)
     uv run python -m creditcoach.evals --rescore        # score the saved run again: no answers, no judge calls
     uv run python -m creditcoach.evals --rejudge        # judge the saved answers again, then score: no new answers
+    uv run python -m creditcoach.evals --compare baseline --label after-fixes   # before/after report (Task 30)
 
 Cases
     §3 #1-6   Run as Task 24 did, through the chat UI's own sign-in, message and log-out functions, signed in as

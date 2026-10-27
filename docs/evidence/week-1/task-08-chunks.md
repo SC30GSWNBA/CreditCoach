@@ -1,8 +1,8 @@
 # Task 8 evidence: all 45 chunks in the vector store
 
-*Exported from the Chroma collection `creditcoach_corpus` in `.chroma` on 2026-10-02, in corpus order, by `uv run python scripts/task08_ingestion_report.py`. Text is exactly what was embedded (each chunk starts with its document title), shown in fenced blocks so its markdown isn't rendered.*
+*Exported from the Chroma collection `creditcoach_corpus` in `.chroma` on 2026-10-27, in corpus order, by `uv run python scripts/task08_ingestion_report.py`. Text is exactly what was embedded (each chunk starts with its document title), shown in fenced blocks so its markdown isn't rendered.*
 
-**45 chunks · 17 source files · 5,099 words.** "Queries" are the requirements.md queries (§3 #1–6 and §4 #7–50) the source file is tagged for.
+**45 chunks · 17 source files · 5,137 words.** "Queries" are the requirements.md queries (§3 #1–6 and §4 #7–50) the source file is tagged for.
 
 ## Index
 
@@ -18,7 +18,7 @@
 | 8 | [`factor-credit-history-length#00`](#8-factor-credit-history-length00) | `04-credit-history-length.md` | 1/2 | scoring_factor | 185 / 231 | 1,3,24 |
 | 9 | [`factor-credit-history-length#01`](#9-factor-credit-history-length01) | `04-credit-history-length.md` | 2/2 | scoring_factor | 25 / 40 | 1,3,24 |
 | 10 | [`factor-hard-inquiries#00`](#10-factor-hard-inquiries00) | `05-hard-inquiries.md` | 1/2 | scoring_factor | 138 / 184 | 1,3,7,8,9,12,23,33 |
-| 11 | [`factor-hard-inquiries#01`](#11-factor-hard-inquiries01) | `05-hard-inquiries.md` | 2/2 | scoring_factor | 114 / 145 | 1,3,7,8,9,12,23,33 |
+| 11 | [`factor-hard-inquiries#01`](#11-factor-hard-inquiries01) | `05-hard-inquiries.md` | 2/2 | scoring_factor | 152 / 187 | 1,3,7,8,9,12,23,33 |
 | 12 | [`factor-credit-mix#00`](#12-factor-credit-mix00) | `06-credit-mix.md` | 1/1 | scoring_factor | 133 / 154 | 3 |
 | 13 | [`score-impact-reference#00`](#13-score-impact-reference00) | `07-score-impact-reference.md` | 1/3 | scoring_factor | 53 / 67 | 1,3,6,7,8,10,11,41,42 |
 | 14 | [`score-impact-reference#01`](#14-score-impact-reference01) | `07-score-impact-reference.md` | 2/3 | scoring_factor | 141 / 184 | 1,3,6,7,8,10,11,41,42 |
@@ -211,7 +211,7 @@ New credit makes up roughly 10% of most scoring models.
 
 ### 11. factor-hard-inquiries01
 
-`factor-hard-inquiries#01` · [05-hard-inquiries.md](../../../corpus/05-hard-inquiries.md) · part 2 of 2 · scoring_factor · 114 words / 145 tokens · queries 1,3,7,8,9,12,23,33  
+`factor-hard-inquiries#01` · [05-hard-inquiries.md](../../../corpus/05-hard-inquiries.md) · part 2 of 2 · scoring_factor · 152 words / 187 tokens · queries 1,3,7,8,9,12,23,33  
 Source: credit_score_factors_guide.pdf §4 and §7 (impact ranges); soft vs hard inquiries by CreditCoach team
 
 ```text
@@ -222,6 +222,7 @@ New credit and hard inquiries
 **What helps**
 - Apply only for credit you actually need.
 - Before a big loan, such as a car or home loan, avoid other new applications for a few months.
+- When you are already shopping for that loan, submit full applications to a small number of lenders within a short window rather than spreading them out, so the inquiries land together instead of dragging on for months.
 - Use eligibility checks that say they don't affect your score before submitting a full application.
 - If you see an inquiry you don't recognise, check your report and dispute it with the bureau. It may be a sign of fraud.
 ```

@@ -36,6 +36,10 @@ building the context, the agent loop (each model turn and each tool call), and t
 findings, tool failures and cache lookups are events on those spans, so everything that happened for one question
 shares one trace ID (``Answer.trace_id``).
 
+Since Task 30, retrieval also searches on what the signed-in user's own data says the question is about
+(``rag.personal``): the factor behind a month the question names, the factors behind the last two falls, or the
+interest on a carried card balance. At most 2 passages are added after the usual ones (``gather_passages``).
+
 Scores, balances, limits and utilization reach the model only through tool calls, so every figure it states
 comes from a live tool result. With no ``user_id`` (the Task 10 runs), no tools are offered and the model is
 told to say it can't see account data. The Gradio UI (``creditcoach.app``) calls ``answer()`` for every chat

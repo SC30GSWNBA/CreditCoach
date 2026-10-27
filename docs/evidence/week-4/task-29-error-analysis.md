@@ -71,7 +71,7 @@ Measured from the traces of the 50 baseline answers (cache off) and the Railway 
 
 **Root cause:** the time is GPT-5 writing about 700–1,200 tokens, not the hosting. Railway adds about 2–10 s (retrieval on a slower CPU, and rewrites). **Fixes:**
 - Fewer false-positive rewrites (fix 1 below) remove the worst cases.
-- `REASONING_EFFORT=minimal` cut GPT-5's own time from 15–20 s to 9–12 s on the tester's questions, but one answer then needed a rewrite. It should be judged on the eval suite in Task 30, not switched blind.
+- `REASONING_EFFORT=minimal` cut GPT-5's own time from 15–20 s to 9–12 s on the tester's questions, but one answer then needed a rewrite. It should be judged on the eval suite in Task 30, not switched blind. *(Judged in Task 30: 40 % faster but 4 fewer cases passing, so `low` stays; see [the trial](task-30-fixes-and-rerun.md#reasoning-effort-trial).)*
 
 ## Top 3 fixes for Task 30
 

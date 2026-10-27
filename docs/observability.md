@@ -14,7 +14,7 @@ Until Week 3, what happened inside an answer was spread across several places: t
 | `guardrail.input` | the input rails: rules found, predatory products named | `guardrail.trigger` per finding (S1–S3, G2) |
 | `memory.context` | building the MEMORY section (only with a memory session) | |
 | `cache.answer` | the answer-cache lookup: hit, miss or stale, and how it matched | `cache` per lookup |
-| `retrieval` | passage ids, categories and scores; whether the product-risk passages were added | `cache` per lookup; `retrieval.empty` if nothing matched |
+| `retrieval` | passage ids, categories and scores; whether the product-risk passages were added; the searches drawn from the user's own data (`retrieval.data_probes`, Task 30) | `cache` per lookup; `retrieval.empty` if nothing matched |
 | `memory.recall` | the stored goal and how many earlier sessions there are | |
 | `context.build` | loading the user's profile and building the prompt (data backend, history length) | |
 | `agent` | the tool-calling loop | |
