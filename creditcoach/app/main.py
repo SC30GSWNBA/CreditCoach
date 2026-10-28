@@ -38,6 +38,11 @@ same two tools the chat uses, directly and only for the signed-in user, with no 
 pressing "Ask in chat" fills the chat box with a question about that month and switches to the chat tab; it
 doesn't send until the user presses Enter.
 
+Dashboard tab (Task 31): for the team's logins only, the tool-call failure rate, guardrail trigger count and
+goal-recall accuracy over the last day, week or month, from the traces every answer leaves (Langfuse, else the local
+trace files), with real use and eval runs kept apart (``creditcoach.app.dashboard``). People who signed up never see
+the tab, and its handlers check the login again before reading anything.
+
 Per-user logins: every visitor signs in as one dataset user (``creditcoach.auth``). Usernames
 ``creditcoach_user1`` to ``creditcoach_user15`` are the team's logins for USR-001 to USR-015; people who sign up get
 ``creditcoach_user16`` onwards. Answers use that user's own profile, score history and accounts, and nobody else's:
@@ -85,7 +90,7 @@ import gradio as gr  # noqa: E402
 from creditcoach import auth, config, guardrails  # noqa: E402
 from creditcoach import observability as obs  # noqa: E402
 from creditcoach.agent.pipeline import answer  # noqa: E402
-from creditcoach.app import badges, charts, confidence, limits, server, theme  # noqa: E402
+from creditcoach.app import badges, charts, confidence, dashboard, limits, server, theme  # noqa: E402
 from creditcoach.app.trace import Trace  # noqa: E402
 from creditcoach.memory import dream, store  # noqa: E402
 from creditcoach.rag.retrieve import retrieve  # noqa: E402
@@ -488,9 +493,33 @@ def ask_about_month(day: str | None) -> tuple:
     return ask_in_chat(charts.month_question(day)) if day else (gr.skip(), gr.skip())
 
 
+TEAM_ONLY = '<div class="cc-empty"><b>The dashboard is for the project team\'s logins.</b></div>'
+
+
+def dashboard_view(days: int, traffic: str, request: gr.Request, refresh: bool = False) -> str:
+    """The dashboard for a team login, else a note: the check is made here too, not only by hiding the tab."""
+    if not auth.is_team(getattr(request, "username", None)):
+        return TEAM_ONLY
+    if refresh:
+        dashboard.forget()
+    return dashboard.view(int(days), traffic)
+
+
+def refresh_dashboard(days: int, traffic: str, request: gr.Request) -> str:
+    """The Refresh button: read the traces afresh, then show the dashboard."""
+    return dashboard_view(days, traffic, request, refresh=True)
+
+
+def load_dashboard(days: int, traffic: str, request: gr.Request) -> tuple:
+    """On page load: show the Dashboard tab, filled in, to team logins only."""
+    if not auth.is_team(getattr(request, "username", None)):
+        return gr.Tab(visible=False), ""
+    return gr.Tab(visible=True), dashboard_view(days, traffic, request)
+
+
 def build() -> gr.Blocks:
-    """Create the page: a "Signed in as" line with a Log out button, the memory panel, then two tabs: the chat
-    interface and "My credit" (the signed-in user's charts).
+    """Create the page: a "Signed in as" line with a Log out button, the memory panel, then the tabs: the chat
+    interface, "My credit" (the signed-in user's charts) and, for team logins only, "Dashboard" (Task 31).
 
     Returns:
         A configured ``gr.Blocks`` (not yet launched). Analytics are off, flagging is disabled, and at most 2
@@ -554,6 +583,15 @@ def build() -> gr.Blocks:
                             gr.Markdown("### What you owe\nEvery account by balance. Loans don't count toward "
                                         "utilization.")
                             debt = gr.HTML()
+            with gr.Tab("Dashboard", id="dashboard", visible=False) as dash_tab:
+                gr.Markdown("### How CreditCoach is doing\nTool-call failures, guardrail triggers and goal recall, "
+                            "counted from the traces every answer leaves. Counts only: no question, answer or user.")
+                with gr.Row(equal_height=False):
+                    dash_days = gr.Radio(dashboard.PERIODS, value=7, show_label=False, container=False, scale=3)
+                    dash_traffic = gr.Radio(dashboard.TRAFFIC, value="real", show_label=False, container=False,
+                                            scale=3)
+                    dash_refresh = gr.Button("Refresh", size="sm", scale=0, min_width=100)
+                dash = gr.HTML()
 
         story_outputs = [snapshot, story, reasons, month, table]
         period.change(credit_story, inputs=period, outputs=story_outputs)
@@ -567,6 +605,10 @@ def build() -> gr.Blocks:
         demo.load(load_credit, inputs=period,
                   outputs=[credit_view, empty_view, empty, start_ask, *story_outputs, cards, whatif, card, pay, note,
                            debt])
+        dash_days.change(dashboard_view, inputs=[dash_days, dash_traffic], outputs=dash)
+        dash_traffic.change(dashboard_view, inputs=[dash_days, dash_traffic], outputs=dash)
+        dash_refresh.click(refresh_dashboard, inputs=[dash_days, dash_traffic], outputs=dash)
+        demo.load(load_dashboard, inputs=[dash_days, dash_traffic], outputs=[dash_tab, dash])
         demo.unload(closed)
     return demo
 
@@ -617,7 +659,8 @@ def main() -> None:
         sys.exit(1)
     warm_up()
     threading.Thread(target=check_langfuse, name="langfuse-check", daemon=True).start()
-    server.run(build(), port=args.port, share=args.share, css=theme.CSS + charts.CSS + badges.CSS, host=args.host)
+    server.run(build(), port=args.port, share=args.share, css=theme.CSS + charts.CSS + badges.CSS + dashboard.CSS,
+               host=args.host)
 
 
 if __name__ == "__main__":

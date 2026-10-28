@@ -58,6 +58,8 @@ Since Task #27 the eval harness runs each case inside an `eval.case` span, so th
 
 Since Task #29 testers can rate an answer in the chat. A 👍 or 👎 is attached to that answer's trace as the score `user.feedback` (true or false, with the verdict as its comment), and a 👎's reason as `user.feedback.reason` (*Wrong or missing figure*, *Didn't answer my question*, *Too slow*, *Hard to follow*). In Langfuse, filter traces by those scores to read every rated answer with everything that went into it ([task-29-error-analysis.md](evidence/week-4/task-29-error-analysis.md)).
 
+Since Task #31 the chat UI has a **Dashboard** tab for the team's logins (`creditcoach/app/dashboard.py`): the tool-call failure rate, guardrail trigger count and goal-recall accuracy, read from Langfuse with the v2 observations API above (else from `.traces/`), with eval runs (tagged `eval`) kept apart from real use ([task-31-dashboard.md](evidence/week-4/task-31-dashboard.md)). Langfuse cuts long metadata strings, so a stored goal's JSON can arrive incomplete; the dashboard reads its target and session from the cut text.
+
 The trace made one cost visible straight away: `context.build` takes about 1.3 s, almost all of it loading the user's profile from Neon on every question. That is a lead for the Task #29 error analysis.
 
 ## 5. Open questions for team review
