@@ -374,6 +374,10 @@ Both tools share one error shape:
 
 **Cache (Task 22):** the host keeps a successful result for 5 minutes under the signed-in user's own key and serves a repeated call from it without reaching the server; the log line and the `ToolCall` say `cached`. The `user_id` check (§1 rule 2) runs before the cache is read, and errors are never cached. See [caching.md](caching.md) §4 for how this meets the "live tool call" requirement.
 
+**Edge cases (Task 32):** two promises in the tables above are now built in the host.
+- **Last confirmed.** For a question in a memory session, the host keeps each successful result in the app's memory. If the same call later fails with `DATA_UNAVAILABLE`, the error carries that result as `last_confirmed` (`{"at": "08:30 IST on 28 Oct 2026", "result": {...}}`), so the agent can share it labeled as last confirmed and when, never as current (§4 #45). Results are kept per session, for the 500 most recent calls; nothing is written to disk.
+- **Server down.** If the tool server can't start, doesn't answer within 20 seconds at startup, or fails during a call, every call returns `DATA_UNAVAILABLE` instead of raising, so the answer goes on from the library and says the data can't be read. Before Task 32 a server that couldn't start took the whole answer down, and one that hung at startup never returned.
+
 ## 5. Test Cases for Tasks #13 and #14
 
 Each task's Definition of Done asks for a known case and an error case. These are the minimum; the implementing task may add more. T1–T8 and T15 for `get_score_history` are automated in `tests/test_score_history.py` (Task 13), and T9–T15 for `get_account_summary` in `tests/test_account_summary.py` (Task 14). The latter also checks that every complete JSON example in §3 is exactly what the tool returns, so this spec and the code can't drift apart.

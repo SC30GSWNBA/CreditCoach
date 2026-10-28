@@ -8,6 +8,13 @@ for. It does the jobs ``docs/tools.md`` gives to "the host":
                    with ``USER_MISMATCH`` and never reaches the server (§1 rule 2, requirements.md §4 #49).
     Timeout        A call that takes longer than ``TIMEOUT_SECONDS`` becomes ``DATA_UNAVAILABLE`` (retryable).
     Retry          A retryable error is retried once (§4).
+    Server down    (Task 32) If the server can't start, doesn't answer within ``STARTUP_SECONDS``, or fails during
+                   a call, every call becomes ``DATA_UNAVAILABLE`` instead of raising, so the answer goes on from
+                   the library and says the user's data can't be read right now.
+    Last confirmed (Task 32) With a ``scope`` (the memory session), each successful result is kept in this process.
+                   If the same call later fails with ``DATA_UNAVAILABLE``, the error carries that result as
+                   ``last_confirmed`` with when it was read, so the answer may share it, labeled as last confirmed
+                   and never as current (requirements.md §4 #45 and §6).
     Log            Every call is recorded as a ``ToolCall`` (tool, arguments, ok, error code, latency, attempts)
                    and logged as one JSON line, for the Week 4 tool-failure rate.
     Trace          Every call is a ``tool.<name>`` span in the request's trace (Task 26, ``creditcoach.observability``);
@@ -29,9 +36,12 @@ import asyncio
 import json
 import logging
 import sys
+import threading
 import time
+from collections import OrderedDict
 from contextlib import AsyncExitStack
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, get_default_environment, stdio_client
@@ -43,6 +53,12 @@ from creditcoach.tools.common import error
 log = logging.getLogger(__name__)
 
 TIMEOUT_SECONDS = 5.0
+STARTUP_SECONDS = 20.0  # starting the server and listing its tools; normally about 2 s
+CONFIRMED_KEEP = 500    # last confirmed results kept in this process, oldest dropped first
+IST = timezone(timedelta(hours=5, minutes=30), "IST")
+
+_confirmed: OrderedDict[tuple, dict] = OrderedDict()  # (scope, user, tool, arguments) -> {"at": ..., "result": ...}
+_confirmed_lock = threading.Lock()
 
 
 def server_params() -> StdioServerParameters:
@@ -131,13 +147,35 @@ def trace_call(call: ToolCall) -> None:
         obs.fail(f"{call.tool} failed: {call.code}")
 
 
+def confirm(scope: str | None, user_id: str, name: str, args: dict, result: dict) -> dict:
+    """Keep a successful result as the last confirmed one for this call, or attach the last confirmed result to a
+    ``DATA_UNAVAILABLE`` error. Returns the result to give the model (unchanged unless something was attached)."""
+    if not scope:
+        return result
+    key = (scope, user_id, name, json.dumps(args, sort_keys=True))
+    with _confirmed_lock:
+        if result.get("ok"):
+            _confirmed[key] = {"at": datetime.now(IST).strftime("%H:%M IST on %d %b %Y"), "result": result}
+            _confirmed.move_to_end(key)
+            while len(_confirmed) > CONFIRMED_KEEP:
+                _confirmed.popitem(last=False)
+            return result
+        earlier = _confirmed.get(key)
+    if earlier and result.get("error", {}).get("code") == "DATA_UNAVAILABLE":
+        return {**result, "last_confirmed": earlier}
+    return result
+
+
 class McpHost:
     """An MCP client session for one signed-in user. Use as ``async with McpHost(user_id) as host``."""
 
-    def __init__(self, user_id: str, timeout: float = TIMEOUT_SECONDS, server: StdioServerParameters | None = None):
+    def __init__(self, user_id: str, timeout: float = TIMEOUT_SECONDS, server: StdioServerParameters | None = None,
+                 scope: str | None = None):
         self.user_id = user_id
         self.timeout = timeout
         self.server = server
+        self.scope = scope  # the memory session, for last confirmed results; None keeps none
+        self.unavailable: str | None = None  # why the server can't be used, once startup has failed
         self.calls: list[ToolCall] = []
         self.tools: dict[str, dict] = {}  # tool name -> input schema, as the server lists it
 
@@ -146,10 +184,18 @@ class McpHost:
         try:
             read, write = await self._stack.enter_async_context(stdio_client(self.server or server_params()))
             self._session = await self._stack.enter_async_context(ClientSession(read, write))
-            await self._session.initialize()
-            listed = (await self._session.list_tools()).tools
-        except BaseException:
+            await asyncio.wait_for(self._session.initialize(), STARTUP_SECONDS)
+            listed = (await asyncio.wait_for(self._session.list_tools(), STARTUP_SECONDS)).tools
+        except Exception as exc:  # degrade: every call reports DATA_UNAVAILABLE (Task 32)
             await self._stack.aclose()  # stop the server process if startup fails part-way
+            self.unavailable = (f"the tool server didn't start within {STARTUP_SECONDS:g} seconds"
+                                if isinstance(exc, TimeoutError) else f"the tool server couldn't start ({type(exc).__name__})")
+            log.error("MCP server unavailable for %s: %s", self.user_id, self.unavailable, exc_info=exc)
+            obs.event("tool.server_unavailable", reason=self.unavailable)
+            self.tools, self._descriptions = {}, {}
+            return self
+        except BaseException:
+            await self._stack.aclose()
             raise
         self.tools = {t.name: t.input_schema for t in listed}
         self._descriptions = {t.name: t.description or "" for t in listed}
@@ -197,6 +243,8 @@ class McpHost:
                         obs.event("tool.retry", code=result["error"].get("code"))
                 if result.get("ok"):
                     cache.put("tool", key, result, tool=name, user_id=self.user_id)
+            if attempts or cached:  # it reached the server or the cache: not refused by the checks below
+                result = confirm(self.scope, self.user_id, name, args, result)
             call = ToolCall(tool=name, arguments=args, user_id=self.user_id, result=result,
                             seconds=time.perf_counter() - start, attempts=attempts, cached=cached)
             self.calls.append(call)
@@ -215,6 +263,9 @@ class McpHost:
             except json.JSONDecodeError:
                 return {"raw": arguments}, error("INVALID_ARGUMENTS", f"Arguments for {name} aren't valid JSON."), 0
         args = dict(arguments or {})
+        if self.unavailable:
+            return args, error("DATA_UNAVAILABLE", f"Can't read the data right now: {self.unavailable}.",
+                               retryable=True), 1
         if name not in self.tools:
             return args, error("UNKNOWN_TOOL", f"No tool named {name}.", tools=sorted(self.tools)), 0
         claimed = args.pop("user_id", None)
@@ -229,6 +280,10 @@ class McpHost:
             res = await asyncio.wait_for(self._session.call_tool(name, args), self.timeout)
         except TimeoutError:
             return error("DATA_UNAVAILABLE", f"{name} took longer than {self.timeout:g} seconds.", retryable=True)
+        except Exception as exc:  # the server process died or the connection broke (Task 32)
+            log.error("MCP call %s failed for %s", name, self.user_id, exc_info=exc)
+            return error("DATA_UNAVAILABLE", f"{name} couldn't reach the tool server ({type(exc).__name__}).",
+                         retryable=True)
         text = res.content[0].text if res.content else ""
         try:
             result = res.structured_content or json.loads(text)

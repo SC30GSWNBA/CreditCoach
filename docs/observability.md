@@ -10,15 +10,15 @@ Until Week 3, what happened inside an answer was spread across several places: t
 
 | Span | What it records | Events on it |
 |---|---|---|
-| `creditcoach.answer` | user, memory session, the (masked) question, the answer, model, guardrail action, cache status, tool calls and failures, total seconds | an answer-cache `skip`, if the answer may not be stored |
+| `creditcoach.answer` | user, memory session, the (masked) question, the answer, model, guardrail action, cache status, tool calls and failures, total seconds | an answer-cache `skip`, if the answer may not be stored; `clarify.reference` when the question points at a loan nobody has named (Task 32) |
 | `guardrail.input` | the input rails: rules found, predatory products named | `guardrail.trigger` per finding (S1–S3, G2) |
 | `memory.context` | building the MEMORY section (only with a memory session) | |
 | `cache.answer` | the answer-cache lookup: hit, miss or stale, and how it matched | `cache` per lookup |
-| `retrieval` | passage ids, categories and scores; whether the product-risk passages were added; the searches drawn from the user's own data (`retrieval.data_probes`, Task 30) | `cache` per lookup; `retrieval.empty` if nothing matched |
+| `retrieval` | passage ids, categories and scores; whether the product-risk passages were added; the searches drawn from the user's own data (`retrieval.data_probes`, Task 30) | `cache` per lookup; `retrieval.empty` if nothing matched; `retrieval.failed` if the library couldn't be searched and the answer went on without it (Task 32) |
 | `memory.recall` | the stored goal and how many earlier sessions there are | |
 | `context.build` | loading the user's profile and building the prompt (data backend, history length) | |
-| `agent` | the tool-calling loop | |
-| `tool.<name>` | arguments, ok, error code, attempts, cached, milliseconds, the result. A failed call has **ERROR** status | `cache`; `tool.retry`; `tool.failure` with the code and message |
+| `agent` | the tool-calling loop | `tool.server_unavailable` if the tool server couldn't start (Task 32) |
+| `tool.<name>` | arguments, ok, error code, attempts, cached, milliseconds, the result (with `last_confirmed` when a failed call fell back to it, Task 32). A failed call has **ERROR** status | `cache`; `tool.retry`; `tool.failure` with the code and message |
 | `llm.chat` | model asked for and model that answered, tokens in and out, cost in US dollars, the messages and the reply | `llm.fallback` when the fallback model answered |
 | `guardrail.output` | passed, reframed or blocked; whether the model review ran; rules found and still failing | `guardrail.trigger` per finding (G1–G3, S2, S4) |
 
