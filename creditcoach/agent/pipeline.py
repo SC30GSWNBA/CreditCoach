@@ -40,6 +40,11 @@ Since Task 30, retrieval also searches on what the signed-in user's own data say
 (``rag.personal``): the factor behind a month the question names, the factors behind the last two falls, or the
 interest on a carried card balance. At most 2 passages are added after the usual ones (``gather_passages``).
 
+Since Task 32, edge cases end in an answer, not an error: if the library can't be searched the model is told it has
+no passages (``NO_PASSAGES``), if the profile can't be read it gets ``NO_PROFILE``, and a tool server that's down
+gives ``DATA_UNAVAILABLE`` results (with the session's last confirmed figures, ``agent.mcp_host``). A question about
+"this loan" when no loan was named gets a CLARIFY note asking the model to find out which first (``agent.clarify``).
+
 Scores, balances, limits and utilization reach the model only through tool calls, so every figure it states
 comes from a live tool result. With no ``user_id`` (the Task 10 runs), no tools are offered and the model is
 told to say it can't see account data. The Gradio UI (``creditcoach.app``) calls ``answer()`` for every chat
@@ -68,6 +73,7 @@ from pathlib import Path
 
 from creditcoach import cache, config, guardrails
 from creditcoach import observability as obs
+from creditcoach.agent import clarify
 from creditcoach.agent.mcp_host import McpHost, ToolCall, cached_call, tool_attributes, trace_call
 from creditcoach.cache import answers as answer_cache
 from creditcoach.llm import chat, chat_with_tools
@@ -84,6 +90,9 @@ NO_TOOLS = ("(none: account tools are not connected yet, so no data about this u
 USER_SCOPE = ("The profile below belongs to the signed-in user ({user_id}). It has no scores, balances or limits: "
               "get those with the tools, which return only this user's data. You have no access to any other "
               "user's data.")
+NO_PROFILE = "(unavailable right now: the user's profile couldn't be read. Don't guess their habits or goals.)"
+NO_PASSAGES = ("(none: nothing from CreditCoach's library is available for this question. Say you don't have specific "
+               "information on it in the library, and don't explain it from your own knowledge.)")
 MAX_TOOL_ROUNDS = 4  # model turns that may call tools; the next turn must answer in text
 PREFETCH = (("get_score_history", {"period": "last_12_months"}), ("get_account_summary", {}))
 """Tool calls the host makes before the model's first turn, for every signed-in question. The 50-query run
@@ -197,13 +206,17 @@ def build_context(passages: list[Result], user_id: str | None = None, memory: st
     refs = "\n\n".join(f"[{i}] {p.title} (source: {p.metadata['source']})\n{p.text.split(chr(10) * 2, 1)[-1]}"
                        for i, p in enumerate(passages, 1))
     if user_id:
-        profile = json.dumps(load_user_data(user_id)["user_profile"], indent=1, ensure_ascii=False)
+        try:
+            profile = json.dumps(load_user_data(user_id)["user_profile"], indent=1, ensure_ascii=False)
+        except Exception:  # Task 32: the data store is down; the tools will say so too
+            logging.getLogger(__name__).exception("Couldn't read %s's profile", user_id)
+            profile = NO_PROFILE
         user = f"USER PROFILE:\n{USER_SCOPE.format(user_id=user_id)}\n{profile}"
         if memory:
             user += f"\n\n{memory}"
     else:
         user = f"TOOL RESULTS:\n{NO_TOOLS}"
-    return f"{user}\n\nREFERENCE CONTEXT (cite the passages you use as [1], [2], ...):\n{refs or '(none)'}"
+    return f"{user}\n\nREFERENCE CONTEXT (cite the passages you use as [1], [2], ...):\n{refs or NO_PASSAGES}"
 
 
 async def run_agent(messages: list[dict], user_id: str, memory: recall.MemoryTools | None = None,
@@ -230,7 +243,7 @@ async def run_agent(messages: list[dict], user_id: str, memory: recall.MemoryToo
 
 
 async def _agent_loop(messages, user_id, memory, progress, prefetch) -> tuple[str, str, list[ToolCall]]:
-    async with McpHost(user_id) as host:
+    async with McpHost(user_id, scope=memory.session.session if memory else None) as host:
         offered = host.openai_tools + (memory.specs if memory else [])
         calls: list[ToolCall] = []
         if prefetch:
@@ -248,7 +261,7 @@ async def _agent_loop(messages, user_id, memory, progress, prefetch) -> tuple[st
             messages += [{"role": "tool", "tool_call_id": cid, "content": json.dumps(result, ensure_ascii=False)}
                          for cid, _, _, result in fetched]
         for round_ in range(MAX_TOOL_ROUNDS + 1):
-            tools = offered if round_ < MAX_TOOL_ROUNDS else None
+            tools = (offered or None) if round_ < MAX_TOOL_ROUNDS else None  # none when the server is down
             _report(progress, "model", round=round_ + 1)
             message, model = await asyncio.to_thread(chat_with_tools, messages, tools)
             if not message.tool_calls:
@@ -438,7 +451,12 @@ def _answer(question, k, user_id, session, history, progress, guard, use_cache) 
     _report(progress, "retrieval", status="start")
     with obs.span("retrieval", **{"langfuse.observation.type": "retriever", "retrieval.k": k,
                                   "langfuse.observation.input": question}):
-        passages, probes = gather_passages(question, k, user_id, bool(screened.products))
+        try:
+            passages, probes = gather_passages(question, k, user_id, bool(screened.products))
+        except Exception as exc:  # Task 32: answer without the library rather than not at all
+            logging.getLogger(__name__).exception("Retrieval failed; answering without library passages")
+            obs.event("retrieval.failed", error=type(exc).__name__)
+            passages, probes = [], []
         found = [{"id": p.id, "title": getattr(p, "title", None), "category": getattr(p, "category", None),
                   "score": round(float(getattr(p, "score", 0)), 4)} for p in passages]
         obs.annotate(**{"retrieval.passages": [f["id"] for f in found] or None,
@@ -458,10 +476,14 @@ def _answer(question, k, user_id, session, history, progress, guard, use_cache) 
                             "memory.sessions": earlier_sessions, "memory.in_context": bool(memory)})
         _report(progress, "memory", goal=remembered.goal, sessions=earlier_sessions)
     earlier = recall.history_messages(history)
+    unclear = clarify.note(screened.text, [m["content"] for m in earlier if m["role"] == "user"])
+    if unclear:
+        obs.event("clarify.reference", note="unclear reference to a loan or product")
     with obs.span("context.build", **{"data.backend": config.DATA_BACKEND, "context.history": len(earlier)}):
         messages = [{"role": "system", "content": load_system_prompt()},
                     {"role": "system", "content": build_context(passages, user_id, memory)},
                     *([{"role": "system", "content": screened.notes}] if screened.notes else []),
+                    *([{"role": "system", "content": unclear}] if unclear else []),
                     *({**m, "content": guardrails.mask(m["content"])} for m in earlier),
                     {"role": "user", "content": question}]
     if user_id:
