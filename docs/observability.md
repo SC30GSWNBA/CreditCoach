@@ -1,6 +1,6 @@
 # CreditCoach: Observability
 
-*Week 4 · Task #26 (tracing), #31 (dashboard) · Last updated: 2026-10-28 (dashboard; Task #32 edge-case events) · Status: Draft for team review · Code: `creditcoach/observability.py`*
+*Week 4 · Task #26 (tracing), #31 (dashboard) · Last updated: 2026-10-29 (traces tagged by process; real use vs test runs on the dashboard) · Status: Draft for team review · Code: `creditcoach/observability.py`*
 
 Until Week 3, what happened inside an answer was spread across several places: the agent trace in the chat, one JSON log line per tool call, the guardrail log, the cache log, and the record each reply leaves in Neon. None of them carried an ID linking the lines for one question. Since Task #26, every question is one **OpenTelemetry trace**, and every step of it is a span in that trace, so retrievals, tool calls, guardrail triggers, tool failures, model calls and cache lookups for one request all share a single trace ID. The same traces feed the Task #31 dashboard and the Task #29 error analysis.
 
