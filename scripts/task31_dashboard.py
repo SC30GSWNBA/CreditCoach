@@ -7,7 +7,8 @@ through Playwright, and:
 
     1. signs in with a team login (Aravind, USR-001), opens "Dashboard": real use over the last 7 days
     2. switches the traffic to "Eval runs"
-    3. signs in as someone who signed up, and checks the Dashboard tab isn't there
+    3. signs in as someone who signed up, opens the Dashboard tab and checks it shows the same counts (since
+       2026-10-29 the dashboard is for every signed-in user, not only the team's logins)
 
 The dashboard reads the traces every answer has left (Langfuse when its keys are set, else .traces/), so nothing is
 asked of the model: the run is free. The figures in the evidence come from the same load the page shows.
@@ -101,9 +102,13 @@ def main() -> None:
         shoot(page, "dashboard-eval")
 
         page = sign_in(SIGNUP[0])
-        hidden = page.get_by_role("tab", name="Dashboard").count() == 0
-        checks.append(("Someone who signed up doesn't see the Dashboard tab", hidden))
-        page.screenshot(path=str(IMG / "task-31-signup-no-tab.png"))
+        tab = page.get_by_role("tab", name="Dashboard")
+        checks.append(("Someone who signed up sees the Dashboard tab", tab.count() == 1))
+        tab.click()
+        page.locator(".cc-dash-table, .cc-empty").first.wait_for(timeout=30_000)
+        page.wait_for_timeout(600)
+        signup_text = page.locator(".cc-tiles").last.inner_text()
+        shoot(page, "signup-dashboard")
         browser.close()
     demo.close()
 
@@ -114,6 +119,7 @@ def main() -> None:
 
     checks += [("Real use: the page shows the same counts as the traces", shown(real_text, summaries["real"])),
                ("Eval runs: the page shows the same counts as the traces", shown(eval_text, summaries["eval"])),
+               ("The signed-up user sees the same counts as the team", shown(signup_text, summaries["real"])),
                ("Real data: answers were found in the period", summaries["all"]["answers"] > 0)]
     write_evidence(source, summaries, checks)
     ok = all(held for _, held in checks)
@@ -135,7 +141,8 @@ def write_evidence(source: str, summaries: dict, checks: list) -> None:
              "**Definition of Done:** the dashboard shows real data and is reachable from the UI.", "",
              f"**Run:** {now}, last {DAYS} days, from {source}.", "",
              "## What it shows", "",
-             "A **Dashboard** tab next to *Ask CreditCoach* and *My credit*, for the team's logins only "
+             "A **Dashboard** tab next to *Ask CreditCoach* and *My credit*, for every signed-in user: the team's logins, "
+             "people who signed up and anyone invited later "
              "([dashboard.py](../../../creditcoach/app/dashboard.py)). It counts, from the traces every answer leaves "
              "(Task 26):", "",
              "| Measure | Counted as |", "|---|---|",
@@ -172,8 +179,9 @@ def write_evidence(source: str, summaries: dict, checks: list) -> None:
               "only for this run.", "",
               "### 1. Team login: real use, last 7 days", "", "![Dashboard, real use](img/task-31-dashboard-real.png)",
               "", "### 2. Team login: eval runs", "", "![Dashboard, eval runs](img/task-31-dashboard-eval.png)", "",
-              "### 3. Someone who signed up: no Dashboard tab", "",
-              "![Signed-up user's tabs](img/task-31-signup-no-tab.png)", ""]
+              "### 3. Someone who signed up: the same dashboard", "",
+              "Until 2026-10-29 the tab was for the team's logins only; it is now open to every signed-in user.", "",
+              "![Signed-up user's dashboard](img/task-31-signup-dashboard.png)", ""]
     EVIDENCE.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

@@ -5,7 +5,9 @@ week is the user's own: it starts with their first question and ends 7 days late
 with their next question. The 15 team logins (``auth.is_team``) have no limit.
 
 A question is counted before it is answered (``take``), so two questions sent at once can't both slip past the
-limit, and handed back (``give_back``) if the answer service fails. A question answered from the cache counts too.
+limit, and handed back (``give_back``) if the answer service fails, or if the answer couldn't reach the user's
+data (``unreachable``: a data tool ended in ``DATA_UNAVAILABLE``, Task 32), since an answer that can only say "try
+again shortly" shouldn't use up one of 5. A question answered from the cache counts too.
 Only real questions reach ``take``: empty messages are turned away earlier.
 
 The counts live in Neon (``app_usage``, created by ``creditcoach.signup.store``): one row per user with the start of
@@ -73,8 +75,13 @@ def take(user_id: str) -> Grant:
     return Grant(False, 0, week_start + WEEK)
 
 
+def unreachable(answer) -> bool:
+    """Whether ``answer`` couldn't reach the user's data: a data tool call ended in ``DATA_UNAVAILABLE``."""
+    return any(c.code == "DATA_UNAVAILABLE" for c in answer.tool_calls)
+
+
 def give_back(user_id: str) -> None:
-    """Uncount one question, after the answer service failed."""
+    """Uncount one question, after the answer service failed or the answer couldn't reach the user's data."""
     from creditcoach.signup import store
 
     with store.connection() as conn:
@@ -93,7 +100,9 @@ def used_up(grant: Grant) -> str:
             "Until then the **My credit** tab still shows your score story and accounts.")
 
 
-def footer(grant: Grant) -> str:
-    """The small line under an answer: how many questions are left and when the week resets."""
-    return (f"\n\n<sub>Questions left this week: **{grant.left} of {config.WEEKLY_QUESTIONS}** · "
+def footer(grant: Grant, refunded: bool = False) -> str:
+    """The small line under an answer: how many questions are left and when the week resets, and whether this one
+    was handed back because the user's data couldn't be reached."""
+    note = "This one wasn't counted: your data couldn't be reached. · " if refunded else ""
+    return (f"\n\n<sub>{note}Questions left this week: **{grant.left} of {config.WEEKLY_QUESTIONS}** · "
             f"resets {when(grant.resets)}</sub>")

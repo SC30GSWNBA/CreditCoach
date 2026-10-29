@@ -157,3 +157,16 @@ def test_recording_outside_a_trace_is_a_no_op():
     obs.annotate(x=1)
     obs.fail("nothing to fail")
     assert obs.trace_id() is None
+
+
+def test_langfuse_base_url_is_read_when_langfuse_host_is_not_set(monkeypatch):
+    """Langfuse's setup snippet names it LANGFUSE_BASE_URL; pasting that once sent the keys to the wrong region."""
+    import importlib
+
+    monkeypatch.delenv("LANGFUSE_HOST", raising=False)
+    monkeypatch.setenv("LANGFUSE_BASE_URL", "https://jp.cloud.langfuse.com")
+    assert importlib.reload(config).LANGFUSE_HOST == "https://jp.cloud.langfuse.com"
+    monkeypatch.setenv("LANGFUSE_HOST", "https://us.cloud.langfuse.com")  # LANGFUSE_HOST wins when both are set
+    assert importlib.reload(config).LANGFUSE_HOST == "https://us.cloud.langfuse.com"
+    monkeypatch.undo()
+    importlib.reload(config)

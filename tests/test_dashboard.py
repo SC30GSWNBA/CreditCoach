@@ -1,4 +1,4 @@
-"""The team dashboard (Task 31): tool-call failure rate, guardrail triggers and goal-recall accuracy from traces.
+"""The dashboard (Task 31): tool-call failure rate, guardrail triggers and goal-recall accuracy from traces.
 
 No API key or network needed: traces are built here in the local file's shape and in Langfuse's, and Langfuse is
 replaced by a stand-in.
@@ -207,17 +207,29 @@ def request(username):
     return SimpleNamespace(username=username, session_hash="test")
 
 
-def test_only_team_logins_see_the_dashboard(monkeypatch):
+@pytest.fixture
+def signed_up(monkeypatch):
+    """creditcoach_user19 is someone who signed up (a login in Neon, not in logins.json)."""
+    from creditcoach import auth
+
+    entry = auth.make_entry("USR-002", "a-password")
+    monkeypatch.setattr(auth, "signup_logins", lambda reload=False: {"creditcoach_user19": entry})
+
+
+def test_every_signed_in_user_sees_the_dashboard(monkeypatch, signed_up):
+    """Since 2026-10-29: the team's logins and people who signed up alike (user19 on Railway couldn't see it)."""
     monkeypatch.setattr(D, "view", lambda days, traffic: f"dashboard {days} {traffic}")
-    tab, page = main.load_dashboard(7, "real", request("creditcoach_user1"))
-    assert tab.visible is True and page == "dashboard 7 real"
-    tab, page = main.load_dashboard(7, "real", request("creditcoach_user16"))  # a sign-up
+    for username in ("creditcoach_user1", "creditcoach_user19"):
+        tab, page = main.load_dashboard(7, "real", request(username))
+        assert tab.visible is True and page == "dashboard 7 real", username
+    tab, page = main.load_dashboard(7, "real", request("nobody"))  # a stale session for an unknown login
     assert tab.visible is False and page == ""
 
 
-def test_the_handlers_check_the_login_too_not_only_the_hidden_tab(monkeypatch):
+def test_the_handlers_check_the_session_too_not_only_the_hidden_tab(monkeypatch, signed_up):
     monkeypatch.setattr(D, "view", lambda days, traffic: "dashboard")
     for handler in (main.dashboard_view, main.refresh_dashboard):
-        assert handler(7, "real", request("creditcoach_user16")) == main.TEAM_ONLY
-        assert handler(7, "real", request(None)) == main.TEAM_ONLY
+        assert handler(7, "real", request(None)) == main.SIGNED_OUT
+        assert handler(7, "real", request("nobody")) == main.SIGNED_OUT
+        assert handler(30, "all", request("creditcoach_user19")) == "dashboard"
         assert handler(30, "all", request("creditcoach_user2")) == "dashboard"

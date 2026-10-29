@@ -1,6 +1,6 @@
 # CreditCoach: Caching
 
-*Week 3 · Task #22 · Last updated: 2026-10-27 · Status: Draft for team review · Code: `creditcoach/cache/`*
+*Week 3 · Task #22 · Last updated: 2026-10-29 (degree words in the model check) · Status: Draft for team review · Code: `creditcoach/cache/`*
 
 An answer takes about 11 seconds and one GPT-5 call. Almost all of that is the model. This document defines what CreditCoach caches so repeated work isn't done twice, and the rules that keep a cached answer from being a wrong answer. Task #23 measures the hit rate and the latency improvement, and since Task #25 the chat UI shows a cache badge above each answer ([screenshots](evidence/week-3/task-25-badges.md)).
 
@@ -55,7 +55,7 @@ A cached answer can do harm in two ways: it can answer a different question, or 
 
 1. **Exact:** equal after lower-casing and removing punctuation.
 2. **Same words:** embedding similarity of at least 0.90, and the same set of meaning-bearing words. Contractions, word order, tense, filler words and British spellings don't count: "My credit score dropped 20 points this month. Why?" matches "Why did my credit score drop 20 points this month?".
-3. **Model-confirmed:** similarity of at least 0.80 (0.90 until 2026-10-27; see below) with different words, and `SMALL_MODEL` agrees the stored answer fully answers the new question (about 1.4–2 s; any doubt or error is a no). `CREDITCOACH_CACHE_CONFIRM=off` removes this step.
+3. **Model-confirmed:** similarity of at least 0.80 (0.90 until 2026-10-27; see below) with different words, and `SMALL_MODEL` agrees the two questions ask for the same thing, words of degree such as "good" and "great" included (about 3 s at `low` reasoning; any doubt or error is a no). `CREDITCOACH_CACHE_CONFIRM=off` removes this step.
 
 **Embedding similarity alone is not safe.** Measured with the project's embedding model against "Why did my credit score drop 20 points this month?":
 
@@ -79,6 +79,17 @@ No threshold separates the two groups. So two questions whose **numbers, negatio
 | 0.75 | 13–14 of 15 | 0 of 13 |
 
 The model check now starts at 0.80; matching on the same words alone still needs 0.90. The model said no to every look-alike in both runs, including "…for a home loan?" and "a personal loan" in place of "a payday loan". The cost is one `SMALL_MODEL` call (about 2 s) on a miss between 0.80 and 0.90. One rewording stays out of reach: "How much of my card limit am I using right now?" scores 0.562 against "What's my current credit utilization ratio?".
+
+**Words of degree are the same question (2026-10-29).** On Railway a tester asked "What is a good credit score?", then "What qualifies as a great credit score?". The cache did its job up to the last step (similarity 0.871, no veto), but the model, shown the two questions, said no three times out of three: told to answer no when unsure, it read "great" as possibly a different band, although the stored answer ("many lenders see around 750 or above as strong") covers both. Three changes were measured on the pairs above, plus 3 rewordings and 3 look-alikes around "a good credit score" ("…a bad credit score?", "Is my credit score good?", "How do I get a great credit score?"), each pair asked three times:
+
+| Model check | Rewordings that hit | Look-alikes that hit (wrong) | The tester's pair |
+|---|---|---|---|
+| Questions only, `minimal` reasoning (before) | 13 of 17 | 0 of 9 | no |
+| Shown the stored answer as well | 13 of 15 | 1–3 of 6 | no |
+| Prompt names degree words as the same, `minimal` | 15 of 17 | 0 of 9 | no |
+| **Prompt names degree words as the same, `low` (now)** | **14 of 17** | **0 of 9** | **yes** |
+
+Showing the model the stored answer was dropped: an answer often touches the neighbouring topic, so the answer to "How do I improve my credit score?" was served for "How do I improve my credit utilization?". The prompt now says that different phrasing, synonyms and words of degree that ask about the same thing ("good", "great", "strong" or "excellent" credit score; "raise" or "boost") are the same question, and the model reasons at `low` (`CONFIRM_EFFORT`), which takes about 3.3 s instead of 1.4–2 s, on a miss in the 0.80–0.90 band only. The full benchmark with the new pairs (`scripts/task22_confirm_band.py`): **16 of 18 rewordings hit, 0 of 16 look-alikes**, with both of the tester's phrasings matched. A miss now also records its reason and similarity on the `cache.answer` span, so Langfuse shows why (cache events don't reach it).
 
 **What is never stored or served from the answer cache:**
 

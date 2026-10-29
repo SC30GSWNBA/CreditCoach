@@ -43,7 +43,8 @@ Observability (Task 26; environment variable -> default):
     CREDITCOACH_TRACES_DIR  .traces/   Where the local trace files go (git-ignored), one JSON line per span.
     LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY
                             ""         With both set, every trace is also sent to Langfuse over OTLP.
-    LANGFUSE_HOST           "https://cloud.langfuse.com"  Langfuse region or self-hosted URL.
+    LANGFUSE_HOST           "https://cloud.langfuse.com"  Langfuse region or self-hosted URL. LANGFUSE_BASE_URL, the
+                            name Langfuse's own setup snippet uses, is read too when LANGFUSE_HOST isn't set.
     OTEL_EXPORTER_OTLP_ENDPOINT  ""    Without Langfuse keys: any OpenTelemetry collector to send traces to.
     CREDITCOACH_ENV         "local"    Tags every trace (for example "railway" for the deployed build).
 
@@ -112,7 +113,8 @@ TRACES = os.getenv("CREDITCOACH_TRACES", "on")
 TRACES_DIR = Path(os.getenv("CREDITCOACH_TRACES_DIR", ROOT / ".traces"))  # git-ignored
 LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY", "")
 LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY", "")  # never commit it
-LANGFUSE_HOST = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+# Langfuse's setup snippet now calls it LANGFUSE_BASE_URL; pasting that left the default region, which refused the keys
+LANGFUSE_HOST = os.getenv("LANGFUSE_HOST") or os.getenv("LANGFUSE_BASE_URL") or "https://cloud.langfuse.com"
 OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 ENVIRONMENT = os.getenv("CREDITCOACH_ENV", "local")
 

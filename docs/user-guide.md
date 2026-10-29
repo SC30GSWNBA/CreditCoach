@@ -184,7 +184,7 @@ Once logged in you will see:
 
 - **Signed in as …** and a **Log out** button at the top.
 - **Your memory and past conversations**: click to open. It shows the goal CreditCoach has saved for you and your earlier conversations.
-- Two large tabs: **Ask CreditCoach** and **My credit**.
+- Three large tabs: **Ask CreditCoach**, **My credit** and **Dashboard**.
 
 ### Ask CreditCoach (the chat)
 
@@ -198,6 +198,14 @@ Each answer shows:
 - The library sources it used.
 - **Questions left this week**, with the date and time your week resets.
 
+**When something can't be reached.** CreditCoach still answers, and tells you what it couldn't do:
+
+- **Your data can't be loaded right now:** it says it can't pull your latest data and suggests trying again shortly. It never guesses a figure. If it read the same figure earlier in the same conversation, it may repeat it, marked as *last confirmed* with the time, because it may have changed since.
+- **It has nothing in its library on your topic** (for example buy now, pay later): it says so instead of making up rules or fees, and may add general advice that does apply.
+- **You ask about "this loan" or "that offer" without saying which:** it asks what the loan is (the kind of loan and the lender) and its terms (amount, interest or fees, repayment period) before giving a view.
+
+When your data couldn't be loaded, the question **doesn't count** towards your 5, and the line under the answer says *"This one wasn't counted"*. The other two are full answers, so they count (see section 7).
+
 **Tell us how the answer was.** Under each answer are 👍 and 👎. If an answer was wrong, slow or hard to follow, press 👎 and pick the reason that fits best: *Wrong or missing figure*, *Didn't answer my question*, *Too slow* or *Hard to follow*. The project team reads every rating with the answer it belongs to, and uses them to decide what to fix. Rating an answer doesn't use up a question.
 
 ### My credit (your charts)
@@ -207,6 +215,10 @@ This tab shows your latest score, how it changed, your card utilization, what yo
 **Using My credit never uses up a question.** Picking a month and pressing **Ask in chat** only places a question in the chat box; it is not sent, and not counted, until you press Enter.
 
 **If you told CreditCoach you have no cards and no loans**, you have no credit file yet. My credit will say so instead of showing charts, and the chat can explain how people start building credit.
+
+### Dashboard (how CreditCoach is doing)
+
+This tab shows how CreditCoach is performing for everyone who uses it: how often its data lookups fail, how often its safety checks step in (by rule), and how often it remembers a saved goal. Pick the last day, week or month, and real use or the team's test runs. It shows **counts only**: never anyone's questions, answers or name. Using it never uses up a question.
 
 ---
 
@@ -248,6 +260,7 @@ You stay logged in, and everything else keeps working: My credit, your memory pa
 | Clicking one of the example questions | The "You've used all 5 questions" message itself |
 | A question CreditCoach declines to answer directly, such as a request to guarantee a score or to recommend a payday loan. It still replies with an explanation, so it counts. | Anything on the My credit tab |
 | A question you have asked before, even if the answer is reused | Opening your memory and past conversations |
+| | An answer that says your data couldn't be loaded right now ("This one wasn't counted") |
 | | Logging in or out |
 
 If CreditCoach cannot check your allowance for a technical reason, it tells you so, does not answer, and does not count the question. Try again a little later.

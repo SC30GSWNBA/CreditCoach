@@ -372,3 +372,37 @@ def test_the_team_logins_have_no_limit(chat):
     request = SimpleNamespace(username="creditcoach_user2", session_hash="w4")
     replies = [app.final_reply("What is my score?", [], request) for _ in range(4)]
     assert all("Your score is 838." in r and "Questions left" not in r for r in replies) and allowance.asked == 0
+
+
+def unreachable_reply(code):
+    call = SimpleNamespace(tool="get_account_summary", arguments={}, ok=code is None, code=code, cached=False,
+                           attempts=2, seconds=0.1, result={"ok": False, "error": {"code": code}})
+    return SimpleNamespace(text="I can't pull your latest data right now.", model="m", passages=[], tool_calls=[call],
+                           retrieval_seconds=0.1, generation_seconds=0.2)
+
+
+def test_an_answer_that_couldnt_reach_the_data_is_not_counted(chat, monkeypatch):
+    """Task 32: "I can't pull your data right now" hands the question back, and says so under the answer."""
+    app, allowance = chat
+    monkeypatch.setattr(app, "answer", lambda q, user_id, **kw: unreachable_reply("DATA_UNAVAILABLE"))
+    request = SimpleNamespace(username="creditcoach_user16", session_hash="w5")
+    reply = app.final_reply("What's my utilization?", [], request)
+    assert "I can't pull" in reply and allowance.asked == 0
+    assert "This one wasn't counted" in reply and "Questions left this week: **2 of 2**" in reply
+
+
+def test_other_tool_errors_still_count(chat, monkeypatch):
+    app, allowance = chat
+    monkeypatch.setattr(app, "answer", lambda q, user_id, **kw: unreachable_reply("PERIOD_OUT_OF_RANGE"))
+    request = SimpleNamespace(username="creditcoach_user16", session_hash="w6")
+    reply = app.final_reply("What was my score in January 2025?", [], request)
+    assert allowance.asked == 1 and "wasn't counted" not in reply and "**1 of 2**" in reply
+
+
+def test_the_answer_still_arrives_if_the_refund_fails(chat, monkeypatch):
+    app, allowance = chat
+    monkeypatch.setattr(app, "answer", lambda q, user_id, **kw: unreachable_reply("DATA_UNAVAILABLE"))
+    monkeypatch.setattr(limits, "give_back", lambda user_id: 1 / 0)
+    request = SimpleNamespace(username="creditcoach_user16", session_hash="w7")
+    reply = app.final_reply("What's my utilization?", [], request)
+    assert "I can't pull" in reply and "wasn't counted" not in reply and "**1 of 2**" in reply

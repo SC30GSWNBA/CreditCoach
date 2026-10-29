@@ -20,6 +20,13 @@ How two questions are judged the same (``match``), in order:
     3. model-confirmed  Similarity of at least ``CONFIRM_FROM`` otherwise, none of the vetoes below, and
                         ``SMALL_MODEL`` agrees the two questions ask for the same thing.
 
+Since 2026-10-29 the prompt says that words of degree asking about the same thing ("good", "great", "strong" score)
+are the same question, and the model reasons at ``CONFIRM_EFFORT`` "low": on Railway, "What qualifies as a great
+credit score?" after "What is a good credit score?" (0.871) was refused three times out of three. Measured on 17
+rewordings and 9 look-alikes (``scripts/task22_confirm_band.py``): 14 rewordings hit instead of 13, and still no
+look-alike. Showing the model the stored answer was tried and dropped: it let look-alikes through (the answer to
+"How do I improve my credit score?" for "How do I improve my credit utilization?").
+
 ``CONFIRM_FROM`` is lower than ``THRESHOLD`` because real rewordings can score well under 0.90 ("How do I improve
 my credit score?" and "What can I do to raise my credit score?" score 0.852). Measured on 28 pairs (15 rewordings,
 13 look-alikes, scripts/task22_confirm_band.py): asking the model from 0.80 matched 14 of the 15 rewordings instead
@@ -45,11 +52,13 @@ import time
 import uuid
 
 from creditcoach import cache, config, llm
+from creditcoach import observability as obs
 
 log = logging.getLogger("creditcoach.cache")
 
 THRESHOLD = 0.90     # minimum cosine similarity for a "same words" match, with no model call
 CONFIRM_FROM = 0.80  # minimum cosine similarity before SMALL_MODEL is asked whether the questions are the same
+CONFIRM_EFFORT = "low"  # "minimal" missed "great" for "good" (2026-10-29); "low" matched it with no wrong hit
 MAX_PER_USER = 20  # stored answers per user; the oldest goes first
 
 CONTRACTIONS = [(r"\bwhat'?s\b", "what is"), (r"\bhow'?s\b", "how is"), (r"\bwhere'?s\b", "where is"),
@@ -76,8 +85,10 @@ asks for exactly the same information as the first, so that the answer to the fi
 answer to the second.
 
 Answer "no" if they differ in the time period, a number, the product or account, the direction (rise or fall), \
-what is asked (a current figure, a target, a reason, a prediction, advice), or if one is negated. Answer "no" if \
-you are unsure. Reply with one word: yes or no."""
+what is asked (a current figure, a target, a reason, a prediction, advice), or if one is negated. Rewordings count \
+as the same: different phrasing, synonyms, and words of degree that ask about the same thing ("good", "great", \
+"strong" or "excellent" credit score; "raise" or "boost") are the same question. Otherwise, answer "no" if you are \
+unsure. Reply with one word: yes or no."""
 
 
 def plain(question: str) -> str:
@@ -141,7 +152,7 @@ def confirm(asked: str, stored: str) -> bool:
     try:
         reply, _ = llm.chat([{"role": "system", "content": CONFIRM_PROMPT},
                              {"role": "user", "content": f"First question: {stored}\nSecond question: {asked}"}],
-                            model=config.SMALL_MODEL, effort="minimal")
+                            model=config.SMALL_MODEL, effort=CONFIRM_EFFORT)
         return reply.strip().lower().strip(".\"'") == "yes"
     except Exception:
         log.exception("Semantic cache confirmation failed; treating the questions as different")
@@ -199,6 +210,7 @@ def lookup(user_id: str, question: str, embedding: list[float], version: str, me
     entry, how, similarity = match(question, embedding, usable)
     if entry is None:
         cache._note("answer", "miss", _index_key(user_id), user_id=user_id, reason=how)
+        obs.annotate(**{"cache.reason": how, "cache.similarity": round(similarity, 3)})  # kept by Langfuse, unlike events
         return None
     raw = cache._try(lambda: cache.backend().get(entry["key"]), "answer", entry["key"])
     if raw is None:

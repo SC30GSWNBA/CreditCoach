@@ -38,10 +38,11 @@ same two tools the chat uses, directly and only for the signed-in user, with no 
 pressing "Ask in chat" fills the chat box with a question about that month and switches to the chat tab; it
 doesn't send until the user presses Enter.
 
-Dashboard tab (Task 31): for the team's logins only, the tool-call failure rate, guardrail trigger count and
-goal-recall accuracy over the last day, week or month, from the traces every answer leaves (Langfuse, else the local
-trace files), with real use and eval runs kept apart (``creditcoach.app.dashboard``). People who signed up never see
-the tab, and its handlers check the login again before reading anything.
+Dashboard tab (Task 31): for every signed-in user (the team's logins, people who signed up, and anyone invited
+later), the tool-call failure rate, guardrail trigger count and goal-recall accuracy over the last day, week or
+month, from the traces every answer leaves (Langfuse, else the local trace files), with real use and eval runs kept
+apart (``creditcoach.app.dashboard``). It shows counts only, never a question, answer or user. Its handlers check
+that the session belongs to a known user before reading anything.
 
 Per-user logins: every visitor signs in as one dataset user (``creditcoach.auth``). Usernames
 ``creditcoach_user1`` to ``creditcoach_user15`` are the team's logins for USR-001 to USR-015; people who sign up get
@@ -316,7 +317,14 @@ def respond(message: str, history: list, request: gr.Request) -> Iterator[str | 
     a = outcome["answer"]
     remember(request, user_id, "assistant_message", a.text, answer_meta(a))
     trace.finish()
-    left = limits.footer(grant) if grant else ""
+    refunded = False
+    if grant and limits.unreachable(a):  # "I can't pull your data right now" doesn't use up a question (Task 32)
+        try:
+            limits.give_back(user_id)
+            grant, refunded = limits.Grant(grant.ok, grant.left + 1, grant.resets), True
+        except Exception:
+            log.exception("Couldn't hand back a question to %s", user_id)
+    left = limits.footer(grant, refunded) if grant else ""
     reply = format_reply(a) + left
     remember_trace(reply, getattr(a, "trace_id", None))
     yield trace.messages() + [gr.ChatMessage(role="assistant", content=reply)]
@@ -493,13 +501,13 @@ def ask_about_month(day: str | None) -> tuple:
     return ask_in_chat(charts.month_question(day)) if day else (gr.skip(), gr.skip())
 
 
-TEAM_ONLY = '<div class="cc-empty"><b>The dashboard is for the project team\'s logins.</b></div>'
+SIGNED_OUT = '<div class="cc-empty"><b>Please sign in again to see the dashboard.</b></div>'
 
 
 def dashboard_view(days: int, traffic: str, request: gr.Request, refresh: bool = False) -> str:
-    """The dashboard for a team login, else a note: the check is made here too, not only by hiding the tab."""
-    if not auth.is_team(getattr(request, "username", None)):
-        return TEAM_ONLY
+    """The dashboard for any signed-in user, else a note: the check is made here too, not only by hiding the tab."""
+    if auth.user_id_for(getattr(request, "username", None)) is None:
+        return SIGNED_OUT
     if refresh:
         dashboard.forget()
     return dashboard.view(int(days), traffic)
@@ -511,15 +519,15 @@ def refresh_dashboard(days: int, traffic: str, request: gr.Request) -> str:
 
 
 def load_dashboard(days: int, traffic: str, request: gr.Request) -> tuple:
-    """On page load: show the Dashboard tab, filled in, to team logins only."""
-    if not auth.is_team(getattr(request, "username", None)):
+    """On page load: show the Dashboard tab, filled in, to every signed-in user."""
+    if auth.user_id_for(getattr(request, "username", None)) is None:
         return gr.Tab(visible=False), ""
     return gr.Tab(visible=True), dashboard_view(days, traffic, request)
 
 
 def build() -> gr.Blocks:
     """Create the page: a "Signed in as" line with a Log out button, the memory panel, then the tabs: the chat
-    interface, "My credit" (the signed-in user's charts) and, for team logins only, "Dashboard" (Task 31).
+    interface, "My credit" (the signed-in user's charts) and "Dashboard" (Task 31, counts across all users).
 
     Returns:
         A configured ``gr.Blocks`` (not yet launched). Analytics are off, flagging is disabled, and at most 2

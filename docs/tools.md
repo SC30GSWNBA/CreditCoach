@@ -1,6 +1,6 @@
 # CreditCoach: Tool Specs
 
-*Week 2 · Task #12 · Last updated: 2026-10-13 · Status: Draft for team review*
+*Week 2 · Task #12 · Last updated: 2026-10-28 (Task #32: last confirmed results, server down) · Status: Draft for team review*
 
 This spec defines the two tools the agent calls for a user's credit data:
 

@@ -1,6 +1,7 @@
-"""The team dashboard (Task 31): tool-call failure rate, guardrail triggers and goal-recall accuracy, from real traces.
+"""The dashboard (Task 31): tool-call failure rate, guardrail triggers and goal-recall accuracy, from real traces.
 
-A "Dashboard" tab in the chat UI, shown only to the team's logins (``auth.is_team``), never to people who signed up.
+A "Dashboard" tab in the chat UI, shown to every signed-in user: the team's logins, people who signed up, and anyone
+invited later (since 2026-10-29; until then only the team's logins saw it).
 It reads the traces every answer already leaves (Task 26) and computes three measures over a chosen period:
 
     Measure                  From                                    Counted as
