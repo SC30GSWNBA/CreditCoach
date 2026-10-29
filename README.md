@@ -118,12 +118,15 @@ CreditCoach/
                       #   test_golden_queries.py: every requirements.md figure checked against the tools,
                       #   test_llm.py: model client (output-token cap, fallback, token and cost tracking for Task 23),
                       #   test_dataset.py: dataset loader (backend choice, Neon unreachable),
-                      #   test_signup.py: the sign-up form and generated profile, sign-in sessions, the weekly allowance,
-                      #   test_observability.py (Task 26): one trace ID per request, every event type, no identifiers,
+                      #   test_signup.py: the sign-up form and generated profile, sign-in sessions, the weekly allowance
+                      #   (and the question handed back when the data can't be reached),
+                      #   test_observability.py (Task 26): one trace ID per request, every event type, no identifiers, the
+                      #   tag saying which process made a trace (app, script, eval),
                       #   test_eval_harness.py (Task 27): every scorer, the judge, Langfuse scores, one trace per case,
                       #   test_feedback.py (Task 29): testers' 👍/👎 and reasons attached to the answer's trace,
                       #   test_personal_retrieval.py (Task 30): data-aware retrieval,
                       #   test_dashboard.py (Task 31): the three measures, Langfuse and local traces alike, any signed-in user,
+                      #   real use vs eval and test runs,
                       #   test_edge_cases.py (Task 32): tool timeout and outage, last confirmed, "this loan", no library
   scripts/
     synthetic/        #   step1-3: build data/ from the interviews and the sample
@@ -305,7 +308,7 @@ All settings are read from `.env` (git-ignored). See [.env.example](.env.example
 | `CREDITCOACH_TRACES` | No | `on` | `off` stops writing traces to `.traces/` |
 | `CREDITCOACH_TRACES_DIR` | No | `.traces/` | Folder for the local trace files |
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | No | (none) | With both set, every trace is also sent to Langfuse |
-| `LANGFUSE_HOST` | No | `https://cloud.langfuse.com` | Langfuse region or self-hosted URL |
+| `LANGFUSE_HOST` | No | `https://cloud.langfuse.com` | Langfuse region or self-hosted URL. `LANGFUSE_BASE_URL`, the name in Langfuse's own setup snippet, is read too when `LANGFUSE_HOST` isn't set |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | No | (none) | Without Langfuse keys: any OpenTelemetry collector to send traces to |
 | `CREDITCOACH_ENV` | No | `local` | Tags every trace with where it ran (for example `railway`) |
 | `EMBEDDING_MODEL` | No | `sentence-transformers/all-MiniLM-L6-v2` | Local embedding model for the vector store. Rebuild the store after changing it. |
