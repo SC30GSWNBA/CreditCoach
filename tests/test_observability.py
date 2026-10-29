@@ -170,3 +170,25 @@ def test_langfuse_base_url_is_read_when_langfuse_host_is_not_set(monkeypatch):
     assert importlib.reload(config).LANGFUSE_HOST == "https://us.cloud.langfuse.com"
     monkeypatch.undo()
     importlib.reload(config)
+
+
+def test_every_new_trace_says_which_process_made_it(spans, monkeypatch):
+    """The dashboard tells real use (the chat app) from scripts and eval runs by these tags (2026-10-29)."""
+    monkeypatch.setattr(obs, "_run", [])
+    monkeypatch.setattr("sys.argv", ["/x/scripts/task32_edge_cases.py"])
+    with obs.span("creditcoach.answer"):
+        with obs.span("retrieval"):
+            pass
+    monkeypatch.setattr("sys.argv", ["/x/creditcoach/evals/__main__.py"])
+    with obs.span("eval.case", root=True, carry={"langfuse.trace.tags": ["eval", "eval:baseline"]}):
+        pass                                                                   # its own tags win
+    obs.set_run("app")
+    with obs.span("creditcoach.answer"):
+        pass
+    tags = [(s.name, tuple(s.attributes["langfuse.trace.tags"])) for s in spans.get_finished_spans()]
+    assert tags == [("retrieval", ("script", "script:task32_edge_cases")),
+                    ("creditcoach.answer", ("script", "script:task32_edge_cases")),
+                    ("eval.case", ("eval", "eval:baseline")), ("creditcoach.answer", ("app",))]
+    assert obs.run_tags() == ["app"]
+    monkeypatch.setattr(obs, "_run", [])
+    assert obs.run_tags() == ["script", "script:evals"]

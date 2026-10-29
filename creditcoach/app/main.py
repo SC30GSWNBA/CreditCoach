@@ -40,8 +40,8 @@ doesn't send until the user presses Enter.
 
 Dashboard tab (Task 31): for every signed-in user (the team's logins, people who signed up, and anyone invited
 later), the tool-call failure rate, guardrail trigger count and goal-recall accuracy over the last day, week or
-month, from the traces every answer leaves (Langfuse, else the local trace files), with real use and eval runs kept
-apart (``creditcoach.app.dashboard``). It shows counts only, never a question, answer or user. Its handlers check
+month, from the traces every answer leaves (Langfuse, else the local trace files), with real use (this app, which tags its
+traces ``app``) kept apart from eval and test runs (``creditcoach.app.dashboard``). It shows counts only, never a question, answer or user. Its handlers check
 that the session belongs to a known user before reading anything.
 
 Per-user logins: every visitor signs in as one dataset user (``creditcoach.auth``). Usernames
@@ -665,6 +665,7 @@ def main() -> None:
         log.error("No logins found in %s, so nobody could sign in. Add one with scripts/set_login.py.",
                   config.LOGINS_FILE)
         sys.exit(1)
+    obs.set_run("app")  # traces from the chat app are real use on the dashboard; scripts and evals are not
     warm_up()
     threading.Thread(target=check_langfuse, name="langfuse-check", daemon=True).start()
     server.run(build(), port=args.port, share=args.share, css=theme.CSS + charts.CSS + badges.CSS + dashboard.CSS,

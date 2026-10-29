@@ -34,11 +34,12 @@ def span(trace, name, start="2026-10-27T10:00:00+00:00", status="OK", **attrs):
     return {"trace_id": trace, "name": name, "start": start, "status": status, "attributes": attrs}
 
 
-def answer(trace, text="An answer.", session="S2", guardrail="passed", tags=None, start="2026-10-27T10:00:00+00:00"):
+def answer(trace, text="An answer.", session="S2", guardrail="passed", tags=("app",), start="2026-10-27T10:00:00+00:00"):
+    """An answer span; by default from the chat app (tagged ``app``), so real use."""
     return span(trace, "creditcoach.answer", start, **{"session.id": session, "answer.guardrail": guardrail,
                                                        "langfuse.trace.output": text, "question": "a question",
                                                        "user.id": "USR-001",
-                                                       **({"langfuse.trace.tags": tags} if tags else {})})
+                                                       **({"langfuse.trace.tags": list(tags)} if tags else {})})
 
 
 def tool(trace, name, ok=True, code=None):
@@ -107,6 +108,26 @@ def test_days_are_listed_newest_first():
     days = D.summarize(D.requests(traces()), "real")["days"]
     assert [(d["day"], d["answers"], d["triggers"], d["goal"]) for d in days] == \
         [("2026-10-27", 3, 2, "1 of 2"), ("2026-10-26", 1, 2, "0 of 0")]
+
+
+def test_only_the_chat_app_is_real_use_everything_else_is_a_listed_run():
+    """29 Oct: the evidence scripts' answers had been counted as real use; only eval-tagged traces were test runs."""
+    assert D.run_of({"app"}, "local") is None
+    assert D.run_of(set(), "railway") is None                                   # Railway, before the app tag
+    assert D.run_of({"eval", "eval:baseline"}, "local") == "eval:baseline"
+    assert D.run_of({"script", "script:task32_edge_cases"}, "local") == "script:task32_edge_cases"
+    assert D.run_of({"script", "script:task31_dashboard"}, "railway") == "script:task31_dashboard"
+    assert D.run_of(set(), "local") == D.UNTAGGED                               # old local traces
+
+
+def test_eval_and_test_runs_are_listed_by_run():
+    rs = D.requests([answer("e1", tags=["eval", "eval:after-fixes"]), answer("e2", tags=["eval", "eval:after-fixes"]),
+                     answer("s1", tags=["script", "script:task32_edge_cases"]), answer("o1", tags=None),
+                     answer("r1")])
+    s = D.summarize(rs, "eval")
+    assert s["answers"] == 4 and s["runs"] == {"eval:after-fixes": 2, "script:task32_edge_cases": 1, D.UNTAGGED: 1}
+    assert D.summarize(rs, "real")["answers"] == 1 and not D.summarize(rs, "real")["runs"]
+    assert "eval:after-fixes 2" in D.html(s, "local trace files", "Last 7 days", "Eval and test runs")
 
 
 def observation(s):

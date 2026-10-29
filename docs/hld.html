@@ -768,7 +768,7 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
         <li>Built with OpenTelemetry. Every trace is written to local files (<code>.traces/</code>) and, when its keys are set, sent to Langfuse Cloud.</li>
         <li>The trace ID is saved with each reply in memory, so any answer can be traced back step by step.</li>
         <li>Questions are recorded only after personal identifiers are masked. Recording can never break an answer.</li>
-        <li>A <b>Dashboard</b> tab, for every signed-in user, reads the traces back (Task 31): tool-call failure rate, guardrail triggers per rule, and goal-recall accuracy, with real use and eval runs kept apart.</li>
+        <li>A <b>Dashboard</b> tab, for every signed-in user, reads the traces back (Task 31): tool-call failure rate, guardrail triggers per rule, and goal-recall accuracy. Real use is what the chat app answered (traces tagged <code>app</code>); eval and test runs (<code>eval:&lt;label&gt;</code>, <code>script:&lt;name&gt;</code>) are kept apart and listed by run.</li>
       </ul>
     </section>
 
