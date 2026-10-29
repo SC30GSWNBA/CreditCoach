@@ -6,7 +6,7 @@ The script starts the real app in this process (temporary logins and memory fold
 through Playwright, and:
 
     1. signs in with a team login (Aravind, USR-001), opens "Dashboard": real use over the last 7 days
-    2. switches the traffic to "Eval runs"
+    2. switches the traffic to "Eval and test runs"
     3. signs in as someone who signed up, opens the Dashboard tab and checks it shows the same counts (since
        2026-10-29 the dashboard is for every signed-in user, not only the team's logins)
 
@@ -95,8 +95,8 @@ def main() -> None:
         page.wait_for_timeout(600)
         real_text = page.locator(".cc-tiles").last.inner_text()
         shoot(page, "dashboard-real")
-        page.get_by_text("Eval runs", exact=True).click()
-        page.wait_for_function("() => document.querySelector('.cc-tiles .cc-n')?.innerText.startsWith('Eval runs')",
+        page.get_by_text("Eval and test runs", exact=True).click()
+        page.wait_for_function("() => document.querySelector('.cc-tiles .cc-n')?.innerText.startsWith('Eval and test runs')",
                                timeout=30_000)
         eval_text = page.locator(".cc-tiles").last.inner_text()
         shoot(page, "dashboard-eval")
@@ -118,7 +118,7 @@ def main() -> None:
                                             f'{m["recalled"]} of {m["answers"]}'))
 
     checks += [("Real use: the page shows the same counts as the traces", shown(real_text, summaries["real"])),
-               ("Eval runs: the page shows the same counts as the traces", shown(eval_text, summaries["eval"])),
+               ("Eval and test runs: the page shows the same counts as the traces", shown(eval_text, summaries["eval"])),
                ("The signed-up user sees the same counts as the team", shown(signup_text, summaries["real"])),
                ("Real data: answers were found in the period", summaries["all"]["answers"] > 0)]
     write_evidence(source, summaries, checks)
@@ -153,10 +153,13 @@ def write_evidence(source: str, summaries: dict, checks: list) -> None:
              "| Goal-recall accuracy | Answers given while a goal from an earlier session was stored that name its "
              "target score, over all such answers (sample row #3's check); answers naming a different target are "
              "counted apart |", "",
-             "Real use and eval runs (traces tagged `eval`) are kept apart, and the period is the last day, week or "
-             "month. Only counts are shown: no question, answer or user id.", "",
+             "Real use is what the chat app answered (traces tagged `app`; before 2026-10-29, the Railway build's). "
+             "Everything else is an eval or test run, listed by run: the eval harness (`eval:<label>`), the evidence "
+             "and benchmark scripts (`script:<name>`) and older untagged local traces. Until 2026-10-29 only "
+             "`eval`-tagged traces were kept apart, so the scripts' answers counted as real use. The period is the "
+             "last day, week or month. Only counts are shown: no question, answer or user id.", "",
              "## The figures in this run", "",
-             "| | Real use | Eval runs | Both |", "|---|---|---|---|"]
+             "| | Real use | Eval and test runs | Both |", "|---|---|---|---|"]
     s = [summaries[k] for k in ("real", "eval", "all")]
     rows = [("Answers", lambda x: x["answers"]),
             ("Tool calls (failed)", lambda x: f'{x["tools"]["calls"]} ({x["tools"]["failed"]})'),
@@ -178,7 +181,7 @@ def write_evidence(source: str, summaries: dict, checks: list) -> None:
               "The real app, run locally and driven in headless Chrome, with logins and a memory folder that existed "
               "only for this run.", "",
               "### 1. Team login: real use, last 7 days", "", "![Dashboard, real use](img/task-31-dashboard-real.png)",
-              "", "### 2. Team login: eval runs", "", "![Dashboard, eval runs](img/task-31-dashboard-eval.png)", "",
+              "", "### 2. Team login: eval and test runs", "", "![Dashboard, eval and test runs](img/task-31-dashboard-eval.png)", "",
               "### 3. Someone who signed up: the same dashboard", "",
               "Until 2026-10-29 the tab was for the team's logins only; it is now open to every signed-in user.", "",
               "![Signed-up user's dashboard](img/task-31-signup-dashboard.png)", ""]

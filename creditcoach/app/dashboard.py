@@ -22,8 +22,11 @@ Where the traces come from:
                  the span attributes the local file holds, so both sources feed the same functions.
     Local files  Otherwise, or when Langfuse can't be reached: ``.traces/*.jsonl`` from this machine only.
 
-Eval runs (traces tagged ``eval``) are kept apart from real use; the period and the traffic (real use, eval runs or
-both) are picked above the dashboard. Only counts are shown: no question, answer or user id leaves this module.
+Real use is what the chat app answered: traces tagged ``app`` (``observability.set_run``), and before that tag
+existed (2026-10-29), traces from the Railway build. Everything else is an eval or test run, listed by run: the eval
+harness (``eval:<label>``), the evidence and benchmark scripts (``script:<name>``) and older local traces without a
+tag. Until 2026-10-29 only ``eval``-tagged traces counted as test runs, so the scripts' answers were shown as real
+use. The period and the traffic (real use, eval and test runs, or both) are picked above the dashboard. Only counts are shown: no question, answer or user id leaves this module.
 Loaded traces are kept for ``CACHE_SECONDS``, so switching filters doesn't ask Langfuse again.
 
 Example:
@@ -50,7 +53,17 @@ from creditcoach import config
 log = logging.getLogger(__name__)
 
 PERIODS = [("Last 24 hours", 1), ("Last 7 days", 7), ("Last 30 days", 30)]
-TRAFFIC = [("Real use", "real"), ("Eval runs", "eval"), ("Both", "all")]
+TRAFFIC = [("Real use", "real"), ("Eval and test runs", "eval"), ("Both", "all")]
+UNTAGGED = "local, untagged (before 2026-10-29)"
+
+
+def run_of(tags: set, env: str) -> str | None:
+    """The run an answer belongs to (``eval:baseline``, ``script:task32_edge_cases``, ...), or None for real use."""
+    if "eval" in tags:
+        return next((t for t in sorted(tags) if t.startswith("eval:")), "eval")
+    if "app" in tags or (env == "railway" and "script" not in tags):
+        return None
+    return next((t for t in sorted(tags) if t.startswith("script:")), UNTAGGED)
 SPANS = ("creditcoach.answer", "memory.recall", "guardrail.input", "guardrail.output")  # plus every tool.<name>
 CACHE_SECONDS = 60
 MAX_PAGES = 20  # 1,000 observations a page: a bound on one load, far above a month of team use
@@ -177,7 +190,8 @@ def _goal(value) -> dict | None:
 
 
 def requests(spans: list[dict]) -> list[dict]:
-    """One record per answer: when, where, whether it was an eval run, its tool calls, guardrail rules and outcome,
+    """One record per answer: when, where, which run it came from (None for real use; ``eval`` is True for any run),
+    its tool calls, guardrail rules and outcome,
     and whether it recalled the stored goal. Traces without a ``creditcoach.answer`` span are left out."""
     by_trace = defaultdict(list)
     for s in spans:
@@ -199,7 +213,8 @@ def requests(spans: list[dict]) -> list[dict]:
             earlier = bool(goal and goal.get("target_score") and goal.get("session") != attrs.get("session.id"))
             target = str(goal["target_score"]) if earlier else None
             records.append({
-                "trace_id": trace_id, "day": a["start"][:10], "env": a.get("env", ""), "eval": "eval" in tags,
+                "trace_id": trace_id, "day": a["start"][:10], "env": a.get("env", ""),
+                "run": run_of(tags, a.get("env", "")), "eval": run_of(tags, a.get("env", "")) is not None,
                 "tools": tools, "rules": rules, "outcome": attrs.get("answer.guardrail") or "passed",
                 "goal": earlier, "recalled": bool(target and re.search(rf"\b{target}\b", text)),
                 "other_target": bool(target and any(m != target for m in _TARGET.findall(text))
@@ -213,7 +228,8 @@ def _rate(part: int, whole: int) -> float | None:
 
 
 def summarize(records: list[dict], traffic: str = "real") -> dict:
-    """The three measures over ``records`` for one kind of traffic: ``"real"``, ``"eval"`` or ``"all"``."""
+    """The three measures over ``records`` for one kind of traffic: ``"real"``, ``"eval"`` (eval and test runs) or
+    ``"all"``."""
     rs = [r for r in records if traffic == "all" or r["eval"] == (traffic == "eval")]
     calls = [c for r in rs for c in r["tools"]]
     per_tool = defaultdict(lambda: {"calls": 0, "failed": 0, "codes": Counter()})
@@ -230,7 +246,7 @@ def summarize(records: list[dict], traffic: str = "real") -> dict:
     for r in rs:
         days[r["day"]].append(r)
     return {
-        "answers": len(rs), "where": Counter(r["env"] for r in rs),
+        "answers": len(rs), "where": Counter(r["env"] for r in rs), "runs": Counter(r["run"] for r in rs if r["run"]),
         "tools": {"calls": len(calls), "failed": failed, "rate": _rate(failed, len(calls)),
                   "answers_hit": sum(any(not c["ok"] for c in r["tools"]) for r in rs),
                   "per_tool": dict(sorted(per_tool.items()))},
@@ -268,6 +284,8 @@ def html(summary: dict, source: str, period: str, traffic: str) -> str:
     t, g, m = summary["tools"], summary["guardrails"], summary["goal"]
     outcomes = g["outcomes"]
     where = ", ".join(f"{escape(k)} {v}" for k, v in summary["where"].most_common()) or "none"
+    runs = summary.get("runs") or {}
+    runs = (" Eval and test runs: " + ", ".join(f"{escape(k)} {v}" for k, v in runs.most_common()) + ".") if runs else ""
     tiles = f"""<div class="cc-tiles">
   <div class="cc-tile"><span class="cc-k">Answers</span><span class="cc-v">{summary["answers"]}</span>
     <span class="cc-n">{escape(traffic)} · {escape(period.lower())}</span></div>
@@ -290,7 +308,7 @@ def html(summary: dict, source: str, period: str, traffic: str) -> str:
                   [[d["day"], d["answers"], _pct(d["tool_rate"]), d["triggers"], d["goal"]] for d in summary["days"]],
                   "No answers in this period.")
     return f"""{tiles}
-<p class="cc-note">From {escape(source)}. Answers by where they ran: {where}.</p>
+<p class="cc-note">From {escape(source)}. Answers by where they ran: {where}.{runs}</p>
 <div class="cc-dash-grid">
   <div><h3>Tool calls</h3>{tools}</div>
   <div><h3>Guardrail triggers</h3>{rules}

@@ -49,6 +49,7 @@ import base64
 import contextvars
 import json
 import logging
+import sys
 import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -73,6 +74,24 @@ _lock = threading.Lock()
 _provider: TracerProvider | None = None
 _tracer: trace.Tracer | None = None
 _carried: contextvars.ContextVar[dict] = contextvars.ContextVar("carried_attributes", default={})
+_run: list[str] = []  # set by the chat app (``set_run("app")``); empty means a script, named by ``run_tags``
+
+
+def set_run(*tags: str) -> None:
+    """Tag every trace this process starts, for example ``set_run("app")`` in the chat UI, so the dashboard can tell
+    real use from scripts and eval runs (2026-10-29: evidence scripts' answers had been counted as real use)."""
+    _run[:] = tags
+
+
+def run_tags() -> list[str]:
+    """The tags for a trace this process starts: those given to ``set_run``, else ``script`` and ``script:<name>``
+    from the command (``python -m creditcoach.evals`` is ``script:evals``). Traces that bring their own tags (the eval
+    harness's ``eval`` and ``eval:<label>``) keep them instead."""
+    if _run:
+        return list(_run)
+    path = Path(sys.argv[0] or "python")
+    name = path.parent.name if path.stem == "__main__" else path.stem
+    return ["script", f"script:{name or 'python'}"]
 
 
 class FileExporter(SpanExporter):
@@ -174,6 +193,8 @@ def span(name: str, root: bool = False, carry: dict | None = None, **attrs) -> I
     ERROR status, and then re-raised.
     """
     carried = {**_carried.get(), **attributes(**(carry or {}))}
+    if (root or not current().is_recording()) and "langfuse.trace.tags" not in carried:
+        carried["langfuse.trace.tags"] = run_tags()  # a new trace says which process made it
     context = trace.set_span_in_context(trace.INVALID_SPAN) if root else None
     token = _carried.set(carried)
     try:

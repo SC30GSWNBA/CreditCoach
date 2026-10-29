@@ -4,7 +4,7 @@
 
 **Definition of Done:** the dashboard shows real data and is reachable from the UI.
 
-**Run:** 2026-10-29 14:31 UTC, last 7 days, from Langfuse (https://jp.cloud.langfuse.com): every machine that sends it traces.
+**Run:** 2026-10-29 15:32 UTC, last 7 days, from Langfuse (https://jp.cloud.langfuse.com): every machine that sends it traces.
 
 ## What it shows
 
@@ -16,18 +16,18 @@ A **Dashboard** tab next to *Ask CreditCoach* and *My credit*, for every signed-
 | Guardrail triggers | Every rule the input and output rails found (`guardrail.rules`), per rule; and how many answers passed, were reframed or were blocked |
 | Goal-recall accuracy | Answers given while a goal from an earlier session was stored that name its target score, over all such answers (sample row #3's check); answers naming a different target are counted apart |
 
-Real use and eval runs (traces tagged `eval`) are kept apart, and the period is the last day, week or month. Only counts are shown: no question, answer or user id.
+Real use is what the chat app answered (traces tagged `app`; before 2026-10-29, the Railway build's). Everything else is an eval or test run, listed by run: the eval harness (`eval:<label>`), the evidence and benchmark scripts (`script:<name>`) and older untagged local traces. Until 2026-10-29 only `eval`-tagged traces were kept apart, so the scripts' answers counted as real use. The period is the last day, week or month. Only counts are shown: no question, answer or user id.
 
 ## The figures in this run
 
-| | Real use | Eval runs | Both |
+| | Real use | Eval and test runs | Both |
 |---|---|---|---|
-| Answers | 148 | 208 | 356 |
-| Tool calls (failed) | 305 (22) | 428 (9) | 733 (31) |
-| **Tool-call failure rate** | **7.2%** | **2.1%** | **4.2%** |
-| **Guardrail triggers** | **13** | **41** | **54** |
-| Triggers by rule | G1 1, G2 9, G3 3 | G1 1, G2 29, G3 6, S1 4, S2 1 | G1 2, G2 38, G3 9, S1 4, S2 1 |
-| Passed / reframed / blocked | 144 / 4 / 0 | 200 / 7 / 1 | 344 / 11 / 1 |
+| Answers | 6 | 355 | 361 |
+| Tool calls (failed) | 12 (0) | 731 (31) | 743 (31) |
+| **Tool-call failure rate** | **0.0%** | **4.2%** | **4.2%** |
+| **Guardrail triggers** | **1** | **54** | **55** |
+| Triggers by rule | G2 1 | G1 2, G2 38, G3 9, S1 4, S2 1 | G1 2, G2 39, G3 9, S1 4, S2 1 |
+| Passed / reframed / blocked | 6 / 0 / 0 | 343 / 11 / 1 | 349 / 11 / 1 |
 | Answers with a stored goal (recalled) | 0 (0) | 43 (38) | 43 (38) |
 | **Goal-recall accuracy** | **–** | **88.4%** | **88.4%** |
 
@@ -35,8 +35,8 @@ Tool calls by tool (both kinds of traffic):
 
 | Tool | Calls | Failed | Error codes |
 |---|---|---|---|
-| get_account_summary | 357 | 15 | DATA_UNAVAILABLE ×15 |
-| get_score_history | 368 | 16 | PERIOD_OUT_OF_RANGE ×12, DATA_UNAVAILABLE ×4 |
+| get_account_summary | 362 | 15 | DATA_UNAVAILABLE ×15 |
+| get_score_history | 373 | 16 | PERIOD_OUT_OF_RANGE ×12, DATA_UNAVAILABLE ×4 |
 | save_goal | 8 | 0 | – |
 
 ## Checks
@@ -44,7 +44,7 @@ Tool calls by tool (both kinds of traffic):
 - ✅ A team login sees the Dashboard tab
 - ✅ Someone who signed up sees the Dashboard tab
 - ✅ Real use: the page shows the same counts as the traces
-- ✅ Eval runs: the page shows the same counts as the traces
+- ✅ Eval and test runs: the page shows the same counts as the traces
 - ✅ The signed-up user sees the same counts as the team
 - ✅ Real data: answers were found in the period
 
@@ -56,9 +56,9 @@ The real app, run locally and driven in headless Chrome, with logins and a memor
 
 ![Dashboard, real use](img/task-31-dashboard-real.png)
 
-### 2. Team login: eval runs
+### 2. Team login: eval and test runs
 
-![Dashboard, eval runs](img/task-31-dashboard-eval.png)
+![Dashboard, eval and test runs](img/task-31-dashboard-eval.png)
 
 ### 3. Someone who signed up: the same dashboard
 
