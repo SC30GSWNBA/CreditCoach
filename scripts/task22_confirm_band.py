@@ -14,6 +14,9 @@ the decision depends on it, the real ``SMALL_MODEL`` confirmation.
 
 Run (needs OPENROUTER_API_KEY; about 20 SMALL_MODEL calls):
     uv run python scripts/task22_confirm_band.py
+
+2026-10-29: 3 rewordings and 3 look-alikes added around "What is a good credit score?", after a tester's "What
+qualifies as a great credit score?" missed on Railway (0.871, refused by the model each time).
 """
 
 import importlib.util
@@ -31,6 +34,9 @@ REWORDINGS = [
     ("How do I improve my credit score?", "Tips to improve my credit score?"),
     ("What's my current credit utilization ratio?", "How much of my card limit am I using right now?"),
     ("What counts towards a good credit score?", "What makes up a credit score?"),
+    ("What is a good credit score?", "What qualifies as a great credit score?"),           # Railway, 2026-10-28
+    ("What is a good credit score?", "What sounds like a great credit score?"),
+    ("What is a good credit score?", "Which credit score is considered good?"),
 ]
 LOOK_ALIKES = [
     ("What is the best way to improve a credit score, and what is the safe credit score to get a home loan",
@@ -43,6 +49,9 @@ LOOK_ALIKES = [
     ("What's my current credit utilization ratio?", "What should my credit utilization ratio be?"),
     ("Should I take out this payday loan to pay off my credit card?",
      "Should I take a personal loan to pay off my credit card?"),
+    ("What is a good credit score?", "What is my credit score?"),
+    ("What is a good credit score?", "What credit score do I need for a home loan?"),
+    ("What is a good credit score?", "How do I get a great credit score?"),
 ]
 
 

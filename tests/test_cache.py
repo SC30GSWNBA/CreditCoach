@@ -17,6 +17,7 @@ import fakeredis
 import pytest
 
 from creditcoach import cache, config
+from creditcoach import observability as obs
 from creditcoach.agent import mcp_host, pipeline
 from creditcoach.agent.mcp_host import McpHost
 from creditcoach.cache import answers
@@ -316,6 +317,33 @@ def test_confirm_takes_only_a_clear_yes_and_fails_closed(monkeypatch):
         return reply, "m"
     monkeypatch.setattr(answers.llm, "chat", chat)
     assert [answers.confirm("a", "b") for _ in range(4)] == [True, False, False, False]
+
+
+def test_confirm_reasons_at_low_effort_and_treats_degree_words_as_the_same(monkeypatch):
+    """Railway, 2026-10-29: "minimal" refused "great" for "good" every time; "low" with this prompt matched it."""
+    sent = []
+
+    def chat(messages, model=None, effort=None):
+        sent.append((messages, model, effort))
+        return "yes", "m"
+    monkeypatch.setattr(answers.llm, "chat", chat)
+    assert answers.confirm("What qualifies as a great credit score?", "What is a good credit score?")
+    messages, model, effort = sent[0]
+    assert model == config.SMALL_MODEL and effort == answers.CONFIRM_EFFORT == "low"
+    assert '"good", "great"' in messages[0]["content"] and "great credit score" in messages[1]["content"]
+
+
+def test_a_miss_records_why_on_the_span_langfuse_keeps(on, monkeypatch, spans):
+    """Events don't reach Langfuse, so the reason and similarity of a miss go on the span itself."""
+    monkeypatch.setattr(answers, "confirm", lambda a, b: False)
+    answers.store("USR-001", "What is a good credit score?", [1.0, 0.0], "v", "m", "fp", {"text": "750 or above."})
+    with obs.span("cache.answer"):
+        assert answers.lookup("USR-001", "What qualifies as a great credit score?", [0.871, 0.491], "v", "m") is None
+    span = next(s for s in spans.get_finished_spans() if s.name == "cache.answer")
+    assert "not confirmed" in span.attributes["cache.reason"] and span.attributes["cache.similarity"] == 0.871
+    monkeypatch.setattr(answers, "confirm", lambda a, b: True)
+    found = answers.lookup("USR-001", "What qualifies as a great credit score?", [0.871, 0.491], "v", "m")
+    assert found["how"] == "model-confirmed" and found["payload"]["text"] == "750 or above."
 
 
 def test_the_present_is_not_a_period_so_now_and_current_dont_veto():

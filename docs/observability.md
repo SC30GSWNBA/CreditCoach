@@ -1,6 +1,6 @@
 # CreditCoach: Observability
 
-*Week 4 · Task #26 · Last updated: 2026-10-25 · Status: Draft for team review · Code: `creditcoach/observability.py`*
+*Week 4 · Task #26 (tracing), #31 (dashboard) · Last updated: 2026-10-28 (dashboard; Task #32 edge-case events) · Status: Draft for team review · Code: `creditcoach/observability.py`*
 
 Until Week 3, what happened inside an answer was spread across several places: the agent trace in the chat, one JSON log line per tool call, the guardrail log, the cache log, and the record each reply leaves in Neon. None of them carried an ID linking the lines for one question. Since Task #26, every question is one **OpenTelemetry trace**, and every step of it is a span in that trace, so retrievals, tool calls, guardrail triggers, tool failures, model calls and cache lookups for one request all share a single trace ID. The same traces feed the Task #31 dashboard and the Task #29 error analysis.
 
@@ -38,7 +38,7 @@ Checked live on 2026-10-25 against the team's Langfuse Cloud project (Japan regi
 
 Every trace carries `deployment.environment` (`CREDITCOACH_ENV`, default `local`; the Docker image sets `railway`), so traces from the deployed build can be told apart from local runs.
 
-**On Railway, Langfuse is the record.** The container's own disk is replaced on every redeploy, so its `.traces/` files are lost with it. Testers' traces are kept only in Langfuse, which is where the Task #29 error analysis and the Task #31 dashboard should read them.
+**On Railway, Langfuse is the record.** The container's own disk is replaced on every redeploy, so its `.traces/` files are lost with it. Testers' traces are kept only in Langfuse, which is where the Task #29 error analysis read them and where the Task #31 dashboard reads them (it falls back to `.traces/` only when Langfuse can't be reached). Checked live on 2026-10-28: two questions asked on Railway as USR-019 arrived as two complete traces tagged `railway` (13 spans each, both tools, the guardrail checks), and the dashboard counts them under real use. Before that, the only `railway` span was a sign-in's memory consolidation: nobody had asked a question there since `LANGFUSE_HOST` was set.
 
 **Why OpenTelemetry with Langfuse on top.** The implementation plan named both OpenTelemetry and Langfuse. Instrumenting with OpenTelemetry keeps the code free of any one vendor, and Langfuse accepts OpenTelemetry directly, so we get its LLM views (generations, cost, sessions) without its SDK. The local file means a fresh clone records traces with no account, and the Task #27 to #30 eval runs can be analysed offline.
 
@@ -58,7 +58,7 @@ Since Task #27 the eval harness runs each case inside an `eval.case` span, so th
 
 Since Task #29 testers can rate an answer in the chat. A 👍 or 👎 is attached to that answer's trace as the score `user.feedback` (true or false, with the verdict as its comment), and a 👎's reason as `user.feedback.reason` (*Wrong or missing figure*, *Didn't answer my question*, *Too slow*, *Hard to follow*). In Langfuse, filter traces by those scores to read every rated answer with everything that went into it ([task-29-error-analysis.md](evidence/week-4/task-29-error-analysis.md)).
 
-Since Task #31 the chat UI has a **Dashboard** tab for the team's logins (`creditcoach/app/dashboard.py`): the tool-call failure rate, guardrail trigger count and goal-recall accuracy, read from Langfuse with the v2 observations API above (else from `.traces/`), with eval runs (tagged `eval`) kept apart from real use ([task-31-dashboard.md](evidence/week-4/task-31-dashboard.md)). Langfuse cuts long metadata strings, so a stored goal's JSON can arrive incomplete; the dashboard reads its target and session from the cut text.
+Since Task #31 the chat UI has a **Dashboard** tab for every signed-in user (team's logins only until 2026-10-29; `creditcoach/app/dashboard.py`): the tool-call failure rate, guardrail trigger count and goal-recall accuracy, read from Langfuse with the v2 observations API above (else from `.traces/`), with eval runs (tagged `eval`) kept apart from real use ([task-31-dashboard.md](evidence/week-4/task-31-dashboard.md)). Langfuse cuts long metadata strings, so a stored goal's JSON can arrive incomplete; the dashboard reads its target and session from the cut text.
 
 The trace made one cost visible straight away: `context.build` takes about 1.3 s, almost all of it loading the user's profile from Neon on every question. That is a lead for the Task #29 error analysis.
 
@@ -66,7 +66,7 @@ The trace made one cost visible straight away: `context.build` takes about 1.3 s
 
 1. **Langfuse Cloud or self-hosted.** Cloud's free tier is enough for testers and the demo, and needs only the two keys. Self-hosting means one more service to run on Railway. Proposal: Langfuse Cloud, with one project shared by the team.
 2. **What leaves the machine.** With Langfuse on, model inputs (the profile, passages, tool results) and answers go to Langfuse. The data is synthetic and identifiers are masked, but testers' sign-up answers shape their profiles. Proposal: send everything while testing, and revisit before anyone outside the course uses it.
-3. **Keeping local traces.** `.traces/` grows by a file a day and nothing deletes old ones. Proposal: keep 14 days and add a clean-up when the dashboard (Task #31) reads them.
+3. **Keeping local traces.** `.traces/` grows by a file a day and nothing deletes old ones. Proposal: keep 14 days. The Task #31 dashboard reads Langfuse first and the local files only as a fallback, so no clean-up was added with it; this is still open.
 
 ## 6. Sign-off
 

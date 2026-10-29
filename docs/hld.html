@@ -768,6 +768,7 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
         <li>Built with OpenTelemetry. Every trace is written to local files (<code>.traces/</code>) and, when its keys are set, sent to Langfuse Cloud.</li>
         <li>The trace ID is saved with each reply in memory, so any answer can be traced back step by step.</li>
         <li>Questions are recorded only after personal identifiers are masked. Recording can never break an answer.</li>
+        <li>A <b>Dashboard</b> tab, for every signed-in user, reads the traces back (Task 31): tool-call failure rate, guardrail triggers per rule, and goal-recall accuracy, with real use and eval runs kept apart.</li>
       </ul>
     </section>
 
@@ -810,7 +811,9 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
       <div class="tbl"><table>
         <tr><th>If this fails</th><th>This happens</th></tr>
         <tr><td>GPT-5</td><td>GPT-4o answers once, and the fallback is logged</td></tr>
-        <tr><td>A tool call</td><td>5 s timeout, one retry, then "I can't pull your latest data right now". No estimate</td></tr>
+        <tr><td>A tool call</td><td>5 s timeout, one retry, then "I can't pull your latest data right now". No estimate. If the same lookup worked earlier in the conversation, that figure is shared, labelled as last confirmed and when. A sign-up's question is handed back</td></tr>
+        <tr><td>The tool server</td><td>Can't start, hangs at startup (20 s) or dies mid-call: every lookup reports the data as unavailable, and the answer goes on</td></tr>
+        <tr><td>The library or the user's profile</td><td>The answer goes on without it, and says it has no library information</td></tr>
         <tr><td>Redis</td><td>Lookups count as misses; the answer is built live</td></tr>
         <tr><td>A guardrail check</td><td>Treated as a failed check (fail closed)</td></tr>
         <tr><td>Memory</td><td>Logged; the chat keeps working</td></tr>

@@ -4,11 +4,11 @@
 
 **Definition of Done:** the dashboard shows real data and is reachable from the UI.
 
-**Run:** 2026-10-28 02:23 UTC, last 7 days, from Langfuse (https://jp.cloud.langfuse.com): every machine that sends it traces.
+**Run:** 2026-10-29 14:31 UTC, last 7 days, from Langfuse (https://jp.cloud.langfuse.com): every machine that sends it traces.
 
 ## What it shows
 
-A **Dashboard** tab next to *Ask CreditCoach* and *My credit*, for the team's logins only ([dashboard.py](../../../creditcoach/app/dashboard.py)). It counts, from the traces every answer leaves (Task 26):
+A **Dashboard** tab next to *Ask CreditCoach* and *My credit*, for every signed-in user: the team's logins, people who signed up and anyone invited later ([dashboard.py](../../../creditcoach/app/dashboard.py)). It counts, from the traces every answer leaves (Task 26):
 
 | Measure | Counted as |
 |---|---|
@@ -22,12 +22,12 @@ Real use and eval runs (traces tagged `eval`) are kept apart, and the period is 
 
 | | Real use | Eval runs | Both |
 |---|---|---|---|
-| Answers | 99 | 208 | 307 |
-| Tool calls (failed) | 207 (14) | 428 (9) | 635 (23) |
-| **Tool-call failure rate** | **6.8%** | **2.1%** | **3.6%** |
-| **Guardrail triggers** | **4** | **41** | **45** |
-| Triggers by rule | G2 1, G3 3 | G1 1, G2 29, G3 6, S1 4, S2 1 | G1 1, G2 30, G3 9, S1 4, S2 1 |
-| Passed / reframed / blocked | 96 / 3 / 0 | 200 / 7 / 1 | 296 / 10 / 1 |
+| Answers | 148 | 208 | 356 |
+| Tool calls (failed) | 305 (22) | 428 (9) | 733 (31) |
+| **Tool-call failure rate** | **7.2%** | **2.1%** | **4.2%** |
+| **Guardrail triggers** | **13** | **41** | **54** |
+| Triggers by rule | G1 1, G2 9, G3 3 | G1 1, G2 29, G3 6, S1 4, S2 1 | G1 2, G2 38, G3 9, S1 4, S2 1 |
+| Passed / reframed / blocked | 144 / 4 / 0 | 200 / 7 / 1 | 344 / 11 / 1 |
 | Answers with a stored goal (recalled) | 0 (0) | 43 (38) | 43 (38) |
 | **Goal-recall accuracy** | **–** | **88.4%** | **88.4%** |
 
@@ -35,16 +35,17 @@ Tool calls by tool (both kinds of traffic):
 
 | Tool | Calls | Failed | Error codes |
 |---|---|---|---|
-| get_account_summary | 308 | 9 | DATA_UNAVAILABLE ×9 |
-| get_score_history | 319 | 14 | PERIOD_OUT_OF_RANGE ×12, DATA_UNAVAILABLE ×2 |
+| get_account_summary | 357 | 15 | DATA_UNAVAILABLE ×15 |
+| get_score_history | 368 | 16 | PERIOD_OUT_OF_RANGE ×12, DATA_UNAVAILABLE ×4 |
 | save_goal | 8 | 0 | – |
 
 ## Checks
 
 - ✅ A team login sees the Dashboard tab
-- ✅ Someone who signed up doesn't see the Dashboard tab
+- ✅ Someone who signed up sees the Dashboard tab
 - ✅ Real use: the page shows the same counts as the traces
 - ✅ Eval runs: the page shows the same counts as the traces
+- ✅ The signed-up user sees the same counts as the team
 - ✅ Real data: answers were found in the period
 
 ## Screenshots
@@ -59,7 +60,9 @@ The real app, run locally and driven in headless Chrome, with logins and a memor
 
 ![Dashboard, eval runs](img/task-31-dashboard-eval.png)
 
-### 3. Someone who signed up: no Dashboard tab
+### 3. Someone who signed up: the same dashboard
 
-![Signed-up user's tabs](img/task-31-signup-no-tab.png)
+Until 2026-10-29 the tab was for the team's logins only; it is now open to every signed-in user.
+
+![Signed-up user's dashboard](img/task-31-signup-dashboard.png)
 

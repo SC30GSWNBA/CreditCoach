@@ -1,6 +1,6 @@
 # CreditCoach: Team, Roles & Tech Stack
 
-*Week 1 · Task #1 (Kickoff) · Last updated: 2026-10-13 (stack as built through Task #25, plus sign-up)*
+*Week 1 · Task #1 (Kickoff) · Last updated: 2026-10-28 (stack as built through Task #32, plus sign-up)*
 
 ## 1. Roles
 
