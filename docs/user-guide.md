@@ -218,7 +218,7 @@ This tab shows your latest score, how it changed, your card utilization, what yo
 
 ### Dashboard (how CreditCoach is doing)
 
-This tab shows how CreditCoach is performing for everyone who uses it: how often its data lookups fail, how often its safety checks step in (by rule), and how often it remembers a saved goal. Pick the last day, week or month, and real use or the team's test runs. It shows **counts only**: never anyone's questions, answers or name. Using it never uses up a question.
+This tab shows how CreditCoach is performing for everyone who uses it: how often its data lookups fail, how often its safety checks step in (by rule), and how often it remembers a saved goal. Pick the last day, week or month, and real use or the team's test runs. It shows **counts only**: never anyone's questions, answers or name. Using it never uses up a question. Right after you log in it may say "Loading the dashboard…" for a few seconds while it gathers the latest figures. **Real use** counts only answers people got in the app; the note under the figures says how many more are under **Eval and test runs**.
 
 ---
 
