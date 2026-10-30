@@ -42,7 +42,8 @@ Dashboard tab (Task 31): for every signed-in user (the team's logins, people who
 later), the tool-call failure rate, guardrail trigger count and goal-recall accuracy over the last day, week or
 month, from the traces every answer leaves (Langfuse, else the local trace files), with real use (this app, which tags its
 traces ``app``) kept apart from eval and test runs (``creditcoach.app.dashboard``). It shows counts only, never a question, answer or user. Its handlers check
-that the session belongs to a known user before reading anything.
+that the session belongs to a known user before reading anything. The tab shows at sign-in with a loading note and fills in
+after, since a cold read of Langfuse takes several seconds.
 
 Per-user logins: every visitor signs in as one dataset user (``creditcoach.auth``). Usernames
 ``creditcoach_user1`` to ``creditcoach_user15`` are the team's logins for USR-001 to USR-015; people who sign up get
@@ -518,11 +519,21 @@ def refresh_dashboard(days: int, traffic: str, request: gr.Request) -> str:
     return dashboard_view(days, traffic, request, refresh=True)
 
 
-def load_dashboard(days: int, traffic: str, request: gr.Request) -> tuple:
-    """On page load: show the Dashboard tab, filled in, to every signed-in user."""
+DASH_LOADING = '<div class="cc-empty">Loading the dashboard…</div>'
+
+
+def show_dashboard_tab(request: gr.Request) -> tuple:
+    """On page load: show the Dashboard tab to every signed-in user at once, with a loading note in it. Filling it
+    in reads the traces (several seconds from Langfuse on a cold cache), so that's a separate step after this one."""
     if auth.user_id_for(getattr(request, "username", None)) is None:
         return gr.Tab(visible=False), ""
-    return gr.Tab(visible=True), dashboard_view(days, traffic, request)
+    return gr.Tab(visible=True), DASH_LOADING
+
+
+def load_dashboard(days: int, traffic: str, request: gr.Request) -> tuple:
+    """Show the Dashboard tab, filled in, to every signed-in user (``show_dashboard_tab`` then ``dashboard_view``)."""
+    tab, page = show_dashboard_tab(request)
+    return tab, dashboard_view(days, traffic, request) if tab.visible else page
 
 
 def build() -> gr.Blocks:
@@ -616,7 +627,8 @@ def build() -> gr.Blocks:
         dash_days.change(dashboard_view, inputs=[dash_days, dash_traffic], outputs=dash)
         dash_traffic.change(dashboard_view, inputs=[dash_days, dash_traffic], outputs=dash)
         dash_refresh.click(refresh_dashboard, inputs=[dash_days, dash_traffic], outputs=dash)
-        demo.load(load_dashboard, inputs=[dash_days, dash_traffic], outputs=[dash_tab, dash])
+        demo.load(show_dashboard_tab, outputs=[dash_tab, dash], show_progress="hidden").then(
+            dashboard_view, inputs=[dash_days, dash_traffic], outputs=dash)
         demo.unload(closed)
     return demo
 

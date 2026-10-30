@@ -126,6 +126,7 @@ CreditCoach/
                       #   test_feedback.py (Task 29): testers' 👍/👎 and reasons attached to the answer's trace,
                       #   test_personal_retrieval.py (Task 30): data-aware retrieval,
                       #   test_dashboard.py (Task 31): the three measures, Langfuse and local traces alike, any signed-in user,
+                      #   the tab showing before the traces load,
                       #   real use vs eval and test runs,
                       #   test_edge_cases.py (Task 32): tool timeout and outage, last confirmed, "this loan", no library
   scripts/
@@ -150,7 +151,7 @@ CreditCoach/
     task25_badges.py         # screenshots of the guardrail and cache badges in the real UI (Task 25; paid calls;
                              # run with: uv run --with playwright python scripts/task25_badges.py)
     task26_trace_export.py   # one live request with a tool forced to fail, its trace exported (Task 26; paid calls)
-    task31_dashboard.py      # screenshots of the Dashboard tab with real trace data, and a sign-up not seeing it (Task 31;
+    task31_dashboard.py      # screenshots of the Dashboard tab with real trace data, and a sign-up seeing it too (Task 31;
                              # no model calls; run with: uv run --with playwright python scripts/task31_dashboard.py)
     task32_edge_cases.py     # each edge case triggered live and handled: tool timeout, data store down, "this loan",
                              # no library content (Task 32; paid calls)

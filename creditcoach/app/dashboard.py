@@ -26,7 +26,9 @@ Real use is what the chat app answered: traces tagged ``app`` (``observability.s
 existed (2026-10-29), traces from the Railway build. Everything else is an eval or test run, listed by run: the eval
 harness (``eval:<label>``), the evidence and benchmark scripts (``script:<name>``) and older local traces without a
 tag. Until 2026-10-29 only ``eval``-tagged traces counted as test runs, so the scripts' answers were shown as real
-use. The period and the traffic (real use, eval and test runs, or both) are picked above the dashboard. Only counts are shown: no question, answer or user id leaves this module.
+use. Under real use, a note says how many answers in the period are eval and test runs instead (2026-10-30), so a
+short count isn't read as lost data. The period and the traffic (real use, eval and test runs, or both) are picked
+above the dashboard. Only counts are shown: no question, answer or user id leaves this module.
 Loaded traces are kept for ``CACHE_SECONDS``, so switching filters doesn't ask Langfuse again.
 
 Example:
@@ -245,8 +247,11 @@ def summarize(records: list[dict], traffic: str = "real") -> dict:
     days = defaultdict(list)
     for r in rs:
         days[r["day"]].append(r)
+    hidden = [r for r in records if r not in rs]
     return {
         "answers": len(rs), "where": Counter(r["env"] for r in rs), "runs": Counter(r["run"] for r in rs if r["run"]),
+        "elsewhere": {"answers": len(hidden), "untagged": sum(r["run"] == UNTAGGED for r in hidden)}
+        if traffic == "real" else None,
         "tools": {"calls": len(calls), "failed": failed, "rate": _rate(failed, len(calls)),
                   "answers_hit": sum(any(not c["ok"] for c in r["tools"]) for r in rs),
                   "per_tool": dict(sorted(per_tool.items()))},
@@ -286,6 +291,12 @@ def html(summary: dict, source: str, period: str, traffic: str) -> str:
     where = ", ".join(f"{escape(k)} {v}" for k, v in summary["where"].most_common()) or "none"
     runs = summary.get("runs") or {}
     runs = (" Eval and test runs: " + ", ".join(f"{escape(k)} {v}" for k, v in runs.most_common()) + ".") if runs else ""
+    hidden = summary.get("elsewhere") or {}
+    if hidden.get("answers"):  # so a short real-use count isn't read as lost data
+        untagged = (f", {hidden['untagged']} of them from this team's machines before 2026-10-29, when traces weren't "
+                    "tagged by process yet") if hidden["untagged"] else ""
+        runs += (f" Real use is only what the chat app answered: {hidden['answers']} more answers in this period came "
+                 f"from eval and test runs{untagged}. Pick \"Eval and test runs\" or \"Both\" to see them.")
     tiles = f"""<div class="cc-tiles">
   <div class="cc-tile"><span class="cc-k">Answers</span><span class="cc-v">{summary["answers"]}</span>
     <span class="cc-n">{escape(traffic)} · {escape(period.lower())}</span></div>

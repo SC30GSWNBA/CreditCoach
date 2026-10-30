@@ -130,6 +130,19 @@ def test_eval_and_test_runs_are_listed_by_run():
     assert "eval:after-fixes 2" in D.html(s, "local trace files", "Last 7 days", "Eval and test runs")
 
 
+
+def test_real_use_says_how_many_answers_are_under_the_other_runs():
+    """30 Oct: "Real use" over 30 days showed 6 answers, and the older local ones looked lost (they're test runs)."""
+    rs = D.requests([answer("e1", tags=["eval", "eval:baseline"]), answer("o1", tags=None), answer("o2", tags=None),
+                     answer("r1")])
+    real = D.summarize(rs, "real")
+    assert real["answers"] == 1 and real["elsewhere"] == {"answers": 3, "untagged": 2}
+    page = D.html(real, "local trace files", "Last 30 days", "Real use")
+    assert "3 more answers in this period came from eval and test runs, 2 of them" in page
+    assert D.summarize(rs, "eval")["elsewhere"] is None
+    assert "more answers" not in D.html(D.summarize(rs, "all"), "local trace files", "Last 30 days", "Both")
+    assert "more answers" not in D.html(D.summarize(D.requests([answer("r2")]), "real"), "x", "Last 30 days", "Real use")
+
 def observation(s):
     """A local span as Langfuse returns it: attributes under ``metadata``, the answer as ``output``, a level."""
     attrs = dict(s["attributes"])
@@ -254,3 +267,12 @@ def test_the_handlers_check_the_session_too_not_only_the_hidden_tab(monkeypatch,
         assert handler(7, "real", request("nobody")) == main.SIGNED_OUT
         assert handler(30, "all", request("creditcoach_user19")) == "dashboard"
         assert handler(30, "all", request("creditcoach_user2")) == "dashboard"
+
+
+def test_the_tab_shows_before_the_traces_are_read(monkeypatch, signed_up):
+    """Showing the tab must not wait on Langfuse (it took 4-6 s on a cold cache); the content follows in a .then."""
+    monkeypatch.setattr(D, "view", lambda days, traffic: pytest.fail("the tab waited on the traces"))
+    tab, page = main.show_dashboard_tab(request("creditcoach_user19"))
+    assert tab.visible is True and page == main.DASH_LOADING
+    tab, page = main.show_dashboard_tab(request("nobody"))
+    assert tab.visible is False and page == ""
