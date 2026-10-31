@@ -22,6 +22,8 @@ FIGURE = Finding("G3", "check figures", "figures that don't trace to this turn's
 PAN = Finding("S3", "mask identifiers", "personal identifiers removed from the message", ["PAN", "card number"])
 ATTACK = Finding("S1", "detect attack attempt", "the message asks CreditCoach to drop its rules", ["Ignore your rules"])
 LEAK = Finding("S2", "detect attack attempt", "the message asks for CreditCoach's instructions", ["system prompt"])
+BUILD = Finding("S5", "detect build question", "the message asks how CreditCoach is built", ["system design"])
+DESIGN = Finding("S5", "check system talk", "the answer describes how CreditCoach or its software is built", ["backend"])
 
 
 def decision(action="passed", asked=(), found=(), **kw):
@@ -48,6 +50,17 @@ def test_input_rails_get_their_own_badges_and_reasons_are_not_repeated():
     twice = badges.guardrail(decision("reframed", asked=[PRODUCT], found=[SOFT, SOFT, PROMISE]))
     assert twice[0].count("went soft") == 1 and "; it promised" in twice[0] and "High-risk product asked about" in twice[1]
     assert badges.guardrail(None) == []
+
+
+def test_a_question_about_how_creditcoach_is_built_gets_no_badge_of_its_own():
+    # Persona test 2 (2026-10-31), Q5: the answer's one-line refusal is enough; the badge drew attention to it
+    out = badges.guardrail(decision(asked=[BUILD], reviewed=True, projection=True))
+    assert out == [badges.guardrail(decision(reviewed=True, projection=True))[0]]
+    assert "built" not in " ".join(out)
+    rewritten = badges.guardrail(decision("reframed", asked=[BUILD], found=[DESIGN]))
+    assert len(rewritten) == 1 and "answer rewritten" in rewritten[0] and "<small>" not in rewritten[0]
+    mixed = badges.guardrail(decision("reframed", asked=[BUILD], found=[DESIGN, PROMISE]))
+    assert "it promised or predicted a score" in mixed[0] and "built" not in mixed[0]
 
 
 @pytest.mark.parametrize("report, kind, text", [
@@ -120,6 +133,16 @@ def test_the_trace_shows_the_guardrail_check_and_its_outcome():
     assert "Wording reviewed" in step.log
     t.update("answer", {"status": "done", "model": "m"})
     assert t.ended is not None and "3 steps" not in t.messages()[0].metadata["title"]  # model + guardrail = 2 steps
+
+
+def test_the_trace_never_mentions_a_question_about_how_creditcoach_is_built():
+    t = Trace(question="q")
+    t.update("guardrail", {"status": "start"})
+    t.update("guardrail", {"status": "done", "decision": decision(asked=[BUILD], reviewed=True)})
+    assert t.steps[-1].log == "• Wording reviewed for promises and endorsements."
+    t.update("guardrail", {"status": "done", "decision": decision("reframed", asked=[BUILD], found=[DESIGN])})
+    assert "built" not in t.steps[-1].log and "S5" not in t.steps[-1].log
+    assert "The model rewrote the draft and the rewrite passed." in t.steps[-1].log
 
 
 def test_the_trace_says_no_rule_was_triggered_for_a_clean_pass():

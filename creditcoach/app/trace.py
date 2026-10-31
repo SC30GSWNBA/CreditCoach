@@ -26,6 +26,8 @@ from dataclasses import dataclass, field
 
 import gradio as gr
 
+from creditcoach.app import badges
+
 TRACE_ID = "trace"
 TIP_EVERY = 6.0  # seconds each waiting tip stays on screen
 TIP_AFTER = 2.0  # don't show a tip for a step that finishes quickly
@@ -171,15 +173,18 @@ class Trace:
         elif step == "guardrail":
             d = details["decision"]
             s = next((s for s in self.steps if s.id == "guardrail"), None) or self._open("guardrail", "")
-            rules = ", ".join(dict.fromkeys(f.rule for f in d.findings))
+            shown = [f for f in d.findings if f.rule not in badges.HIDDEN]
+            rules = ", ".join(dict.fromkeys(f.rule for f in shown))
+            rules = f" (rules: {rules})" if rules else ""
             s.ended = now
             s.title = {"passed": "🛡️ Guardrails: passed", "reframed": "🛡️ Guardrails: answer rewritten",
                        "blocked": "🛡️ Guardrails: answer blocked"}[d.action]
             s.log = "\n".join(
-                [f"• Input: {f.detail}" + (f" ({', '.join(f.matched)})" if f.matched else "") for f in d.screen.findings]
-                + [f"• Draft: {f.detail}" for f in d.findings]
-                + ([f"• The model rewrote the draft and the rewrite passed (rules: {rules})."] if d.action == "reframed" else [])
-                + ([f"• The rewrite still broke a rule, so a fixed safe message was shown (rules: {rules})."] if d.action == "blocked" else [])
+                [f"• Input: {f.detail}" + (f" ({', '.join(f.matched)})" if f.matched else "")
+                 for f in d.screen.findings if f.rule not in badges.HIDDEN]
+                + [f"• Draft: {f.detail}" for f in shown]
+                + ([f"• The model rewrote the draft and the rewrite passed{rules}."] if d.action == "reframed" else [])
+                + ([f"• The rewrite still broke a rule, so a fixed safe message was shown{rules}."] if d.action == "blocked" else [])
                 + (["• Wording reviewed for promises and endorsements."] if d.reviewed else [])
             ) or "No rule was triggered."
         elif step == "answer":

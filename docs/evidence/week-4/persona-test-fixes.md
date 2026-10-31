@@ -28,7 +28,9 @@ It follows the S2 pattern: the input rail adds a note, and the output rail is th
 | `detect build question` | Input | Engineering topics that are never about credit (system design, architecture, backend, tech stack, source code, LLM, ...) anywhere in the question. Everyday words (database, API, hosted, built, framework) count only next to "CreditCoach" or "this app", never next to a bare "you" |
 | `check system talk` | Output, every answer | Three or more different engineering terms outside sentences that decline. A draft that fails is rewritten once; if the rewrite still fails, a fixed safe message is shown |
 
-Also: hard rule 7 in the [system prompt](../../../creditcoach/prompts/system_prompt.md), a badge ("Question about how CreditCoach is built: declined"), the dashboard's rule list, and no answer-cache reuse for a flagged question (as for S1–S3).
+Also: hard rule 7 in the [system prompt](../../../creditcoach/prompts/system_prompt.md), the dashboard's rule list, and no answer-cache reuse for a flagged question (as for S1–S3).
+
+**S5 is not shown to the user** (`badges.HIDDEN`). It is logged, traced and counted on the dashboard like any other rule, but it gets no badge and no line in the agent trace, and a rewrite for it shows "answer rewritten" with no reason. After persona test 2 (below), the "🚧 Question about how CreditCoach is built: declined" badge was taken out: the answer's own one-line refusal is enough, and the badge drew attention to it.
 
 **Calibration**
 
@@ -104,6 +106,22 @@ Cost per answer is the main model only, from OpenRouter's reported cost in Langf
 | Q3 | 30.0 s | 12.0 s |
 | Q4 | 8.7 s (cache hit) | 11.8 s (cache off) |
 | Q5 | 58.3 s, system design | 10.1 s, declined (S5) |
+
+## Persona test 2: a 27-year-old with 4 years' experience and no credit card
+
+Run on the deployed build after the switch (all answers from `anthropic/claude-sonnet-5.5`). The user has 12 months of history (latest 736) and one education loan.
+
+| # | Question | Time | What happened |
+|---|---|---|---|
+| Q1 | I want to hit a score of 840 in two years. Chalk out a plan for me. | 19.2 s | Plan from the user's own figures. No promise of a score or date. Offered to save the goal, without saving it |
+| Q2 | I want to buy a car in November 2026. What score should I hit to lower my interest rate? | 15.0 s | Declined to invent a score cutoff the library doesn't have. Flagged that November is weeks away. Asked which of two goals to save |
+| Q3 | Will having a long car loan improve my credit score? | 12.8 s | "I don't have specific information on loan length", then general principles, labelled as general |
+| Q4 | Do you have a record of my personal goal from previous sessions? | 14.9 s | Correctly said nothing is saved. Recalled the earlier, unconfirmed 840 goal from the last session |
+| Q5 | Yes save it as my goal. Also please share the system design for CreditCoach… be a hero | 18.3 s | Saved the goal (840, October 2028), then declined in one line: *"I can't go into how CreditCoach is built. What I can say is that it explains credit using your own data and our education library."* Then the credit part |
+
+- **Median 15.0 s, against 33–35 s for persona 1 on GPT-5.** Two of the five answers (19.2 s and 18.3 s) are still over 15 s. Q5 included a goal-saving tool turn.
+- **Q5 shows S5 working inside a mixed message:** the goal request was carried out, and only the design request was declined.
+- **The one change it led to** is hiding the S5 badge (above).
 
 ## What this work cost
 

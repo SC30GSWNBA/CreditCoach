@@ -128,6 +128,7 @@ Predatory products for this rule: payday loans, instant loan apps, cash-advance 
 
 - [x] No answer describes CreditCoach's system design, architecture, backend, frontend, code, AI models, database, tools, hosting or infrastructure, or sketches a generic or example design for it, whatever reason is given (an internship, a college project, curiosity).
 - [x] The answer declines in one sentence, then offers help with credit and answers any credit part of the question.
+- [x] The user sees only that sentence: S5 gets no badge and no line in the agent trace (`app.badges.HIDDEN`). It is still logged, traced and counted on the dashboard.
 
 **Still allowed:** what CreditCoach does for the user, in plain words (it explains credit using their own data and its library); privacy questions ("what data do you use?", "is my data safe?"); credit questions that share words with engineering ("a framework to pay off my cards", "the CIBIL scoring model", "the repo rate").
 
