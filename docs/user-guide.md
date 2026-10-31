@@ -202,6 +202,7 @@ Each answer shows:
 
 - **Your data can't be loaded right now:** it says it can't pull your latest data and suggests trying again shortly. It never guesses a figure. If it read the same figure earlier in the same conversation, it may repeat it, marked as *last confirmed* with the time, because it may have changed since.
 - **It has nothing in its library on your topic** (for example buy now, pay later): it says so instead of making up rules or fees, and may add general advice that does apply.
+- **You ask how CreditCoach is built** (its design, code, AI model, database or hosting): it says it can't go into that, then offers to help with your credit and answers any credit part of your question.
 - **You ask about "this loan" or "that offer" without saying which:** it asks what the loan is (the kind of loan and the lender) and its terms (amount, interest or fees, repayment period) before giving a view.
 
 When your data couldn't be loaded, the question **doesn't count** towards your 5, and the line under the answer says *"This one wasn't counted"*. The other two are full answers, so they count (see section 7).
@@ -258,7 +259,7 @@ You stay logged in, and everything else keeps working: My credit, your memory pa
 | Any question CreditCoach answers | Sending an empty message |
 | A follow-up question in the same conversation | An answer that fails with "Sorry, I couldn't reach the answer service" |
 | Clicking one of the example questions | The "You've used all 5 questions" message itself |
-| A question CreditCoach declines to answer directly, such as a request to guarantee a score or to recommend a payday loan. It still replies with an explanation, so it counts. | Anything on the My credit tab |
+| A question CreditCoach declines to answer directly, such as a request to guarantee a score, to recommend a payday loan or to explain how CreditCoach is built. It still replies with an explanation, so it counts. | Anything on the My credit tab |
 | A question you have asked before, even if the answer is reused | Opening your memory and past conversations |
 | | An answer that says your data couldn't be loaded right now ("This one wasn't counted") |
 | | Logging in or out |

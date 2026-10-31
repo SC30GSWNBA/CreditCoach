@@ -1,8 +1,8 @@
 # CreditCoach: Caching
 
-*Week 3 · Task #22 · Last updated: 2026-10-29 (degree words in the model check) · Status: Draft for team review · Code: `creditcoach/cache/`*
+*Week 3 · Task #22 · Last updated: 2026-10-31 (answer cost with Claude Sonnet 5.5; S5 questions not reused) · Status: Draft for team review · Code: `creditcoach/cache/`*
 
-An answer takes about 11 seconds and one GPT-5 call. Almost all of that is the model. This document defines what CreditCoach caches so repeated work isn't done twice, and the rules that keep a cached answer from being a wrong answer. Task #23 measures the hit rate and the latency improvement, and since Task #25 the chat UI shows a cache badge above each answer ([screenshots](evidence/week-3/task-25-badges.md)).
+An answer takes about 10 seconds and one chat-model call. Almost all of that is the model. This document defines what CreditCoach caches so repeated work isn't done twice, and the rules that keep a cached answer from being a wrong answer. Task #23 measures the hit rate and the latency improvement, and since Task #25 the chat UI shows a cache badge above each answer ([screenshots](evidence/week-3/task-25-badges.md)).
 
 ## 1. What is cached
 
@@ -13,7 +13,7 @@ Four layers. The first three are exact-match caches of deterministic work. The f
 | **Embedding** | A question's embedding vector (384 numbers) | Embedding model + question text | 7 days | About 5 ms |
 | **Retrieval** | The passages retrieved for a question | Corpus fingerprint + both local models + question + retrieval options | 24 hours | About 20 ms (search and rerank) |
 | **Tool** | A successful `get_score_history` or `get_account_summary` result | **User** + tool + arguments + data backend | 5 minutes | About 1.8 s when the dataset is in Neon (0.4 s from files): the MCP server start and its read of the dataset |
-| **Answer** | A finished, guardrail-checked answer with its passages and sources | **User** + question (exact or same meaning, §3) | 1 hour | About 11 s and one GPT-5 call |
+| **Answer** | A finished, guardrail-checked answer with its passages and sources | **User** + question (exact or same meaning, §3) | 1 hour | About 10 s and one chat-model call |
 
 The times are measured on this machine in Task 23 ([task-23-cache-latency.md](evidence/week-3/task-23-cache-latency.md)). They show where caching matters: the answer layer is the one a user sees. The other three make a cache hit possible (the answer lookup needs the embedding and the user's live figures) and keep a miss from repeating small work.
 
@@ -95,7 +95,7 @@ Showing the model the stored answer was dropped: an answer often touches the nei
 
 | Case | Why |
 |---|---|
-| The input rails flagged the question (personal identifiers, an attempt to switch the rules off or read the prompt) | Each must go through the guardrail layer on its own |
+| The input rails flagged the question (personal identifiers, an attempt to switch the rules off or read the prompt, a question about how CreditCoach is built) | Each must go through the guardrail layer on its own |
 | The guardrail layer blocked the answer | A fixed safe message isn't an answer; the next try may do better |
 | A tool call failed | The answer says "I can't pull your data right now", which must not outlive the failure |
 | The answer saved or cleared the user's goal | Replaying it would skip the save |

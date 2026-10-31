@@ -46,7 +46,7 @@ Writes:
     docs/evidence/week-4/eval-<label>.md          the report: score, per-case pass/fail and why, the answers
     docs/evidence/week-4/runs/eval-<label>.json   the run, which ``--rescore`` and later comparisons read
 
-Cost: 6 GPT-5 answers, 1 ``SMALL_MODEL`` dream and 6 judge calls; with ``--all``, about 100-150 more GPT-5 calls
+Cost: 6 ``CHAT_MODEL`` answers, 1 ``SMALL_MODEL`` dream and 6 judge calls; with ``--all``, about 100-150 more chat-model calls
 (tool rounds) and 44 more judge calls.
 """
 

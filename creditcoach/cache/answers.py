@@ -1,6 +1,6 @@
 """The semantic answer cache: the same user asking the same question again gets the stored answer.
 
-An answer costs about 12 seconds and a GPT-5 call, so this is the layer a user can see. It is also the layer that
+An answer costs about 10 seconds and a chat-model call, so this is the layer a user can see. It is also the layer that
 can do harm: serving the answer to a *different* question, or an answer built on figures that have since changed.
 So a stored answer is used only if all of these hold:
 

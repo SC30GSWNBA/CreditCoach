@@ -1,7 +1,7 @@
 """Dreaming: between sessions, consolidate a user's new episodes into their long-term memory (Task 16).
 
 The same technique as Anthropic's "dreaming" for Claude Managed Agents, built on CreditCoach's own stack (the
-OpenRouter ``SMALL_MODEL``), because the agent runs on GPT-5 through OpenRouter rather than on Managed Agents.
+OpenRouter ``SMALL_MODEL``), because the agent runs on its chat model through OpenRouter rather than on Managed Agents.
 Like sleep consolidating the day, it runs between sessions: it reads the episodes the last dream hasn't seen,
 together with the current consolidated memory, and rewrites that memory so it stays accurate and small:
 

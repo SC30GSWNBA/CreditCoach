@@ -1,6 +1,6 @@
 # CreditCoach: Observability
 
-*Week 4 · Task #26 (tracing), #31 (dashboard) · Last updated: 2026-10-30 (the Dashboard tab shows before its traces load) · Status: Draft for team review · Code: `creditcoach/observability.py`*
+*Week 4 · Task #26 (tracing), #31 (dashboard) · Last updated: 2026-10-31 (S5 guardrail triggers) · Status: Draft for team review · Code: `creditcoach/observability.py`*
 
 Until Week 3, what happened inside an answer was spread across several places: the agent trace in the chat, one JSON log line per tool call, the guardrail log, the cache log, and the record each reply leaves in Neon. None of them carried an ID linking the lines for one question. Since Task #26, every question is one **OpenTelemetry trace**, and every step of it is a span in that trace, so retrievals, tool calls, guardrail triggers, tool failures, model calls and cache lookups for one request all share a single trace ID. The same traces feed the Task #31 dashboard and the Task #29 error analysis.
 
@@ -11,7 +11,7 @@ Until Week 3, what happened inside an answer was spread across several places: t
 | Span | What it records | Events on it |
 |---|---|---|
 | `creditcoach.answer` | user, memory session, the (masked) question, the answer, model, guardrail action, cache status, tool calls and failures, total seconds | an answer-cache `skip`, if the answer may not be stored; `clarify.reference` when the question points at a loan nobody has named (Task 32) |
-| `guardrail.input` | the input rails: rules found, predatory products named | `guardrail.trigger` per finding (S1–S3, G2) |
+| `guardrail.input` | the input rails: rules found, predatory products named | `guardrail.trigger` per finding (S1–S3, S5, G2) |
 | `memory.context` | building the MEMORY section (only with a memory session) | |
 | `cache.answer` | the answer-cache lookup: hit, miss or stale, and how it matched | `cache` per lookup |
 | `retrieval` | passage ids, categories and scores; whether the product-risk passages were added; the searches drawn from the user's own data (`retrieval.data_probes`, Task 30) | `cache` per lookup; `retrieval.empty` if nothing matched; `retrieval.failed` if the library couldn't be searched and the answer went on without it (Task 32) |
@@ -20,7 +20,7 @@ Until Week 3, what happened inside an answer was spread across several places: t
 | `agent` | the tool-calling loop | `tool.server_unavailable` if the tool server couldn't start (Task 32) |
 | `tool.<name>` | arguments, ok, error code, attempts, cached, milliseconds, the result (with `last_confirmed` when a failed call fell back to it, Task 32). A failed call has **ERROR** status | `cache`; `tool.retry`; `tool.failure` with the code and message |
 | `llm.chat` | model asked for and model that answered, tokens in and out, cost in US dollars, the messages and the reply | `llm.fallback` when the fallback model answered |
-| `guardrail.output` | passed, reframed or blocked; whether the model review ran; rules found and still failing | `guardrail.trigger` per finding (G1–G3, S2, S4) |
+| `guardrail.output` | passed, reframed or blocked; whether the model review ran; rules found and still failing | `guardrail.trigger` per finding (G1–G3, S2, S4, S5) |
 
 The trace ID is also saved on every reply's record in Neon (`trace_id` in the `assistant_message` event), is on `Answer.trace_id`, is printed by the command-line transcript, and is in every `tool_call` log line. Any of them leads to the full trace.
 

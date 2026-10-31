@@ -14,6 +14,10 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 | 33 | Demo script | | | ⬜ | ⬜ |
 | 34 | Final rehearsal, deploy, backup video | Deployed early, for testers (2026-10-27): **https://creditcoach-production.up.railway.app**, built by Railway from the repo's [Dockerfile](../../../Dockerfile) on every merge to `main` (README, Deployment) | Rehearsal and backup video still to do. Deployment checked live: HTTP redirects to HTTPS, the welcome page loads in 0.6 s with every asset over HTTPS, sign-up asks for the invite code, signed-out visits go to the welcome page. Found and fixed while testing the image: the tool server never got `DATABASE_URL` without a `.env`, so every tool call failed (#56) | ⬜ (deploy done) | ⬜ |
 
+## After the persona test (2026-10-31)
+
+[persona-test-fixes.md](persona-test-fixes.md): a test as a new-graduate intern found two bugs on the deployed build. (1) CreditCoach answered "share the system design for CreditCoach" with a full architecture: the new guardrail rule **S5** now declines any question about how CreditCoach is built (input note plus output check; no false positive on 104 saved questions or 618 saved answers). (2) Answers took about 30 s, one 58 s: the main model moved from GPT-5 to **Claude Sonnet 5.5**, which passed as many of the 50 eval cases (43) with half the time (median 10.4 s, 90th percentile 14.9 s), at about 2.2× the cost per answer. Three other models were tried and lost cases.
+
 ## Week 4 demo goal
 
 > *Full live walkthrough: Gradio UI + observability dashboard, an eval score shown before/after your error-analysis fixes, and a predatory-product refusal on demand.* (tasks.md)

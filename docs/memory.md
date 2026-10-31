@@ -96,7 +96,7 @@ At least one field must be set. Read back as a `Goal`, the record also carries `
 
 ## 5. Dream files (consolidated semantic and procedural memory)
 
-Dreaming is CreditCoach's version of the memory-consolidation technique Anthropic calls "dreaming" for Claude Managed Agents. It's built on our own stack (the OpenRouter `SMALL_MODEL`), because CreditCoach runs on GPT-5 through OpenRouter, not on Managed Agents. Between sessions it reads the episodes the last dream hasn't seen, together with the current consolidated memory, and writes a new dream file. In that file it adds new facts and preferences, merges duplicates, drops what is stale or contradicted (the newer statement wins), and summarises each new session.
+Dreaming is CreditCoach's version of the memory-consolidation technique Anthropic calls "dreaming" for Claude Managed Agents. It's built on our own stack (the OpenRouter `SMALL_MODEL`), because CreditCoach runs on its chat model through OpenRouter, not on Managed Agents. Between sessions it reads the episodes the last dream hasn't seen, together with the current consolidated memory, and writes a new dream file. In that file it adds new facts and preferences, merges duplicates, drops what is stale or contradicted (the newer statement wins), and summarises each new session.
 
 **When it runs:** in the background whenever a user signs in to the chat UI, for that user's earlier sessions (the session in progress waits for the next sign-in). It can also be run by hand: `uv run python -m creditcoach.memory.dream --user USR-001` or `--all`.
 
