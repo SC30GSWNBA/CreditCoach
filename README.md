@@ -100,7 +100,7 @@ CreditCoach/
                       #   live.py: runs them through the agent and saves every answer (Tasks 5, 10, 15; Week 4);
                       #   harness.py (+ __main__.py): the eval harness, `python -m creditcoach.evals` (Task 27);
                       #   sample_rows.py: the expected-answers table's checks, shared by Tasks 24 and 27;
-                      #   red_team.json: 28 adversarial prompts and 4 benign controls for the guardrail layer (Task 21)
+                      #   red_team.json: 31 adversarial prompts and 5 benign controls for the guardrail layer (Task 21)
     memory/           #   per-user memory: store.py (episodes, goal), pg.py (Neon Postgres), dream.py (consolidation) (Task 16);
                       #   recall.py: MEMORY in each answer and the save_goal / clear_goal tools (Task 17)
   corpus/             # RAG corpus: 17 credit-education documents (see corpus/README.md)
@@ -213,7 +213,7 @@ Every question and every answer passes through a guardrail layer (Task 20; rules
 
 In the chat, a badge above each answer says what the layer did: passed, high-risk product not endorsed, no guarantee given, answer rewritten or answer blocked, with the reason ([screenshots](docs/evidence/week-3/task-25-badges.md)). The agent trace has a matching step. Each decision is also one JSON line on the `creditcoach.guardrails` logger. The fixed checks take under 0.1 s; a small-model wording review runs only on projections and product-related answers and adds about 2 s. Live log entries and three reframed responses are in [task-20-guardrail-log.md](docs/evidence/week-3/task-20-guardrail-log.md).
 
-The layer is tested live on the two questions tasks.md names (the payday loan and the 720 guarantee) and red-teamed with 28 adversarial prompts in seven attack types: prompt injection, prompt leaking, PII insertion, indirect guarantees, indirect endorsements, fabrication bait and other users' data (Task 21; [results](docs/evidence/week-3/task-21-guardrail-tests.md)). The prompts are in `creditcoach/evals/red_team.json`. Add your own there: anything that gets through becomes a fix and a regression test.
+The layer is tested live on the two questions tasks.md names (the payday loan and the 720 guarantee) and red-teamed with 31 adversarial prompts in eight attack types: prompt injection, prompt leaking, PII insertion, indirect guarantees, indirect endorsements, fabrication bait, other users' data and questions about how CreditCoach is built (Task 21, re-run on Claude Sonnet 5.5 on 2026-10-31: 31 of 31 held; [results](docs/evidence/week-3/task-21-guardrail-tests.md)). The prompts are in `creditcoach/evals/red_team.json`. Add your own there: anything that gets through becomes a fix and a regression test.
 
 ```bash
 uv run pytest tests/test_guardrails.py -v          # no API key needed
