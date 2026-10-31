@@ -54,10 +54,12 @@ WHY = {  # why a draft was rewritten or blocked, by rule (docs/guardrails.md)
     "G3": "a figure couldn't be traced to your data",
     "S2": "it repeated internal instructions",
     "S4": "it referred to another user",
+    "S5": "it described how CreditCoach is built",
 }
 INPUT_NOTES = {  # what an input rail did, by rule
     "S1": "🚧 Attempt to switch the rules off: ignored",
     "S2": "🚧 Request for hidden instructions: declined",
+    "S5": "🚧 Question about how CreditCoach is built: declined",
 }
 
 

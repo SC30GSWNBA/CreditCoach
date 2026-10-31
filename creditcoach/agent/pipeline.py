@@ -389,7 +389,7 @@ def _reusable(user_id, guard, screened, history, question) -> str | None:
         return "no signed-in user"
     if not guard:
         return "the guardrail layer is off"
-    if any(f.rule in ("S1", "S2", "S3") for f in screened.findings):
+    if any(f.rule in ("S1", "S2", "S3", "S5") for f in screened.findings):
         return "the input rails flagged the question"
     if recall.history_messages(history) and answer_cache.needs_context(question):
         return "the question depends on the conversation"

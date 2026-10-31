@@ -18,6 +18,10 @@ define flow mask identifiers
 define flow detect attack attempt
   $s1_s2 = execute detect_attack_attempt(text=$user_message)
 
+# S5: a question about how CreditCoach is built (system design, architecture, backend, frontend, code, models).
+define flow detect build question
+  $s5 = execute detect_build_question(text=$user_message)
+
 # G2: the question mentions a predatory product, so the turn is product-related.
 define flow detect product mention
   $products_asked = execute detect_products(text=$user_message)
@@ -41,6 +45,10 @@ define flow check product answer
 # S2, S4: the answer doesn't repeat the system prompt or name another user.
 define flow check disclosure
   $s2_s4 = execute check_disclosure(answer=$bot_message, user_id=$user_id)
+
+# S5: the answer doesn't describe how CreditCoach or any software is built.
+define flow check system talk
+  $s5 = execute check_system_talk(answer=$bot_message)
 
 # G1, G2: where wording decides, ask the small model. Only for projections, product-related answers, and
 # questions the input rails flagged as an attack attempt.

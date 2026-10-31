@@ -43,7 +43,7 @@ uv run python -m creditcoach.rag.ingest
 # 6. Try retrieval
 uv run python -m creditcoach.rag.retrieve "why did my credit score drop 20 points?"
 
-# 7. Ask CreditCoach (retrieval + GPT-5; needs your OpenRouter key). Add --user USR-001 to answer from that user's data via the MCP tools
+# 7. Ask CreditCoach (retrieval + the chat model, Claude Sonnet 5.5; needs your OpenRouter key). Add --user USR-001 to answer from that user's data via the MCP tools
 uv run python -m creditcoach.agent.pipeline "why did my credit score drop 20 points?"
 
 # 8. Open the chat UI at http://127.0.0.1:7860 (add --share for a public link) then sign up and log in
@@ -182,7 +182,7 @@ uv run python scripts/data_import.py   # then refresh the copy in Neon, and rest
 
 **Where the dataset lives.** With `DATABASE_URL` set, the app and the tools read users, accounts and score history from three tables in the same Neon database as memory (`dataset_users`, `dataset_accounts`, `dataset_score_history`). That copy is loaded from `data/*.csv`, which stay the reviewed source: change the data by rebuilding the CSVs in a pull request, then run `scripts/data_import.py`. Don't edit the Neon tables directly. `uv run python -m creditcoach.check` fails if Neon and the CSVs differ. Without `DATABASE_URL`, or with `CREDITCOACH_DATA_BACKEND=files`, everything reads the CSVs, and tests always do, so the golden queries are checked against the committed data.
 
-**Stack:** Python 3.12 · OpenAI GPT-5 / GPT-4 models via OpenRouter · sentence-transformers (local embeddings) · ChromaDB · Neon Postgres (memory and the dataset copy) · NVIDIA NeMo Guardrails (guardrail layer) · Redis (cache) · Gradio · Plotly (My credit charts). See [docs/team.md](docs/team.md) for the full stack and the reasons behind each choice.
+**Stack:** Python 3.12 · Claude Sonnet 5.5 (answers) and OpenAI GPT-5 mini / GPT-4o (side calls, fallback) via OpenRouter · sentence-transformers (local embeddings) · ChromaDB · Neon Postgres (memory and the dataset copy) · NVIDIA NeMo Guardrails (guardrail layer) · Redis (cache) · Gradio · Plotly (My credit charts). See [docs/team.md](docs/team.md) for the full stack and the reasons behind each choice.
 
 ## Memory
 
@@ -294,11 +294,11 @@ All settings are read from `.env` (git-ignored). See [.env.example](.env.example
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
 | `OPENROUTER_API_KEY` | Yes | — | Access to all models through OpenRouter |
-| `CHAT_MODEL` | No | `openai/gpt-5` | Main chat model |
+| `CHAT_MODEL` | No | `anthropic/claude-sonnet-5.5` | Main chat model (GPT-5 until 2026-10-31; Sonnet 5.5 is as accurate on the eval suite at half the time) |
 | `SMALL_MODEL` | No | `openai/gpt-5-mini` | Cheap side calls (guardrail checks, eval judging) |
 | `FALLBACK_MODEL` | No | `openai/gpt-4o` | Used when the chat model is slow or unavailable |
-| `REASONING_EFFORT` | No | `low` | How long GPT-5 reasons before answering (`minimal`, `low`, `medium`, `high`). `low` is the tested balance: on all 50 eval cases, run side by side, `minimal` answered about 40 % faster (median 12.3 s vs 20.4 s) but passed 4 fewer ([Task 30](docs/evidence/week-4/task-30-fixes-and-rerun.md#reasoning-effort-trial)). |
-| `MAX_OUTPUT_TOKENS` | No | `16000` | Cap on each reply's tokens, reasoning included. Without it OpenRouter reserves GPT-5's full 65,536 tokens, so a key with less credit than that gets a 402 and every answer silently comes from `FALLBACK_MODEL`. |
+| `REASONING_EFFORT` | No | `low` | Only for a GPT-5-family `CHAT_MODEL` (the default Sonnet doesn't use it). How long GPT-5 reasons before answering (`minimal`, `low`, `medium`, `high`). `low` is the tested balance: on all 50 eval cases, run side by side, `minimal` answered about 40 % faster (median 12.3 s vs 20.4 s) but passed 4 fewer ([Task 30](docs/evidence/week-4/task-30-fixes-and-rerun.md#reasoning-effort-trial)). |
+| `MAX_OUTPUT_TOKENS` | No | `16000` | Cap on each reply's tokens, reasoning included. Without it OpenRouter reserves the model's full output limit (65,536 tokens for GPT-5), so a key with less credit than that gets a 402 and every answer silently comes from `FALLBACK_MODEL`. |
 | `DATABASE_URL` | No | (none) | Neon Postgres connection string. When set, memory, the dataset copy and sign-ups are kept in Neon; without it memory falls back to files in `memory/`, the dataset to `data/*.csv`, and sign-up is off. |
 | `CREDITCOACH_DATA_BACKEND` | No | `postgres` when `DATABASE_URL` is set, else `files` | `files` reads the dataset from `data/*.csv` even when `DATABASE_URL` is set |
 | `CREDITCOACH_MEMORY_BACKEND` | No | `postgres` when `DATABASE_URL` is set, else `files` | `files` keeps memory in plain files; tests and the evidence scripts force it so they never write to Neon |
@@ -414,7 +414,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 | 8 | **Fragile LLM client.** It catches a broad `except Exception` and tries the fallback model once. It has no retries, and it creates a new client on every call. | Catch specific exceptions, retry rate limits (429) and server errors (5xx) with backoff (for example `tenacity`), and reuse one client. Task 32 covers wider timeout handling.<br><br>**Partly addressed (Task 32):** the MCP host no longer raises when its server can't start, hangs at startup or dies mid-call; each call becomes `DATA_UNAVAILABLE` and the answer goes on. Retries with backoff for the model client are still to do. |
 | 9 | **No architecture or design doc for Week 2.** The chat history was passed in but unused (used since Task 17). | Add a diagram of the pipeline and agent loop. The tool contracts are in [docs/tools.md](docs/tools.md) (Task 12), and the agent loop over MCP is described in `pipeline.py` and `mcp_host.py` (Task 15). Memory and recall are specified in [docs/memory.md](docs/memory.md) (Tasks 16–17). **Done:** the high-level design ([docs/hld.html](docs/hld.html)) is one swimlane diagram of how the chat UI, guardrails, cache, retrieval, the MCP tools, memory, the models and Neon meet in `pipeline.py`. |
 | 10 | **Prompts aren't versioned.** `system_prompt.md` has no version, and answers don't record which prompt produced them. | Add a prompt version or hash to each `Answer` and to eval results, so a change in behaviour can be traced to a prompt change. |
-| 11 | **No streaming.** The UI shows the whole answer at once, after about 18 s with GPT-5 (18.5 s in the Task 18 run: 0.1 s retrieval, the rest almost all the model). | Stream tokens into the chat window so answers start appearing right away.<br><br>**Partly addressed (Task 18):** while the user waits, the chat shows each step live with timers and rotating credit tips. The answer's words still arrive all at once. |
+| 11 | **No streaming.** The UI shows the whole answer at once, after about 10 s with Claude Sonnet 5.5 (median of the 50 eval cases; it was about 20 s with GPT-5 until 2026-10-31). Almost all of it is the model. | Stream tokens into the chat window so answers start appearing right away.<br><br>**Partly addressed (Task 18):** while the user waits, the chat shows each step live with timers and rotating credit tips. The answer's words still arrive all at once. |
 
 ### 3. Nice to have: collaborator experience
 

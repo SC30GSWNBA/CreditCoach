@@ -20,7 +20,7 @@ Until Week 3, what happened inside an answer was spread across several places: t
 | `agent` | the tool-calling loop | `tool.server_unavailable` if the tool server couldn't start (Task 32) |
 | `tool.<name>` | arguments, ok, error code, attempts, cached, milliseconds, the result (with `last_confirmed` when a failed call fell back to it, Task 32). A failed call has **ERROR** status | `cache`; `tool.retry`; `tool.failure` with the code and message |
 | `llm.chat` | model asked for and model that answered, tokens in and out, cost in US dollars, the messages and the reply | `llm.fallback` when the fallback model answered |
-| `guardrail.output` | passed, reframed or blocked; whether the model review ran; rules found and still failing | `guardrail.trigger` per finding (G1–G3, S2, S4) |
+| `guardrail.output` | passed, reframed or blocked; whether the model review ran; rules found and still failing | `guardrail.trigger` per finding (G1–G3, S2, S4, S5) |
 
 The trace ID is also saved on every reply's record in Neon (`trace_id` in the `assistant_message` event), is on `Answer.trace_id`, is printed by the command-line transcript, and is in every `tool_call` log line. Any of them leads to the full trace.
 

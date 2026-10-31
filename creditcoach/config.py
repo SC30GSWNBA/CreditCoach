@@ -6,10 +6,10 @@ except the API key.
 
 Settings (environment variable -> default):
     OPENROUTER_API_KEY  Required. Your OpenRouter key; all chat models are called through OpenRouter.
-    CHAT_MODEL          "openai/gpt-5"       Main model that writes answers.
+    CHAT_MODEL          "anthropic/claude-sonnet-5.5"  Main model that writes answers.
     SMALL_MODEL         "openai/gpt-5-mini"  Cheaper model for side jobs (guardrail checks, eval judging).
     FALLBACK_MODEL      "openai/gpt-4o"      Used automatically if the chat model fails.
-    REASONING_EFFORT    "low"                How long GPT-5 "thinks" before answering (speed vs depth).
+    REASONING_EFFORT    "low"                How long a GPT-5-family model "thinks" before answering; unused by Sonnet.
     MAX_OUTPUT_TOKENS   16000                Cap on each reply's tokens, reasoning included.
     EMBEDDING_MODEL     all-MiniLM-L6-v2     Local model that turns text into vectors for search.
                                              Rebuild the vector store after changing it.
@@ -61,7 +61,7 @@ Sign-up and the weekly allowance (environment variable -> default):
 Example:
     >>> from creditcoach import config
     >>> config.CHAT_MODEL
-    'openai/gpt-5'
+    'anthropic/claude-sonnet-5.5'
 """
 
 import os
@@ -75,7 +75,10 @@ load_dotenv(ROOT / ".env")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
-CHAT_MODEL = os.getenv("CHAT_MODEL", "openai/gpt-5")
+# Sonnet 5.5 replaced GPT-5 on 2026-10-31: on all 50 eval cases it passed as many (43 of 50) at half the time
+# (median 10.4 s against 20.4 s, 90th percentile 14.9 s against 30.8 s); docs/evidence/week-4/eval-model-*.md.
+# GPT-5 wrote at 30-55 tokens/s on Railway, so a typical answer took 20-35 s. REASONING_EFFORT applies to GPT-5 only.
+CHAT_MODEL = os.getenv("CHAT_MODEL", "anthropic/claude-sonnet-5.5")
 SMALL_MODEL = os.getenv("SMALL_MODEL", "openai/gpt-5-mini")
 FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "openai/gpt-4o")
 # Reasoning effort for GPT-5-family models (minimal | low | medium | high). "low" cut answer time from

@@ -9,6 +9,7 @@ ones in ``docs/guardrails.md``:
                                    passwords: replaced by a placeholder such as ``[PAN removed]``.
         ``attack_attempts``    S1  an instruction to drop the rules or take another role.
                                S2  a request for the system prompt or hidden context.
+        ``build_question``     S5  a question about how CreditCoach is built (design, architecture, code, models).
         ``products``           G2  a predatory product is mentioned (also run on the answer).
     Output (the draft answer, before the user sees it)
         ``guarantees``         G1  a sentence promises a score outcome (``golden.unhedged_guarantees``).
@@ -17,6 +18,7 @@ ones in ``docs/guardrails.md``:
         ``product_answer``     G2  a product-related answer has no high-risk flag or no safer alternative.
         ``disclosure``         S2  the answer repeats a run of the system prompt.
                                S4  the answer gives a figure next to another dataset user's id.
+        ``system_talk``        S5  the answer describes how CreditCoach or its software is built.
         ``model_review``       G1  the answer predicts a score, a gain or a date without a guarantee word.
                                G2  the answer endorses a predatory product.
                                    One ``SMALL_MODEL`` call, only where wording decides the outcome.
@@ -45,7 +47,7 @@ class Finding:
     """One rule a check found broken, or one thing an input rail noticed.
 
     Attributes:
-        rule: The rule ID in docs/guardrails.md (``G1``-``G3``, ``S1``-``S4``).
+        rule: The rule ID in docs/guardrails.md (``G1``-``G3``, ``S1``-``S5``).
         rail: The Colang flow that ran the check, for example ``"check guarantee"``.
         detail: What is wrong, in plain words, for the log and for the rewrite instruction.
         matched: The text that triggered it (a sentence, a figure, a product name), shortened.
@@ -150,6 +152,62 @@ def attack_attempts(text: str) -> list[Finding]:
         out.append(Finding("S2", "detect attack attempt", "the message asks for CreditCoach's instructions or hidden "
                            "context", [_short(m.group(0))]))
     return out
+
+
+# ---- S5: how CreditCoach is built ----
+
+# Engineering topics that are never about credit: any of these in a question is enough.
+_BUILD_TOPIC = (r"system[- ]design|architecture|architectural|back[- ]?end|front[- ]?end|tech(?:nology)? stack"
+                r"|source code|code ?base|database (?:schema|design|tables?)|infrastructure|micro[- ]?services?"
+                r"|programming language|llms?|large language models?|vector (?:store|database|db)|embeddings?"
+                r"|rag pipeline|retrieval pipeline|prompt engineering|sequence diagram|class diagram|er diagram")
+# Topics that are also everyday words ("a framework to pay off my cards", "the repo rate", "the CIBIL scoring
+# model"): they count only next to CreditCoach itself, never next to a bare "you".
+_BUILD_WORD = (r"apis?|endpoints?|databases?|servers?|hosting|hosted|deploy(?:ed|ment)?|framework|librar(?:y|ies)"
+               r"|coded|tech|technology|stack|ai models?|gpt|built|developed|implemented|engineered")
+_US = r"creditcoach|credit coach|this (?:app|bot|assistant|chatbot|website|site)"
+BUILD_QUESTION = re.compile(
+    r"\b(?:" + _BUILD_TOPIC + r")\b"
+    r"|\b(?:" + _BUILD_WORD + r")\b[^.?!\n]{0,40}\b(?:" + _US + r")\b"
+    r"|\b(?:" + _US + r")\b[^.?!\n]{0,40}\b(?:" + _BUILD_WORD + r")\b"
+    r"|\bhow (?:are|were) you\b[^.?!\n]{0,20}\b(?:built|made|coded|developed|designed|implemented|engineered|"
+    r"trained|programmed|hosted|deployed)\b"
+    r"|\b(?:which|what) (?:llm|ai|model|language model|gpt|tech|technology|stack|database|framework|language)\b"
+    r"[^.?!\n]{0,30}\b(?:do you (?:use|run)|are you(?: using| built| running| based)?|powers you|runs you|behind you)\b",
+    re.I)
+SYSTEM_TALK = re.compile(  # what an answer about how CreditCoach is built names; three different ones in a sentence block
+    r"\b(?:system design|architecture|back[- ]?end|front[- ]?end|micro[- ]?services?|api gateway|apis?|endpoints?"
+    r"|databases?|schemas?|postgres(?:ql)?|redis|neon|kubernetes|k8s|docker|railway|gradio|nemo|colang|openrouter"
+    r"|gpt-?\d[\w.-]*|llms?|large language models?|vector (?:store|database|db)|embeddings?|chroma(?:db)?|rerankers?"
+    r"|rag|retrieval[- ]augmented|mcp|model context protocol|orchestrat\w+|tech stack|source code|codebase|repository"
+    r"|langfuse|opentelemetry|grafana|prometheus|load balanc\w+|oauth|jwt|service mesh|terraform|ci/cd|iac"
+    r"|python|typescript|node(?:\.js)?|kotlin|java|grpc|rest api|json schema|ttl|idempoten\w+|circuit breakers?"
+    r"|data residency|iam roles?|sres?|slos?|slis?|tls(?: 1\.3)?|mtls|sequence diagram)\b", re.I)
+SYSTEM_TALK_MIN = 3  # distinct terms; measured on the saved answers (tests/test_guardrails.py): none reaches 2
+DECLINE = re.compile(r"\b(?:can['’]?t|cannot|can not|won['’]?t|unable|not able|don['’]?t (?:share|discuss|go into)"
+                     r"|isn['’]?t something I|not something I|rather not|keep (?:those|that|these) (?:details )?private)\b",
+                     re.I)
+
+
+def build_question(text: str) -> list[Finding]:
+    """S5: the question asks how CreditCoach is built (its design, architecture, backend, frontend, code, models,
+    database or infrastructure). A question about what CreditCoach does, or about the data it uses, is not one."""
+    if m := BUILD_QUESTION.search(_plain(text)):
+        return [Finding("S5", "detect build question", "the message asks how CreditCoach is built",
+                        [_short(m.group(0))])]
+    return []
+
+
+def system_talk(answer: str) -> list[Finding]:
+    """S5: the answer describes how software is built, naming ``SYSTEM_TALK_MIN`` or more different engineering
+    terms outside sentences that decline to ("I can't share CreditCoach's architecture or backend")."""
+    sentences = re.split(r"(?<=[.!?])\s+|\n+", _plain(answer))
+    named = list(dict.fromkeys(m.group(0).lower() for s in sentences if not DECLINE.search(s)
+                               for m in SYSTEM_TALK.finditer(s)))
+    if len(named) < SYSTEM_TALK_MIN:
+        return []
+    return [Finding("S5", "check system talk", "the answer describes how CreditCoach or its software is built",
+                    named[:8])]
 
 
 # ---- G2: predatory products ----

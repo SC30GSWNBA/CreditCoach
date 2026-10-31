@@ -12,6 +12,7 @@ rails:
     flows:
       - mask identifiers        # S3
       - detect attack attempt   # S1, S2
+      - detect build question   # S5
       - detect product mention  # G2
   output:
     flows:
@@ -19,4 +20,5 @@ rails:
       - check figures           # G3
       - check product answer    # G2
       - check disclosure        # S2, S4
+      - check system talk       # S5
       - review wording          # G1, G2 (model check: projections, product-related answers, flagged attack attempts)
