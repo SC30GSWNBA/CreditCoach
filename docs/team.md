@@ -1,6 +1,6 @@
 # CreditCoach: Team, Roles & Tech Stack
 
-*Week 1 · Task #1 (Kickoff) · Last updated: 2026-10-28 (stack as built through Task #32, plus sign-up)*
+*Week 1 · Task #1 (Kickoff) · Last updated: 2026-10-31 (main chat model is Claude Sonnet 5.5)*
 
 ## 1. Roles
 

@@ -4,8 +4,8 @@ The system prompt lives in ``system_prompt.md`` next to this file, as plain Mark
 review and edit its wording without touching Python code. It defines CreditCoach's tone, tells the model
 where facts may come from (TOOL RESULTS, USER PROFILE, MEMORY and REFERENCE CONTEXT), how to use memory, and
 states the hard rules: never invent a
-figure, never guarantee an outcome, never recommend predatory products, respect the user's goal, and stay
-educational.
+figure, never guarantee an outcome, never recommend predatory products, respect the user's goal, stay
+educational, only ever discuss the signed-in user's data, and never describe how CreditCoach is built.
 """
 
 from pathlib import Path
