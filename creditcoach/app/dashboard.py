@@ -368,6 +368,8 @@ def costs(rs: list[dict]) -> dict:
         "cache": Counter(r.get("cache") or "unknown" for r in rs),
         "points": [(r["seconds"], sum(r["cost"].values()), r.get("model") or "")
                    for r in sorted(timed, key=lambda r: r["day"], reverse=True)[:MAX_POINTS]],
+        # every answer's response time, per model, so any choice of models gets its exact median (``pick``)
+        "times": {m: [r["seconds"] for r in group if r.get("seconds")] for m, group in by_model.items()},
     }
 
 
@@ -492,14 +494,38 @@ def _figure(fig, height: int = 300, **layout):
     return fig
 
 
-def scatter_figure(c: dict):
+NO_MODEL = "none"  # the choice for answers with no model call, whose model id is ""
+
+
+def model_choices(c: dict) -> list[tuple[str, str]]:
+    """The models to tick on the cost vs response time chart, most answers first: (label with its answers, key)."""
+    return [(f"{model_name(m)} ({s['answers']:,})", m or NO_MODEL) for m, s in c["models"].items()]
+
+
+def pick(c: dict, shown: list[str] | None = None) -> dict:
+    """The answers, spend, average cost per answer and median response time of the models in ``shown`` (keys from
+    ``model_choices``; None means every model). Worked out as ``_speed`` does: answers and spend add up, the average
+    is spend over answers, and the median is taken over every answer's time. So one model gives its row in the
+    Models compared table, and every model gives the tiles above."""
+    keys = None if shown is None else set(shown)
+    models = {m: s for m, s in c["models"].items() if keys is None or (m or NO_MODEL) in keys}
+    answers, spend = sum(s["answers"] for s in models.values()), sum(s["spend"] for s in models.values())
+    times = [t for m in models for t in c["times"].get(m, [])]
+    return {"models": models, "answers": answers, "spend": spend, "per_answer": _rate(spend, answers),
+            "p50": statistics.median(times) if times else None}
+
+
+def scatter_figure(c: dict, shown: list[str] | None = None):
     """Cost against response time, one dot per answer, colored by its answer model; a ringed dot is each model's
-    median. The legend gives each model's answers, and clicking a model hides it."""
+    median. Only the models in ``shown`` are drawn (None: all), and the answer count, the median line and the
+    average line are those models' (``pick``). The legend is a color key: models are chosen with the tick boxes
+    above the chart, so a legend click can't hide dots the figures still count."""
     import plotly.graph_objects as go
 
     fig = go.Figure()
-    points = c["points"]
-    for model, m in c["models"].items():
+    sel = pick(c, shown)
+    points = [p for p in c["points"] if p[2] in sel["models"]]
+    for model, m in sel["models"].items():
         xs = [p[0] for p in points if p[2] == model]
         if not xs:
             continue
@@ -513,16 +539,24 @@ def scatter_figure(c: dict):
             marker=dict(color=color, size=16, line=dict(color="white", width=2.5)),
             hovertemplate=(f"<b>{escape(model_name(model))}</b><br>{m['answers']:,} answers<br>median {_secs(m['p50'])}"
                            f" · p95 {_secs(m['p95'])}<br>{_usd(m['per_answer'])} per answer<extra></extra>")))
-    if c["p50"] is not None:
-        fig.add_vline(x=c["p50"], line=dict(color=GREY, dash="dot", width=1),
-                      annotation_text=f"median {_secs(c['p50'])}", annotation_position="top right")
-        fig.add_hline(y=c["per_answer"], line=dict(color=GREY, dash="dot", width=1),
-                      annotation_text=f"average {_usd(c['per_answer'])}", annotation_position="top right")
-    fig.add_annotation(text=f"<b>{c['answers']:,} answers</b>" + (f" ({len(points):,} newest shown)"
-                       if len(points) < c["answers"] else ""), xref="paper", yref="paper", x=0, y=1,
-                       showarrow=False, xanchor="left", yanchor="top", font=dict(size=13))
-    return _figure(fig, 400, xaxis_title="Response time (seconds)", yaxis_title="Cost per answer (US$)",
-                   yaxis_tickprefix="$")
+    if sel["p50"] is not None:
+        fig.add_vline(x=sel["p50"], line=dict(color=GREY, dash="dot", width=1),
+                      annotation_text=f"median {_secs(sel['p50'])}", annotation_position="top right")
+    if sel["per_answer"] is not None:
+        fig.add_hline(y=sel["per_answer"], line=dict(color=GREY, dash="dot", width=1),
+                      annotation_text=f"average {_usd(sel['per_answer'])}", annotation_position="top right")
+    count = (f"{sel['answers']:,} answers" if len(sel["models"]) == len(c["models"])
+             else f"{sel['answers']:,} of {c['answers']:,} answers")
+    fig.add_annotation(text=(f"<b>{count}</b>" + (f" ({len(points):,} newest shown)" if len(points) < sel["answers"]
+                                                  else "")) if sel["models"] else "<b>Tick a model to see its answers</b>",
+                       xref="paper", yref="paper", x=0, y=1, showarrow=False, xanchor="left", yanchor="bottom",
+                       font=dict(size=13))  # just above the plot, clear of the axis labels
+    fig = _figure(fig, 400, xaxis_title="Response time (seconds)", yaxis_title="Cost per answer (US$)",
+                  yaxis_tickprefix="$")
+    fig.update_layout(margin_t=34, legend_title_text="", legend_itemclick=False, legend_itemdoubleclick=False)
+    if not sel["models"]:
+        fig.update_xaxes(visible=False).update_yaxes(visible=False)
+    return fig
 
 
 def _by_day(c: dict, value) -> tuple[list[str], list]:
@@ -739,7 +773,8 @@ def top_html(c: dict, source: str, period: str, traffic: str) -> str:
 
 def cost_view(days: int, traffic: str) -> dict:
     """Every part of the "Cost and speed" view (``COST_PARTS``) for a period and a traffic kind: HTML or a Plotly
-    figure each. If the traces can't be read, the first part says so and the rest are empty."""
+    figure each, plus "costs", the figures they were made from (for redrawing the chart with other models). If the
+    traces can't be read, the first part says so and the rest are empty."""
     period = next((label for label, d in PERIODS if d == days), f"Last {days} days")
     kind = next((label for label, k in TRAFFIC if k == traffic), traffic)
     cmp = comparison()
@@ -748,9 +783,9 @@ def cost_view(days: int, traffic: str) -> dict:
         c = summarize(requests(spans), traffic)["cost"]
     except Exception:
         log.exception("Cost and speed unavailable")
-        return {**dict.fromkeys(COST_PARTS), "top": ('<div class="cc-empty"><b>Cost and speed are unavailable right '
+        return {**dict.fromkeys(COST_PARTS), "costs": None, "top": ('<div class="cc-empty"><b>Cost and speed are unavailable right '
                                                      'now.</b><p class="cc-note">Press Refresh to try again.</p></div>')}
-    return {"top": top_html(c, source, period, kind), "scatter": scatter_figure(c), "models": models_html(c),
+    return {"costs": c, "top": top_html(c, source, period, kind), "scatter": scatter_figure(c), "models": models_html(c),
             "quality": quality_figure(cmp) if cmp else None, "quality_table": quality_html(cmp),
             "spend": spend_figure(c), "latency": latency_figure(c), "split": split_html(c),
             "tokens": tokens_figure(c), "cache": cache_html(c)}

@@ -108,7 +108,6 @@ CSS = """
 .gradio-container .js-plotly-plot .annotation-text, .gradio-container .js-plotly-plot .textpoint text,
 .gradio-container .js-plotly-plot .legendtext, .gradio-container .js-plotly-plot .legendtitletext {
            fill: var(--body-text-color) !important;}
-.gradio-container .js-plotly-plot .legend .traces {cursor: pointer;}
 
 /* My credit: larger, darker labels on the tiles, bars and lists */
 .gradio-container .cc-tiles {gap: 14px;}
