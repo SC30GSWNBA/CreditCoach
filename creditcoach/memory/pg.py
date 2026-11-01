@@ -158,6 +158,17 @@ def users() -> list[str]:
     return [r[0] for r in rows]
 
 
+def answered(user_id: str | None = None) -> dict:
+    """Answers given in chat-app sessions (``store.answered``): for one user, or everyone."""
+    only = "AND a.user_id = %s" if user_id else ""
+    with pool().connection() as conn:
+        answers, sessions, since = conn.execute(
+            f"SELECT count(*), count(DISTINCT a.session), {TS.format(col='min(a.ts)')} FROM memory_events a "
+            "WHERE a.type = 'assistant_message' AND a.session IN (SELECT session FROM memory_events "
+            f"WHERE type = 'login' AND meta->>'source' = 'chat_ui') {only}", (user_id,) if user_id else ()).fetchone()
+    return {"answers": answers, "sessions": sessions, "since": since}
+
+
 def session_count() -> int:
     """Number of stored episodes, across all users."""
     with pool().connection() as conn:

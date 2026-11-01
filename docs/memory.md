@@ -1,6 +1,6 @@
 # CreditCoach: Memory Schema
 
-*Week 2 · Tasks #16 (schema) and #17 (recall) · Last updated: 2026-10-07 (moved to Neon Postgres) · Status: Draft for team review · Code: `creditcoach/memory/`*
+*Week 2 · Tasks #16 (schema) and #17 (recall) · Last updated: 2026-11-01 (`store.answered` for the usage counters) · Status: Draft for team review · Code: `creditcoach/memory/`*
 
 CreditCoach remembers each user across sessions, machines and teammates. This document defines what is stored, where, and the rules that keep it trustworthy (Task #16), and how answers use it (Task #17, §7). Task #18 shows it in the agent-trace panel.
 
@@ -129,6 +129,8 @@ The model's output is validated before it is saved, and anything that breaks a r
 - `dream`: the newest dream, or `None`.
 
 It reads only that user's folder and drops any event with another `user_id`. In the chat UI, the **Your memory and past conversations** panel shows the goal, the consolidated memory and the latest 5 earlier sessions, including who recorded each one.
+
+`store.answered(user_id=None)` counts the answers the chat app has given: `assistant_message` events in sessions whose `login` has `source: "chat_ui"`, so eval, evidence and CLI sessions never count, and a failed answer (an `error` event) isn't one. It returns `{"answers", "sessions", "since"}` for one user or for everyone. The welcome page shows everyone's count and the chat page the signed-in user's (`creditcoach/app/counters.py`, since 2026-11-01). Like `store.users()` and `store.session_count()`, it reads across users and returns counts only, never text.
 
 ## 7. Memory in answers (Task #17)
 

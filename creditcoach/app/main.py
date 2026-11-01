@@ -92,7 +92,7 @@ import gradio as gr  # noqa: E402
 from creditcoach import auth, config, guardrails  # noqa: E402
 from creditcoach import observability as obs  # noqa: E402
 from creditcoach.agent.pipeline import answer  # noqa: E402
-from creditcoach.app import badges, charts, confidence, dashboard, limits, server, theme  # noqa: E402
+from creditcoach.app import badges, charts, confidence, counters, dashboard, limits, server, theme  # noqa: E402
 from creditcoach.app.trace import Trace  # noqa: E402
 from creditcoach.memory import dream, store  # noqa: E402
 from creditcoach.rag.retrieve import retrieve  # noqa: E402
@@ -148,6 +148,7 @@ def format_reply(a) -> str:
 
 
 _sessions: dict[str, store.Session] = {}  # Gradio session hash -> open memory episode
+_answered: dict[str, dict] = {}  # Gradio session hash -> the signed-in user's answer count (store.answered), kept live
 
 
 def session_for(request: gr.Request, user_id: str) -> store.Session:
@@ -317,6 +318,7 @@ def respond(message: str, history: list, request: gr.Request) -> Iterator[str | 
         return
     a = outcome["answer"]
     remember(request, user_id, "assistant_message", a.text, answer_meta(a))
+    count_answer(request, user_id)
     trace.finish()
     refunded = False
     if grant and limits.unreachable(a):  # "I can't pull your data right now" doesn't use up a question (Task 32)
@@ -385,17 +387,49 @@ def start(request: gr.Request) -> tuple[str, str]:
     return signed_in_as(request), panel
 
 
+def my_answers(request: gr.Request) -> str:
+    """The counter under "Signed in as": questions answered for this user across all their sessions. Read from
+    memory once per page (``store.answered``), then counted up here as answers arrive (``count_answer``), so the
+    chat's updates don't query Neon. Empty if not signed in or memory can't be read."""
+    user_id = auth.user_id_for(getattr(request, "username", None))
+    if user_id is None:
+        return ""
+    key = getattr(request, "session_hash", None) or f"no-session-{user_id}"
+    mine = _answered.get(key)
+    if mine is None or mine["user_id"] != user_id:
+        try:
+            mine = _answered[key] = {**store.answered(user_id), "user_id": user_id, "counted_here": False}
+        except Exception:
+            log.exception("Couldn't count the answers for %s", user_id)
+            return ""
+    return counters.mine_html(mine["answers"], mine["sessions"], mine["since"])
+
+
+def count_answer(request: gr.Request, user_id: str) -> None:
+    """Add one answer to this page's counter (the first answer in a session adds the session too)."""
+    mine = _answered.get(getattr(request, "session_hash", None) or f"no-session-{user_id}")
+    if mine is None or mine["user_id"] != user_id:
+        return
+    mine["answers"] += 1
+    mine["since"] = mine["since"] or store.now()
+    if not mine["counted_here"]:
+        mine["sessions"] += 1
+        mine["counted_here"] = True
+
+
 def log_out(request: gr.Request) -> None:
     """Record the logout before the browser goes to Gradio's /logout route."""
     user_id = auth.user_id_for(getattr(request, "username", None))
     if user_id:
         remember(request, user_id, "logout")
         _sessions.pop(getattr(request, "session_hash", None), None)
+        _answered.pop(getattr(request, "session_hash", None), None)
 
 
 def closed(request: gr.Request) -> None:
     """Record that the tab was closed or reloaded (Gradio's unload event), unless the user already logged out."""
     s = _sessions.pop(getattr(request, "session_hash", None), None)
+    _answered.pop(getattr(request, "session_hash", None), None)
     if s:
         try:
             store.record(s, "session_end")
@@ -536,6 +570,22 @@ def load_dashboard(days: int, traffic: str, request: gr.Request) -> tuple:
     return tab, dashboard_view(days, traffic, request) if tab.visible else page
 
 
+def dashboard_switch(view: str) -> tuple:
+    """Show the picked view of the dashboard: "Quality" (Task 31's measures) or "Cost and speed"."""
+    return gr.update(visible=view == "quality"), gr.update(visible=view == "cost")
+
+
+def cost_dashboard(days: int, traffic: str, view: str, request: gr.Request) -> tuple:
+    """The parts of the "Cost and speed" view (``dashboard.COST_PARTS``), built only while that view is picked; the
+    same session check as ``dashboard_view``."""
+    if view != "cost":
+        return tuple(gr.skip() for _ in dashboard.COST_PARTS)
+    if auth.user_id_for(getattr(request, "username", None)) is None:
+        return SIGNED_OUT, *[None] * (len(dashboard.COST_PARTS) - 1)
+    parts = dashboard.cost_view(int(days), traffic)
+    return tuple(parts[k] for k in dashboard.COST_PARTS)
+
+
 def build() -> gr.Blocks:
     """Create the page: a "Signed in as" line with a Log out button, the memory panel, then the tabs: the chat
     interface, "My credit" (the signed-in user's charts) and "Dashboard" (Task 31, counts across all users).
@@ -548,6 +598,7 @@ def build() -> gr.Blocks:
         with gr.Row():
             who = gr.Markdown(elem_classes="cc-who")
             logout = gr.Button("Log out", size="sm", scale=0, elem_classes="cc-logout")
+        mine = gr.HTML()  # questions answered for this user (my_answers)
         with gr.Accordion("Your memory and past conversations", open=False):
             panel = gr.Markdown()
         logout.click(log_out).then(None, js="() => { window.location.href = '/logout'; }")
@@ -603,14 +654,47 @@ def build() -> gr.Blocks:
                                         "utilization.")
                             debt = gr.HTML()
             with gr.Tab("Dashboard", id="dashboard", visible=False) as dash_tab:
-                gr.Markdown("### How CreditCoach is doing\nTool-call failures, guardrail triggers and goal recall, "
-                            "counted from the traces every answer leaves. Counts only: no question, answer or user.")
+                gr.Markdown("### How CreditCoach is doing\nQuality (tool-call failures, guardrail triggers, goal "
+                            "recall) and cost and speed, counted from the traces every answer leaves. Counts only: "
+                            "no question, answer or user.")
                 with gr.Row(equal_height=False):
                     dash_days = gr.Radio(dashboard.PERIODS, value=7, show_label=False, container=False, scale=3)
                     dash_traffic = gr.Radio(dashboard.TRAFFIC, value="real", show_label=False, container=False,
                                             scale=3)
                     dash_refresh = gr.Button("Refresh", size="sm", scale=0, min_width=100)
-                dash = gr.HTML()
+                dash_view = gr.Radio(dashboard.VIEWS, value="quality", show_label=False, container=False)
+                with gr.Column() as quality_col:
+                    dash = gr.HTML()
+                with gr.Column(visible=False) as cost_col:
+                    cost_top = gr.HTML()
+                    gr.Markdown("### Cost vs response time, per answer\nEach dot is one answer: how long the user "
+                                "waited and what its model calls cost, the output check included. The large dots are "
+                                "each model's median. Lower left is better; click a model to hide it.")
+                    cost_scatter = gr.Plot(show_label=False)
+                    cost_models = gr.HTML()
+                    gr.Markdown("### Cost against speed and quality\nThe same 50 eval questions put to each model, "
+                                "so this is a like-for-like comparison. Dot size is cost per answer; the shaded side "
+                                "of the dashed line meets the response-time target.")
+                    cost_quality = gr.Plot(show_label=False)
+                    cost_quality_table = gr.HTML()
+                    with gr.Row(equal_height=False):
+                        with gr.Column(min_width=320):
+                            gr.Markdown("### Spend by day\nUS dollars, by answer model, with the output check apart.")
+                            cost_spend = gr.Plot(show_label=False)
+                        with gr.Column(min_width=320):
+                            gr.Markdown("### Response time by day\nSeconds from question to answer. p50 is the "
+                                        "typical answer, p95 the slowest one in twenty.")
+                            cost_latency = gr.Plot(show_label=False)
+                    cost_split = gr.HTML()
+                    with gr.Row(equal_height=False):
+                        with gr.Column(min_width=320):
+                            gr.Markdown("### Tokens by day\nPrompt tokens (instructions, retrieved passages, the "
+                                        "user's data) and completion tokens (the answer and any reasoning).")
+                            cost_tokens = gr.Plot(show_label=False)
+                        with gr.Column(min_width=320):
+                            cost_cache = gr.HTML()
+                cost_parts = [cost_top, cost_scatter, cost_models, cost_quality, cost_quality_table, cost_spend,
+                              cost_latency, cost_split, cost_tokens, cost_cache]  # dashboard.COST_PARTS, in order
 
         story_outputs = [snapshot, story, reasons, month, table]
         period.change(credit_story, inputs=period, outputs=story_outputs)
@@ -621,12 +705,19 @@ def build() -> gr.Blocks:
         ask.click(ask_about_month, inputs=month, outputs=[chat.textbox, tabs])
         start_ask.click(lambda: ask_in_chat(charts.START_QUESTION), outputs=[chat.textbox, tabs])
         demo.load(start, outputs=[who, panel])
+        gr.on([demo.load, chat.chatbot.change], my_answers, outputs=mine, show_progress="hidden",
+              trigger_mode="always_last").then(None, js=counters.COUNT_UP_JS)
         demo.load(load_credit, inputs=period,
                   outputs=[credit_view, empty_view, empty, start_ask, *story_outputs, cards, whatif, card, pay, note,
                            debt])
-        dash_days.change(dashboard_view, inputs=[dash_days, dash_traffic], outputs=dash)
-        dash_traffic.change(dashboard_view, inputs=[dash_days, dash_traffic], outputs=dash)
-        dash_refresh.click(refresh_dashboard, inputs=[dash_days, dash_traffic], outputs=dash)
+        cost_inputs = [dash_days, dash_traffic, dash_view]
+        for control in (dash_days, dash_traffic):
+            control.change(dashboard_view, inputs=[dash_days, dash_traffic], outputs=dash).then(
+                cost_dashboard, inputs=cost_inputs, outputs=cost_parts)
+        dash_refresh.click(refresh_dashboard, inputs=[dash_days, dash_traffic], outputs=dash).then(
+            cost_dashboard, inputs=cost_inputs, outputs=cost_parts)
+        dash_view.change(dashboard_switch, inputs=dash_view, outputs=[quality_col, cost_col],
+                         show_progress="hidden").then(cost_dashboard, inputs=cost_inputs, outputs=cost_parts)
         demo.load(show_dashboard_tab, outputs=[dash_tab, dash], show_progress="hidden").then(
             dashboard_view, inputs=[dash_days, dash_traffic], outputs=dash)
         demo.unload(closed)
@@ -680,8 +771,8 @@ def main() -> None:
     obs.set_run("app")  # traces from the chat app are real use on the dashboard; scripts and evals are not
     warm_up()
     threading.Thread(target=check_langfuse, name="langfuse-check", daemon=True).start()
-    server.run(build(), port=args.port, share=args.share, css=theme.CSS + charts.CSS + badges.CSS + dashboard.CSS,
-               host=args.host)
+    server.run(build(), port=args.port, share=args.share,
+               css=theme.CSS + charts.CSS + badges.CSS + dashboard.CSS + counters.CSS, host=args.host)
 
 
 if __name__ == "__main__":

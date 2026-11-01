@@ -1,0 +1,61 @@
+{
+ "target_seconds": 15,
+ "baseline": "openai/gpt-5",
+ "rows": [
+  {
+   "model": "openai/gpt-5",
+   "run": "effort-low",
+   "date": "2026-10-27",
+   "cases": 50,
+   "passed": 43,
+   "median": 20.4,
+   "p90": 30.8,
+   "per_answer": 0.0118,
+   "costed": 50
+  },
+  {
+   "model": "anthropic/claude-sonnet-5.5",
+   "run": "model-claude-sonnet-5-5",
+   "date": "2026-10-31",
+   "cases": 50,
+   "passed": 43,
+   "median": 10.4,
+   "p90": 14.9,
+   "per_answer": 0.0256,
+   "costed": 50
+  },
+  {
+   "model": "openai/gpt-5.6-terra",
+   "run": "model-gpt-5-6-terra",
+   "date": "2026-10-31",
+   "cases": 50,
+   "passed": 39,
+   "median": 6.8,
+   "p90": 10.9,
+   "per_answer": 0.0159,
+   "costed": 50
+  },
+  {
+   "model": "google/gemini-3.8-flash",
+   "run": "model-gemini-3-8-flash",
+   "date": "2026-10-31",
+   "cases": 50,
+   "passed": 41,
+   "median": 9.7,
+   "p90": 17.6,
+   "per_answer": 0.0067,
+   "costed": 50
+  },
+  {
+   "model": "anthropic/claude-haiku-5.5",
+   "run": "model-claude-haiku-5-5",
+   "date": "2026-10-31",
+   "cases": 50,
+   "passed": 36,
+   "median": 9.2,
+   "p90": 12.2,
+   "per_answer": 0.0013,
+   "costed": 50
+  }
+ ]
+}

@@ -23,7 +23,7 @@ import logging
 import gradio as gr
 
 from creditcoach import auth, config
-from creditcoach.app import sessions
+from creditcoach.app import counters, sessions
 from creditcoach.signup import mailer, questions, store
 
 log = logging.getLogger(__name__)
@@ -178,6 +178,7 @@ def build() -> gr.Blocks:
     with gr.Blocks(title="CreditCoach", analytics_enabled=False) as page:
         with gr.Column(elem_classes="cc-welcome"):
             gr.Markdown(TAGLINE, elem_classes="cc-copy")
+            proof = gr.HTML(visible=False)  # questions answered and people signed up (app.counters)
             with gr.Tabs(selected="login") as tabs:
                 with gr.Tab("Log in", id="login"):
                     created = gr.HTML()
@@ -232,6 +233,13 @@ def build() -> gr.Blocks:
                     done_btn = gr.Button("Continue to Log in", variant="primary")
                     done_msg = gr.HTML(elem_classes="cc-note")
 
+        def show_counts() -> dict:
+            """The counters, or nothing if neither can be read."""
+            html = counters.public_html()
+            return gr.update(value=html, visible=bool(html))
+
+        gr.on([page.load, gr.Timer(counters.REFRESH_SECONDS).tick], show_counts, outputs=proof,
+              show_progress="hidden", api_name=False).then(None, js=counters.COUNT_UP_JS)
         gr.on([login_btn.click, password.submit], log_in, [username, password], [login_msg, ticket],
               api_name="log_in").then(None, ticket, None, js=ENTER_JS)
         signup_btn.click(sign_up, [first_name, gender, invite, agree, *inputs],
