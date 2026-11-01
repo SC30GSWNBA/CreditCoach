@@ -189,7 +189,7 @@ Once logged in you will see:
 
 ### Ask CreditCoach (the chat)
 
-Type a question in the box at the bottom and press Enter, or click one of the four example questions. Clicking an example sends it straight away, so it counts as one of your questions.
+Type a question in the box at the bottom and press Enter, or click one of the 12 example questions under "Go ahead, try CreditCoach". Clicking an example sends it straight away, so it counts as one of your questions.
 
 Each answer shows:
 

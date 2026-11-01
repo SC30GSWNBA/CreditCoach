@@ -78,6 +78,14 @@ CSS = """
 .cc-welcome fieldset label span {font-size: .98rem; color: #0f172a !important;}
 .cc-welcome fieldset label.selected span, .cc-welcome fieldset label:has(input:checked) span {
            color: #1e1b4b !important; font-weight: 700;}
+/* Dark mode: the option boxes take the page's dark fill, so their words must be light */
+.dark .cc-welcome fieldset label span {color: #e2e8f0 !important;}
+.dark .cc-welcome fieldset label {border-color: #64748b !important;}
+.dark .cc-welcome fieldset label:hover {border-color: #818cf8 !important;}
+.dark .cc-welcome fieldset label.selected, .dark .cc-welcome fieldset label:has(input:checked) {
+           background: rgba(99, 102, 241, .30) !important; border-color: #818cf8 !important;}
+.dark .cc-welcome fieldset label.selected span, .dark .cc-welcome fieldset label:has(input:checked) span {
+           color: #ffffff !important;}
 .cc-welcome fieldset > span, .cc-welcome fieldset [data-testid="block-info"] {font-weight: 600; font-size: 1rem; margin-bottom: 6px;}
 .cc-welcome input[type=text], .cc-welcome input[type=password], .cc-welcome input[type=email], .cc-welcome textarea {
            border: 1.5px solid #64748b !important; border-radius: 8px !important; background: #ffffff !important;
@@ -110,6 +118,7 @@ CSS = """
 .cc-required fieldset > span::after, .cc-required [data-testid="block-info"]::after {content: " *"; color: #dc2626;
            font-weight: 800; font-size: 1.15em;}
 .cc-req-note {font-size: .98rem; font-weight: 600; color: #475569; margin: 2px 0 6px;}
+.dark .cc-req-note {color: #cbd5e1;}
 .cc-star {color: #dc2626; font-weight: 800; font-size: 1.15em;}
 .cc-secret textarea, .cc-secret input {font-family: ui-monospace, Menlo, monospace; font-size: 1.05rem;}
 """

@@ -481,12 +481,14 @@ def _secs(v: float | None) -> str:
 
 
 def _figure(fig, height: int = 300, **layout):
-    """The house style of the charts in this app: transparent, mid-grey text and hairline grid (``app.charts``)."""
+    """The house style of the charts in this app: transparent, hairline grid (``app.charts``). Text is drawn mid grey
+    here and recolored to the page's text color by ``theme.CSS``, so it reads on both themes. The legend says that
+    clicking an entry hides or shows it."""
     fig.update_layout(height=height, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)",
-                      plot_bgcolor="rgba(0,0,0,0)", font=dict(color=GREY, size=12), hovermode="closest",
-                      legend=dict(orientation="h", y=-0.22, x=0), **layout)
-    fig.update_xaxes(gridcolor=GRID, zeroline=False)
-    fig.update_yaxes(gridcolor=GRID, zeroline=False, rangemode="tozero")
+                      plot_bgcolor="rgba(0,0,0,0)", font=dict(color=GREY, size=13), hovermode="closest",
+                      legend=dict(orientation="h", y=-0.22, x=0, title_text="Click to hide or show: "), **layout)
+    fig.update_xaxes(gridcolor=GRID, zeroline=False, title_font_size=14)
+    fig.update_yaxes(gridcolor=GRID, zeroline=False, rangemode="tozero", title_font_size=14)
     return fig
 
 
@@ -593,7 +595,7 @@ def quality_figure(cmp: dict):
             x=[r["p90"]], y=[r["passed"]], mode="markers+text", showlegend=False,
             text=[f"{model_name(r['model'])}{tag} · {_usd(r['per_answer'])}"],
             textposition="middle left" if r["p90"] == rightmost else "middle right",
-            textfont=dict(size=12), marker=dict(color=COLORS.get(r["model"], GREY), line=dict(color="white", width=2),
+            textfont=dict(size=13), marker=dict(color=COLORS.get(r["model"], GREY), line=dict(color="white", width=2),
                                                 size=12 + 18 * ((r["per_answer"] or 0) / top) ** .5),
             hovertemplate=(f"<b>{escape(model_name(r['model']))}</b><br>{r['passed']}/{r['cases']} passed<br>median "
                            f"{r['median']} s · 90% within {r['p90']} s<br>{_usd(r['per_answer'])} per answer"

@@ -115,7 +115,17 @@ EXAMPLES = [
     "What is my credit utilization, and why does 30% matter?",
     "Should I take out this payday loan to pay off my credit card?",
     "Can you guarantee my score will hit 720 if I do what you said?",
+    "Will checking my own credit score lower it?",
+    "How long does a late payment stay on my credit report?",
+    "Should I close my oldest credit card?",
+    "What happens if I only pay the minimum due each month?",
+    "I want a car loan next year. What should I work on first?",
+    "How do I build credit if I have no credit history?",
+    "I found a mistake on my credit report. How do I fix it?",
+    "Is a paid credit repair service worth it?",
 ]
+# Shown in the empty conversation, just above the example questions
+PICK_PROMPT = "**Go ahead, try CreditCoach.** Pick from one of the queries listed below."
 
 
 def format_reply(a) -> str:
@@ -607,7 +617,7 @@ def build() -> gr.Blocks:
                 chat = gr.ChatInterface(
                     fn=respond,
                     chatbot=gr.Chatbot(height=680, show_label=False,  # room for the agent trace above each answer
-                                       feedback_options=FEEDBACK_OPTIONS),
+                                       feedback_options=FEEDBACK_OPTIONS, placeholder=PICK_PROMPT),
                     title=TITLE,
                     description=DESCRIPTION,
                     examples=EXAMPLES,

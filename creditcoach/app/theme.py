@@ -3,12 +3,15 @@
 One stylesheet for the chat UI, loaded before ``charts.CSS`` and ``badges.CSS`` (``creditcoach.app.main``). It changes
 appearance only, nothing about what the page does:
 
+    Log out    A white button with dark words on both themes.
     Tabs       "Ask CreditCoach" and "My credit" are a two-button switch; the one you are on is solid indigo.
     Sections   Headings are larger and bold with an indigo underline; collapsible panels are outlined cards.
     Choices    Every radio option is an outlined box with a visible circle; the picked one turns indigo.
     Inputs     Text boxes and dropdowns have a clear outline, and an indigo glow while in use.
-    Chat       The example questions are outlined buttons, the conversation has a border, and the intro text is
-               slightly larger. Text inside chat answers is left as it is.
+    Charts     Axis numbers, axis titles, legends and labels use the page's text color, so they read in dark mode too.
+    Chat       A line inviting people to pick a question sits above the example questions, which are outlined
+               buttons; the conversation has a border, and the intro text is slightly larger. Text inside chat answers
+               is left as it is.
     My credit  The snapshot tiles, card bars, account list and legend (``charts.CSS``) get larger, darker labels.
                Each rule here starts with ``.gradio-container`` so it wins over the chart's own, smaller size.
 """
@@ -40,7 +43,8 @@ CSS = """
 /* Who is signed in, and Log out */
 .cc-who p {font-size: 1.1rem !important;}
 .cc-logout {border: 1.5px solid #64748b !important; font-weight: 700 !important; font-size: .98rem !important;
-           padding: 8px 18px !important; border-radius: 10px !important; background: #ffffff !important;}
+           padding: 8px 18px !important; border-radius: 10px !important; background: #ffffff !important;
+           color: #0f172a !important;}
 .cc-logout:hover {border-color: #4f46e5 !important; color: #4f46e5 !important;}
 
 /* Text outside the conversation: slightly larger; section headings bold with an underline */
@@ -91,6 +95,20 @@ CSS = """
 .gradio-container button.example .example-text {font-size: 1.02rem !important; font-weight: 600 !important;
            color: #0f172a !important;}
 .gradio-container button.example:hover {border-color: #4f46e5 !important; background: #eef2ff !important;}
+.gradio-container .placeholder-content {justify-content: center;}
+.gradio-container .placeholder-content .placeholder {flex-grow: 0 !important; height: auto !important; margin: 0;}
+.gradio-container .placeholder-content .placeholder p {font-size: 1.25rem !important; text-align: center;
+           color: var(--body-text-color) !important; margin: 0;}
+.gradio-container .placeholder-content .examples {margin: 0 auto !important; padding-top: 16px !important;}
+
+/* Charts: axis numbers, axis titles, legend and labels in the page's text color (not Plotly's mid grey), so they
+   read on both themes. Hover boxes are left alone. */
+.gradio-container .js-plotly-plot .xtick text, .gradio-container .js-plotly-plot .ytick text,
+.gradio-container .js-plotly-plot .g-xtitle text, .gradio-container .js-plotly-plot .g-ytitle text,
+.gradio-container .js-plotly-plot .annotation-text, .gradio-container .js-plotly-plot .textpoint text,
+.gradio-container .js-plotly-plot .legendtext, .gradio-container .js-plotly-plot .legendtitletext {
+           fill: var(--body-text-color) !important;}
+.gradio-container .js-plotly-plot .legend .traces {cursor: pointer;}
 
 /* My credit: larger, darker labels on the tiles, bars and lists */
 .gradio-container .cc-tiles {gap: 14px;}
