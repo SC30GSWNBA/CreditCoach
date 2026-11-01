@@ -93,7 +93,7 @@ Cost per answer is the main model only, from OpenRouter's reported cost in Langf
 - **Gemini Flash** once rejected the rewrite request ("Requests ending with a model turn are not supported"), and that answer fell back to GPT-4o.
 - **GPT-5.6 Terra** refused to use the user's data in #16.
 
-**Cost trade-off.** Sonnet costs about 2.2× GPT-5 per answer: 1.4 cents more for about 10 s saved. At the sign-up cap (50 users × 5 questions a week, about 1,000 questions a month), that is about $26 a month against $12. Most of the difference is input tokens: about 7,800 per call against about 4,800 for GPT-5 on the same prompts. Prompt caching was considered and not used: its 5-minute window would rarely be hit at CreditCoach's traffic.
+**Cost trade-off.** Sonnet costs about 2.2× GPT-5 per answer: 1.4 cents more for about 10 s saved. At the sign-up cap (50 users × 5 questions a week, about 1,000 questions a month), that is about $26 a month against $12. Most of the difference is input tokens: about 7,800 per call against about 4,800 for GPT-5 on the same prompts. Prompt caching was considered and not used: its 5-minute window would rarely be hit at CreditCoach's traffic. The full reasoning is in [model-choice-and-caching.md](model-choice-and-caching.md).
 
 **Decision: `CHAT_MODEL=anthropic/claude-sonnet-5.5`.** It is the only option that meets the 15 s target (90th percentile 14.9 s) without losing eval cases. `REASONING_EFFORT` applies only to GPT-5-family models, so Sonnet runs without it. `SMALL_MODEL` (GPT-5 mini) and `FALLBACK_MODEL` (GPT-4o) are unchanged.
 
