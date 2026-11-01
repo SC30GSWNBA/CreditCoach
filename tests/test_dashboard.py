@@ -361,7 +361,7 @@ def test_model_ids_are_named_as_people_say_them():
 def test_the_cost_view_has_every_part_and_never_a_question_answer_or_user(monkeypatch):
     monkeypatch.setattr(D, "load", lambda days: (cost_traces(), "local trace files"))
     parts = D.cost_view(7, "real")
-    assert set(parts) == set(D.COST_PARTS) and all(parts[k] is not None for k in D.COST_PARTS)
+    assert set(parts) == {*D.COST_PARTS, "costs"} and all(parts[k] is not None for k in D.COST_PARTS)
     page = "".join(v for v in parts.values() if isinstance(v, str))
     assert "Models compared" in page and "Claude Sonnet 5.5" in page
     assert not any(secret in page for secret in ("a question", "USR-001", "An answer."))
@@ -387,10 +387,85 @@ def test_the_model_comparison_ships_with_the_app_and_names_the_model_that_meets_
 
 
 def test_the_cost_view_is_built_only_when_picked_and_only_for_a_signed_in_user(monkeypatch, signed_up):
-    monkeypatch.setattr(D, "cost_view", lambda days, traffic: {k: k for k in D.COST_PARTS})
-    assert main.cost_dashboard(7, "real", "cost", request("creditcoach_user19")) == D.COST_PARTS
+    monkeypatch.setattr(D, "cost_view", lambda days, traffic: {k: k for k in D.COST_PARTS} | {"costs": None})
+    shown = main.cost_dashboard(7, "real", "cost", request("creditcoach_user19"))
+    assert shown[:len(D.COST_PARTS)] == D.COST_PARTS and len(shown) == len(D.COST_PARTS) + 2
     assert main.cost_dashboard(7, "real", "cost", request("nobody"))[0] == main.SIGNED_OUT
     skipped = main.cost_dashboard(7, "real", "quality", request("creditcoach_user19"))
-    assert len(skipped) == len(D.COST_PARTS) and not any(isinstance(p, str) for p in skipped)
+    assert len(skipped) == len(D.COST_PARTS) + 2 and not any(isinstance(p, str) for p in skipped)
     quality, cost = main.dashboard_switch("cost")
     assert quality["visible"] is False and cost["visible"] is True
+
+
+# ---------------------------------------------------------------- the chart's figures follow the ticked models
+
+SONNET, GPT5 = "anthropic/claude-sonnet-5.5", "openai/gpt-5"
+
+
+def real_costs():
+    """Sonnet: 10 s and 20 s; GPT-5: 16 s. Medians of the models are 15 and 16, but of all three answers, 16."""
+    rs = D.requests(cost_traces())
+    return D.summarize(rs, "real")["cost"], [r for r in rs if not r["eval"]]
+
+
+@pytest.mark.parametrize("shown", [[SONNET], [GPT5], [SONNET, GPT5]])
+def test_a_choice_of_models_gets_the_figures_of_exactly_those_answers(shown):
+    c, rs = real_costs()
+    truth = D._speed([r for r in rs if r["model"] in shown])  # worked out afresh from the answers themselves
+    got = D.pick(c, shown)
+    assert got["answers"] == truth["answers"]
+    assert got["per_answer"] == pytest.approx(truth["per_answer"]) and got["p50"] == truth["p50"]
+
+
+def test_one_model_gets_its_row_in_the_models_compared_table_and_every_model_the_tiles():
+    c, _ = real_costs()
+    for model, row in c["models"].items():
+        got = D.pick(c, [model])
+        assert (got["answers"], got["per_answer"], got["p50"]) == (row["answers"], row["per_answer"], row["p50"])
+    every = D.pick(c)
+    assert every["answers"] == c["answers"] and every["p50"] == c["p50"] == 16  # not 15.5, the medians' mean
+    assert every["per_answer"] == pytest.approx(c["per_answer"])
+
+
+def test_the_chart_draws_only_the_ticked_models_with_their_count_median_and_average():
+    c, _ = real_costs()
+    fig = D.scatter_figure(c, [GPT5])
+    gpt5 = c["models"][GPT5]
+    assert {t.legendgroup for t in fig.data} == {GPT5}
+    texts = [a.text for a in fig.layout.annotations]
+    assert "<b>1 of 3 answers</b>" in texts
+    assert f"median {D._secs(gpt5['p50'])}" in texts and f"average {D._usd(gpt5['per_answer'])}" in texts
+    assert any(sh.x0 == sh.x1 == gpt5["p50"] for sh in fig.layout.shapes)  # the median line
+    assert any(sh.y0 == sh.y1 == gpt5["per_answer"] for sh in fig.layout.shapes)  # the average line
+    assert fig.layout.legend.itemclick is False and fig.layout.legend.itemdoubleclick is False
+    assert "<b>3 answers</b>" in [a.text for a in D.scatter_figure(c).layout.annotations]
+
+
+def test_with_no_model_ticked_the_chart_says_to_tick_one():
+    c, _ = real_costs()
+    fig = D.scatter_figure(c, [])
+    assert not fig.data and not fig.layout.shapes
+    assert [a.text for a in fig.layout.annotations] == ["<b>Tick a model to see its answers</b>"]
+    assert fig.layout.xaxis.visible is False and fig.layout.yaxis.visible is False
+
+
+def test_the_tick_boxes_name_each_model_with_its_answers_and_answers_with_no_model_call_too():
+    c, _ = real_costs()
+    assert D.model_choices(c) == [("Claude Sonnet 5.5 (2)", SONNET), ("GPT-5 (1)", GPT5)]
+    c["models"][""], c["times"][""] = {**c["models"][GPT5], "answers": 4, "spend": 0.0}, [1.0, 2.0, 3.0, 4.0]
+    assert D.model_choices(c)[-1] == ("No model call (4)", D.NO_MODEL)
+    assert D.pick(c, [D.NO_MODEL]) == {"models": {"": c["models"][""]}, "answers": 4, "spend": 0.0,
+                                       "per_answer": 0.0, "p50": 2.5}
+
+
+def test_the_chart_is_redrawn_from_the_view_s_own_figures_and_only_for_a_signed_in_user(signed_up):
+    c, _ = real_costs()
+    fig = main.redraw_cost_scatter([SONNET], c, request("creditcoach_user19"))
+    assert {t.legendgroup for t in fig.data} == {SONNET}
+    assert not hasattr(main.redraw_cost_scatter([SONNET], c, request("nobody")), "data")  # gr.skip(), no figure
+    assert not hasattr(main.redraw_cost_scatter([SONNET], None, request("creditcoach_user19")), "data")
+
+
+def test_the_page_builds_with_the_tick_boxes_wired_to_the_chart():
+    demo = main.build()  # fails if a handler's name is shadowed by a component's, as it once was
+    assert any(getattr(b, "label", None) == "Models shown" for b in demo.blocks.values())

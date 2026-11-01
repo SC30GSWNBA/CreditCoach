@@ -32,6 +32,10 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 
 [dark-mode-and-examples.md](dark-mode-and-examples.md), screenshots in light and dark mode: testers in dark mode couldn't read the sign-up options, couldn't see Log out, and found the chart labels faint. The options now have light words in dark mode, Log out has dark words on white in both themes, and chart axes, legends and labels use the page's text color, with "Click to hide or show:" on every legend. The chat now offers 12 example questions instead of 4, under the note "Go ahead, try CreditCoach. Pick from one of the queries listed below." Light mode is unchanged apart from darker, slightly larger chart labels. 7 pytest tests (`test_theme.py`).
 
+## Cost vs response time follows the models shown (2026-11-01)
+
+[scatter-model-choice.md](scatter-model-choice.md): the chart's answer count, median and average stayed at 630 answers, 11.6 s and $0.0116 whichever models the legend hid. The chart now has **Models shown** tick boxes and is redrawn on the server for the ticked models, with the count, median and average of exactly those answers, worked out as the Models compared table works out each row (one model ticked shows its row; all ticked shows the tiles). Checked against the traces for every combination of models over 1, 7 and 30 days and every traffic kind (0 mismatches), and in the real page for each model and four combinations. 9 new pytest tests, 2 updated.
+
 ## Week 4 demo goal
 
 > *Full live walkthrough: Gradio UI + observability dashboard, an eval score shown before/after your error-analysis fixes, and a predatory-product refusal on demand.* (tasks.md)

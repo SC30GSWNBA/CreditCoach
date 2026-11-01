@@ -587,13 +587,24 @@ def dashboard_switch(view: str) -> tuple:
 
 def cost_dashboard(days: int, traffic: str, view: str, request: gr.Request) -> tuple:
     """The parts of the "Cost and speed" view (``dashboard.COST_PARTS``), built only while that view is picked; the
-    same session check as ``dashboard_view``."""
+    same session check as ``dashboard_view``. Then the chart's model tick boxes (every model ticked) and the figures
+    the parts were made from, kept for ``redraw_cost_scatter``."""
     if view != "cost":
-        return tuple(gr.skip() for _ in dashboard.COST_PARTS)
+        return tuple(gr.skip() for _ in range(len(dashboard.COST_PARTS) + 2))
     if auth.user_id_for(getattr(request, "username", None)) is None:
-        return SIGNED_OUT, *[None] * (len(dashboard.COST_PARTS) - 1)
+        return SIGNED_OUT, *[None] * (len(dashboard.COST_PARTS) - 1), gr.update(choices=[], value=[]), None
     parts = dashboard.cost_view(int(days), traffic)
-    return tuple(parts[k] for k in dashboard.COST_PARTS)
+    choices = dashboard.model_choices(parts["costs"]) if parts["costs"] else []
+    return (*(parts[k] for k in dashboard.COST_PARTS), gr.update(choices=choices, value=[k for _, k in choices]),
+            parts["costs"])
+
+
+def redraw_cost_scatter(shown: list[str], costs: dict | None, request: gr.Request):
+    """Redraw the cost vs response time chart for the ticked models, from the same figures as the rest of the view,
+    so its answer count, median and average match the Models compared table."""
+    if costs is None or auth.user_id_for(getattr(request, "username", None)) is None:
+        return gr.skip()
+    return dashboard.scatter_figure(costs, shown)
 
 
 def build() -> gr.Blocks:
@@ -679,7 +690,10 @@ def build() -> gr.Blocks:
                     cost_top = gr.HTML()
                     gr.Markdown("### Cost vs response time, per answer\nEach dot is one answer: how long the user "
                                 "waited and what its model calls cost, the output check included. The large dots are "
-                                "each model's median. Lower left is better; click a model to hide it.")
+                                "each model's median. Lower left is better. Tick the models to compare: the answer "
+                                "count, the median line and the average line follow your choice, and match the "
+                                "Models compared table below.")
+                    cost_shown = gr.CheckboxGroup(label="Models shown", elem_classes="cc-shown")
                     cost_scatter = gr.Plot(show_label=False)
                     cost_models = gr.HTML()
                     gr.Markdown("### Cost against speed and quality\nThe same 50 eval questions put to each model, "
@@ -703,8 +717,10 @@ def build() -> gr.Blocks:
                             cost_tokens = gr.Plot(show_label=False)
                         with gr.Column(min_width=320):
                             cost_cache = gr.HTML()
+                cost_figures = gr.State()  # what the view was made from, for redrawing the chart (redraw_cost_scatter)
                 cost_parts = [cost_top, cost_scatter, cost_models, cost_quality, cost_quality_table, cost_spend,
-                              cost_latency, cost_split, cost_tokens, cost_cache]  # dashboard.COST_PARTS, in order
+                              cost_latency, cost_split, cost_tokens, cost_cache,  # dashboard.COST_PARTS, in order
+                              cost_shown, cost_figures]
 
         story_outputs = [snapshot, story, reasons, month, table]
         period.change(credit_story, inputs=period, outputs=story_outputs)
@@ -726,6 +742,8 @@ def build() -> gr.Blocks:
                 cost_dashboard, inputs=cost_inputs, outputs=cost_parts)
         dash_refresh.click(refresh_dashboard, inputs=[dash_days, dash_traffic], outputs=dash).then(
             cost_dashboard, inputs=cost_inputs, outputs=cost_parts)
+        cost_shown.input(redraw_cost_scatter, inputs=[cost_shown, cost_figures], outputs=cost_scatter,
+                         show_progress="hidden")
         dash_view.change(dashboard_switch, inputs=dash_view, outputs=[quality_col, cost_col],
                          show_progress="hidden").then(cost_dashboard, inputs=cost_inputs, outputs=cost_parts)
         demo.load(show_dashboard_tab, outputs=[dash_tab, dash], show_progress="hidden").then(
