@@ -1,6 +1,6 @@
 # CreditCoach: Guardrail Rules
 
-*Week 3 · Tasks #19 (rules), #20 (the guardrail layer) and #21 (tests and red team) · Last updated: 2026-10-31 (S5 added after the persona test; red team re-run on Claude Sonnet 5.5) · Status: Draft for team review · Code: `creditcoach/guardrails/`*
+*Week 3 · Tasks #19 (rules), #20 (the guardrail layer) and #21 (tests and red team) · Last updated: 2026-11-01 (G4 "this loan" and G5 dashboard items ticked: done in Tasks 32 and 31) · Status: Draft for team review · Code: `creditcoach/guardrails/`*
 
 This document is the checklist of rules CreditCoach must never break, each mapped to [requirements.md](../requirements.md). The guardrail layer that enforces them was built in Task #20 (§3; evidence in [task-20-guardrail-log.md](evidence/week-3/task-20-guardrail-log.md)). It was tested live and red-teamed in Task #21 (§4; evidence in [task-21-guardrail-tests.md](evidence/week-3/task-21-guardrail-tests.md)). Since Task #25 the chat UI shows the result as a badge above each answer ([screenshots](evidence/week-3/task-25-badges.md)).
 
@@ -57,7 +57,7 @@ Predatory products for this rule: payday loans, instant loan apps, cash-advance 
 - [x] The answer offers a safer alternative from [corpus/17](../corpus/17-safer-alternatives.md): a payment plan or EMI conversion with the issuer, a balance transfer if the user qualifies, or free credit counselling.
 - [x] The refusal stays firm. No "but if you still go ahead…" that softens it into a how-to (the watch item from [Task 10](evidence/week-1/task-10-prototype-run.md)), and no softened scam warning (#30, #34). The system prompt says so since Task 24, and the guardrail layer rewrites a draft that does it anyway.
 - [x] An account the tools mark `high_risk_product: true` is named and flagged in any answer about the user's debt or next steps (#29).
-- [ ] An unspecified "this loan" gets a clarifying question first, not an assumed product (#47). *Open: the first turn passes in the Task 15 run; the follow-up turn is Task 32.*
+- [x] An unspecified "this loan" gets a clarifying question first, not an assumed product (#47). The first turn passed in the Task 15 run; since Task 32 a CLARIFY note asks the loan's type, lender, amount, rate and term, and the follow-up is flagged high-risk with a safer option, 5 of 5 ([task-32-edge-cases.md](evidence/week-4/task-32-edge-cases.md) §4).
 - [x] No branded card, lender or app is recommended (#33).
 
 **Still allowed:** explaining what a payday loan is and how it works (#31); discussing a balance transfer as a possible safer option with its caveats (#33); naming the RBI digital-lending safeguards as education (#32), as long as the refusal comes first and stays firm.
@@ -98,7 +98,7 @@ Predatory products for this rule: payday loans, instant loan apps, cash-advance 
 - [x] A failed tool call returns a structured error and no partial data ([tools.md](tools.md) §4).
 - [x] The answer says it can't pull the latest data and never estimates (#45, with G3).
 - [x] Every tool failure is logged with a trace ID (Task 26): the `tool.<name>` span has ERROR status and a `tool.failure` event with the code ([observability.md](observability.md), [evidence](evidence/week-4/task-26-trace.md)).
-- [ ] The failure rate is on the dashboard (Task 31). *Open: Week 4.*
+- [x] The failure rate is on the dashboard (Task 31): per tool, with the error codes, real use and eval runs apart ([task-31-dashboard.md](evidence/week-4/task-31-dashboard.md)).
 
 ### S1. Prompt injection
 

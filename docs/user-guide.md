@@ -50,7 +50,7 @@ Because of this:
 
 ## 3. Create your account
 
-Open the CreditCoach link. The first page has two large buttons at the top: **Log in** and **Sign up**. The one you are on is shown in solid indigo.
+Open the CreditCoach link. The first page shows how many questions CreditCoach has answered so far (it updates by itself) and how many people have signed up. Below them are two large buttons: **Log in** and **Sign up**. The one you are on is shown in solid indigo.
 
 ### Step 1: Open the Sign up tab
 
@@ -165,7 +165,7 @@ After you press **Continue to Log in** you are taken to the **Log in** tab. A gr
 2. Paste your **Password**.
 3. Press **Log in** (or press Enter).
 
-CreditCoach opens and shows "Signed in as …" at the top.
+CreditCoach opens and shows "Signed in as …" at the top, with how many of your questions it has answered so far.
 
 **Coming back later:** open the same link. If you are still logged in on that browser you go straight in. Otherwise you see the Log in tab; enter your User ID and password.
 
@@ -183,6 +183,7 @@ CreditCoach opens and shows "Signed in as …" at the top.
 Once logged in you will see:
 
 - **Signed in as …** and a **Log out** button at the top.
+- **Questions answered for you so far**, across all your sessions. It goes up as soon as an answer arrives. It is a count of answers, not of the questions you have left this week (that is under each answer; see section 7).
 - **Your memory and past conversations**: click to open. It shows the goal CreditCoach has saved for you and your earlier conversations.
 - Three large tabs: **Ask CreditCoach**, **My credit** and **Dashboard**.
 
@@ -220,6 +221,8 @@ This tab shows your latest score, how it changed, your card utilization, what yo
 ### Dashboard (how CreditCoach is doing)
 
 This tab shows how CreditCoach is performing for everyone who uses it: how often its data lookups fail, how often its safety checks step in (by rule), and how often it remembers a saved goal. Pick the last day, week or month, and real use or the team's test runs. It shows **counts only**: never anyone's questions, answers or name. Using it never uses up a question. Right after you log in it may say "Loading the dashboard…" for a few seconds while it gathers the latest figures. **Real use** counts only answers people got in the app; the note under the figures says how many more are under **Eval and test runs**.
+
+Pick **Cost and speed** above the figures to see what answers cost and how long they take: spend, cost per answer, response time, a chart of every answer's cost against its wait, each model compared, and where the time and money go. It also shows the team's comparison of models on the same 50 test questions. Like the rest of the tab, it shows counts only.
 
 ---
 

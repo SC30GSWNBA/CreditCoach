@@ -386,6 +386,30 @@ def users() -> list[str]:
     return sorted(p.name for p in base.glob("USR-*") if p.is_dir() and USER_ID.fullmatch(p.name)) if base.exists() else []
 
 
+def answered(user_id: str | None = None) -> dict:
+    """How many answers the chat app has given, for one user or everyone: ``{"answers", "sessions", "since"}``,
+    ``since`` being the first answer's time (or None).
+
+    Counted from ``assistant_message`` events in sessions whose login came from the chat UI, so eval, evidence and
+    command-line sessions never add to it. A failed answer is an ``error`` event, not an answer.
+    """
+    if user_id is not None:
+        check_user(user_id)
+    if db := _db():
+        return db.answered(user_id)
+    times, sessions = [], set()
+    for u in [user_id] if user_id else users():
+        for p in (user_dir(u) / "episodes").glob("*.jsonl"):
+            e = read_episode(p)
+            if not e.events or e.events[0].type != "login" or e.events[0].meta.get("source") != "chat_ui":
+                continue
+            for ev in e.events:
+                if ev.type == "assistant_message":
+                    times.append(ev.ts)
+                    sessions.add(e.session)
+    return {"answers": len(times), "sessions": len(sessions), "since": min(times) if times else None}
+
+
 def session_count() -> int:
     """Number of episodes stored, across all users."""
     if db := _db():

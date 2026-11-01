@@ -276,3 +276,121 @@ def test_the_tab_shows_before_the_traces_are_read(monkeypatch, signed_up):
     assert tab.visible is True and page == main.DASH_LOADING
     tab, page = main.show_dashboard_tab(request("nobody"))
     assert tab.visible is False and page == ""
+
+
+# ---- Cost and speed (2026-11-01) ----
+
+def costed(trace, model="anthropic/claude-sonnet-5.5", ms=10_000, tags=("app",), cost=0.02, check=0.0003,
+           rewrite=0.0, day="2026-10-27"):
+    """One answer with its spans as the pipeline leaves them: the answer model under ``agent``, the output check
+    (and any rewrite) under ``guardrail.output``, a tool call and retrieval; plus an eval judge's call, which isn't
+    the answer's."""
+    start = f"{day}T10:00:00+00:00"
+
+    def s(sid, name, parent, ms_, **attrs):
+        return {**span(trace, name, start, **attrs), "span_id": f"{trace}-{sid}",
+                "parent_id": parent and f"{trace}-{parent}", "ms": ms_}
+
+    def call(sid, parent, ms_, model_, cost_, tokens):
+        return s(sid, "llm.chat", parent, ms_, **{"gen_ai.response.model": model_, "gen_ai.usage.cost": cost_,
+                                                  "gen_ai.usage.input_tokens": tokens[0],
+                                                  "gen_ai.usage.output_tokens": tokens[1]})
+
+    spans_ = [{**answer(trace, tags=tags, start=start), "span_id": f"{trace}-a", "parent_id": None, "ms": ms},
+              s("i", "guardrail.input", "a", 20), s("r", "retrieval", "a", 600), s("g", "agent", "a", 7_000),
+              call("m", "g", 6_000, model, cost, (9_000, 600)),
+              {**tool(trace, "get_score_history"), "span_id": f"{trace}-t", "parent_id": f"{trace}-g", "ms": 800},
+              s("o", "guardrail.output", "a", 1_500), call("c", "o", 1_200, config.SMALL_MODEL, check, (2_000, 50)),
+              call("j", None, 3_000, config.SMALL_MODEL, 0.5, (1, 1))]  # the judge: not under the answer
+    spans_[0]["attributes"]["answer.model"] = model
+    if rewrite:
+        spans_.append(call("w", "o", 2_000, model, rewrite, (9_000, 500)))
+    return spans_
+
+
+def cost_traces():
+    return [*costed("c1"), *costed("c2", ms=20_000, cost=0.03, rewrite=0.01, day="2026-10-28"),
+            *costed("c3", model="openai/gpt-5", ms=16_000, cost=0.01),
+            *costed("c4", tags=["eval", "eval:baseline"], cost=0.5)]
+
+
+def test_each_model_call_is_costed_by_the_step_it_sits_under_and_judges_are_left_out():
+    rs = {r["trace_id"]: r for r in D.requests(cost_traces())}
+    assert rs["c1"]["cost"] == {"answer": 0.02, "check": 0.0003, "rewrite": 0.0}
+    assert rs["c2"]["cost"] == {"answer": 0.03, "check": 0.0003, "rewrite": 0.01}
+    assert rs["c1"]["prompt_tokens"] == 11_000 and rs["c1"]["completion_tokens"] == 650
+    assert rs["c1"]["seconds"] == 10 and rs["c1"]["model"] == "anthropic/claude-sonnet-5.5"
+    steps = rs["c1"]["steps"]
+    assert (steps["model"], steps["check"], steps["tools"], steps["retrieval"]) == (6, 1.2, .8, .6)
+    assert steps["other"] == pytest.approx(10 - 6 - 1.2 - .8 - .6 - .02)
+
+
+def test_cost_and_speed_are_summed_per_model_and_day_for_the_traffic_picked():
+    c = D.summarize(D.requests(cost_traces()), "real")["cost"]
+    assert c["answers"] == 3 and c["spend"] == pytest.approx(0.02 + 0.04 + 0.01 + 3 * 0.0003)
+    assert c["p50"] == 16 and c["p95"] == 20  # nearest rank
+    assert list(c["models"]) == ["anthropic/claude-sonnet-5.5", "openai/gpt-5"]  # most answers first
+    assert c["models"]["anthropic/claude-sonnet-5.5"]["answers"] == 2
+    assert c["days"]["2026-10-28"]["by_model"] == {"anthropic/claude-sonnet-5.5": pytest.approx(0.04),
+                                                   "check": pytest.approx(0.0003)}
+    assert c["split"]["rewrite"] == pytest.approx(0.01) and len(c["points"]) == 3
+    assert D.summarize(D.requests(cost_traces()), "eval")["cost"]["spend"] == pytest.approx(0.5003)
+
+
+def test_langfuse_observations_give_the_same_cost_and_speed_as_the_local_files():
+    def observed(s):
+        o = observation(s)
+        return {**o, "id": s["span_id"], "parentObservationId": s["parent_id"], "latency": s["ms"] / 1000}
+
+    local = D.summarize(D.requests(cost_traces()), "all")["cost"]
+    remote = D.summarize(D.requests([D._from_observation(observed(s)) for s in cost_traces()]), "all")["cost"]
+    assert remote["spend"] == pytest.approx(local["spend"]) and remote["p50"] == pytest.approx(local["p50"])
+    assert remote["steps"] == pytest.approx(local["steps"])
+
+
+def test_percentiles_are_by_nearest_rank_as_the_eval_reports_give_them():
+    assert D.rank(list(range(1, 51)), .9) == 45 and D.rank([3.0], .95) == 3.0 and D.rank([], .5) is None
+
+
+def test_model_ids_are_named_as_people_say_them():
+    assert D.model_name("anthropic/claude-sonnet-5.5") == "Claude Sonnet 5.5"
+    assert D.model_name("openai/gpt-5.6-terra") == "GPT-5.6 Terra"
+    assert D.model_name("openai/gpt-5") == "GPT-5" and D.model_name("") == "No model call"
+
+
+def test_the_cost_view_has_every_part_and_never_a_question_answer_or_user(monkeypatch):
+    monkeypatch.setattr(D, "load", lambda days: (cost_traces(), "local trace files"))
+    parts = D.cost_view(7, "real")
+    assert set(parts) == set(D.COST_PARTS) and all(parts[k] is not None for k in D.COST_PARTS)
+    page = "".join(v for v in parts.values() if isinstance(v, str))
+    assert "Models compared" in page and "Claude Sonnet 5.5" in page
+    assert not any(secret in page for secret in ("a question", "USR-001", "An answer."))
+    assert {t.name for t in parts["scatter"].data if t.showlegend is not False} == {"Claude Sonnet 5.5 (2)",
+                                                                                     "GPT-5 (1)"}
+
+
+def test_the_cost_view_says_so_when_the_traces_cant_be_read(monkeypatch):
+    monkeypatch.setattr(D, "load", lambda days: 1 / 0)
+    parts = D.cost_view(7, "real")
+    assert "unavailable" in parts["top"] and parts["scatter"] is None
+
+
+def test_the_model_comparison_ships_with_the_app_and_names_the_model_that_meets_the_target(monkeypatch):
+    cmp = D.comparison()
+    assert cmp and cmp["target_seconds"] == 15 and len(cmp["rows"]) >= 5
+    assert all(r["cases"] == 50 and r["per_answer"] for r in cmp["rows"])
+    monkeypatch.setattr(config, "CHAT_MODEL", "anthropic/claude-sonnet-5.5")
+    page = D.quality_html(cmp)
+    assert "Claude Sonnet 5.5 is the only model with the top score (43/50)" in page
+    assert page.count("Current") == 1 and "over target" in page
+    assert "isn't available" in D.quality_html(None)
+
+
+def test_the_cost_view_is_built_only_when_picked_and_only_for_a_signed_in_user(monkeypatch, signed_up):
+    monkeypatch.setattr(D, "cost_view", lambda days, traffic: {k: k for k in D.COST_PARTS})
+    assert main.cost_dashboard(7, "real", "cost", request("creditcoach_user19")) == D.COST_PARTS
+    assert main.cost_dashboard(7, "real", "cost", request("nobody"))[0] == main.SIGNED_OUT
+    skipped = main.cost_dashboard(7, "real", "quality", request("creditcoach_user19"))
+    assert len(skipped) == len(D.COST_PARTS) and not any(isinstance(p, str) for p in skipped)
+    quality, cost = main.dashboard_switch("cost")
+    assert quality["visible"] is False and cost["visible"] is True

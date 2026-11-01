@@ -79,6 +79,16 @@ def logins() -> dict[str, dict]:
     return {username: {"user_id": user_id, "salt": salt, "hash": hash_} for username, user_id, salt, hash_ in rows}
 
 
+def signed_up() -> int:
+    """How many people have signed up (users made by the Sign up form; not the profiles built from interviews or
+    the sample data). Raises ``SignupUnavailable`` when there is no Neon database."""
+    if not available():
+        raise SignupUnavailable("sign-up needs the Neon database")
+    with connection() as conn:
+        return conn.execute("SELECT count(*) FROM dataset_users WHERE source = %s",
+                            (dataset.SIGNUP_SOURCE,)).fetchone()[0]
+
+
 def insert(conn, answers: dict) -> dict:
     """Create one user on ``conn``, inside the caller's transaction (``create_account`` commits it).
 

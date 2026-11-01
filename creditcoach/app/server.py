@@ -25,7 +25,7 @@ from fastapi.responses import RedirectResponse
 from gradio import networking
 
 from creditcoach import auth
-from creditcoach.app import sessions, welcome
+from creditcoach.app import counters, sessions, welcome
 
 log = logging.getLogger("creditcoach.app")
 
@@ -68,7 +68,8 @@ def create(demo: gr.Blocks, css: str = "") -> FastAPI:
         response.delete_cookie(sessions.COOKIE)
         return response
 
-    gr.mount_gradio_app(app, welcome.build(), path=WELCOME_PATH, theme=gr.themes.Soft(), css=welcome.CSS)
+    gr.mount_gradio_app(app, welcome.build(), path=WELCOME_PATH, theme=gr.themes.Soft(),
+                        css=welcome.CSS + counters.CSS)
     gr.mount_gradio_app(app, demo, path=APP_PATH, auth_dependency=sessions.current_user, theme=gr.themes.Soft(),
                         css=css)
     return app

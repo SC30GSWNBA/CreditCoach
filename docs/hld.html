@@ -769,7 +769,8 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
         <li>Built with OpenTelemetry. Every trace is written to local files (<code>.traces/</code>) and, when its keys are set, sent to Langfuse Cloud.</li>
         <li>The trace ID is saved with each reply in memory, so any answer can be traced back step by step.</li>
         <li>Questions are recorded only after personal identifiers are masked. Recording can never break an answer.</li>
-        <li>A <b>Dashboard</b> tab, for every signed-in user, reads the traces back (Task 31): tool-call failure rate, guardrail triggers per rule, and goal-recall accuracy. Real use is what the chat app answered (traces tagged <code>app</code>); eval and test runs (<code>eval:&lt;label&gt;</code>, <code>script:&lt;name&gt;</code>) are kept apart and listed by run.</li>
+        <li>A <b>Dashboard</b> tab, for every signed-in user, reads the traces back (Task 31): tool-call failure rate, guardrail triggers per rule, and goal-recall accuracy. Real use is what the chat app answered (traces tagged <code>app</code>); eval and test runs (<code>eval:&lt;label&gt;</code>, <code>script:&lt;name&gt;</code>) are kept apart and listed by run. A second view, <b>Cost and speed</b> (2026-11-01), costs every model call by the step it sits under (answer model, output check, rewrite) and shows spend, response time and tokens per model and per step, with the 50-case eval runs as cost against speed and quality.</li>
+        <li>Usage counters (2026-11-01): the welcome page shows the questions answered by the chat app and the people signed up, and the signed-in page each user's own count, all read from Neon (memory events and the dataset's sign-ups).</li>
       </ul>
     </section>
 
