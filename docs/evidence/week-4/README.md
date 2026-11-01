@@ -28,6 +28,8 @@ Each task is **Done** only when its *Evidence of Completion* from [tasks.md](../
 
 16 pytest tests (9 in `test_dashboard.py`, 7 in `test_counters.py`).
 
+Since 2026-11-01 the spend, response time and tokens by day charts show dates only ("Oct 28"), one tick a day for up to 10 days, never a time of day; their legends were shortened to fit (1 pytest test, 4 cases).
+
 ## Readable in dark mode, and a fuller chat (2026-11-01)
 
 [dark-mode-and-examples.md](dark-mode-and-examples.md), screenshots in light and dark mode: testers in dark mode couldn't read the sign-up options, couldn't see Log out, and found the chart labels faint. The options now have light words in dark mode, Log out has dark words on white in both themes, and chart axes, legends and labels use the page's text color, with "Click to hide or show:" on every legend. The chat now offers 12 example questions instead of 4, under the note "Go ahead, try CreditCoach. Pick from one of the queries listed below." Light mode is unchanged apart from darker, slightly larger chart labels. 7 pytest tests (`test_theme.py`).
