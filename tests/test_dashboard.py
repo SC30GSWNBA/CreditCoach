@@ -469,3 +469,14 @@ def test_the_chart_is_redrawn_from_the_view_s_own_figures_and_only_for_a_signed_
 def test_the_page_builds_with_the_tick_boxes_wired_to_the_chart():
     demo = main.build()  # fails if a handler's name is shadowed by a component's, as it once was
     assert any(getattr(b, "label", None) == "Models shown" for b in demo.blocks.values())
+
+
+@pytest.mark.parametrize("days, step", [(["2026-10-28", "2026-11-01"], 1), (["2026-10-28"], 1),
+                                        ([f"2026-10-{d:02}" for d in range(2, 32)], 3), ([f"2026-10-{d:02}" for d in range(22, 32)], 1)])
+def test_the_by_day_charts_show_dates_and_never_a_time_of_day(days, step):
+    axis = D._day_axis(days)
+    assert axis["xaxis_tickformat"] == "%b %-d"  # no %H or %M: never a time of day
+    assert axis["xaxis_dtick"] == step * D.DAY_MS and axis["xaxis_tick0"] == days[0]  # whole days only
+    c, _ = real_costs()
+    for fig in (D.spend_figure(c), D.latency_figure(c), D.tokens_figure(c)):
+        assert fig.layout.xaxis.tickformat == "%b %-d" and fig.layout.xaxis.dtick % D.DAY_MS == 0

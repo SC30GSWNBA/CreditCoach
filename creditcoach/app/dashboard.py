@@ -48,7 +48,7 @@ import time
 import urllib.parse
 import urllib.request
 from collections import Counter, defaultdict
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from html import escape
 from pathlib import Path
 
@@ -564,6 +564,19 @@ def _by_day(c: dict, value) -> tuple[list[str], list]:
     return days, [value(c["days"][d]) for d in days]
 
 
+DAY_MS = 86_400_000
+
+
+def _day_axis(days: list[str]) -> dict:
+    """A date axis for the by-day charts: dates only ("Oct 28"), never a time of day. Ticks are a whole number of
+    days apart, starting on the first day: one a day for up to 10 days, else one every few days (at most 10)."""
+    axis = {"xaxis_type": "date", "xaxis_tickformat": "%b %-d"}
+    if days:
+        span = (date.fromisoformat(days[-1]) - date.fromisoformat(days[0])).days + 1
+        axis |= {"xaxis_tick0": days[0], "xaxis_dtick": DAY_MS * max(1, math.ceil(span / 10))}
+    return axis
+
+
 def spend_figure(c: dict):
     """Spend per day, stacked by answer model, with the output check apart."""
     import plotly.graph_objects as go
@@ -574,7 +587,7 @@ def spend_figure(c: dict):
         if any(ys):
             fig.add_trace(go.Bar(x=days, y=ys, name=model_name(model), marker_color=COLORS.get(model, GREY),
                                  hovertemplate=f"%{{x}} · {escape(model_name(model))}<br>$%{{y:.3f}}<extra></extra>"))
-    return _figure(fig, barmode="stack", bargap=.35, yaxis_tickprefix="$", xaxis_type="date")
+    return _figure(fig, barmode="stack", bargap=.35, yaxis_tickprefix="$", **_day_axis(days))
 
 
 def latency_figure(c: dict):
@@ -582,12 +595,12 @@ def latency_figure(c: dict):
     import plotly.graph_objects as go
 
     fig = go.Figure()
-    for key, label, color in (("p50", "p50, the typical answer", COLORS["openai/gpt-5"]),
-                              ("p95", "p95, the slowest one in twenty", COLORS["anthropic/claude-sonnet-5.5"])):
+    for key, label, color in (("p50", "p50 (typical)", COLORS["openai/gpt-5"]),
+                              ("p95", "p95 (slowest 1 in 20)", COLORS["anthropic/claude-sonnet-5.5"])):
         days, ys = _by_day(c, lambda d, k=key: d[k])
         fig.add_trace(go.Scatter(x=days, y=ys, name=label, mode="lines+markers", line=dict(color=color, width=2),
                                  marker=dict(size=8), hovertemplate=f"%{{x}} · {key} %{{y:.1f}} s<extra></extra>"))
-    return _figure(fig, yaxis_ticksuffix=" s", xaxis_type="date")
+    return _figure(fig, yaxis_ticksuffix=" s", **_day_axis(days))
 
 
 def tokens_figure(c: dict):
@@ -600,7 +613,7 @@ def tokens_figure(c: dict):
         days, ys = _by_day(c, lambda d, k=key: d[k])
         fig.add_trace(go.Bar(x=days, y=ys, name=label, marker_color=color,
                              hovertemplate=f"%{{x}} · {label}<br>%{{y:,}} tokens<extra></extra>"))
-    return _figure(fig, barmode="stack", bargap=.35, xaxis_type="date")
+    return _figure(fig, barmode="stack", bargap=.35, **_day_axis(days))
 
 
 def comparison() -> dict | None:
