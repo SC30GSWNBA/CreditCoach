@@ -4,21 +4,27 @@ One stylesheet for the chat UI, loaded before ``charts.CSS`` and ``badges.CSS`` 
 appearance only, nothing about what the page does:
 
     Log out    A white button with dark words on both themes.
-    Tabs       "Ask CreditCoach" and "My credit" are a two-button switch; the one you are on is solid indigo.
+    Tabs       "Ask CreditCoach", "My credit" and "Dashboard" are a switch; the one you are on is solid indigo.
     Sections   Headings are larger and bold with an indigo underline; collapsible panels are outlined cards.
     Choices    Every radio option is an outlined box with a visible circle; the picked one turns indigo.
     Inputs     Text boxes and dropdowns have a clear outline, and an indigo glow while in use.
     Charts     Axis numbers, axis titles, legends and labels use the page's text color, so they read in dark mode too.
     Chat       A line inviting people to pick a question sits above the example questions, which are outlined
                buttons; the conversation has a border, and the intro text is slightly larger. Text inside chat answers
-               is left as it is.
+               is left as it is, but a table in an answer scrolls sideways instead of breaking its words.
     My credit  The snapshot tiles, card bars, account list and legend (``charts.CSS``) get larger, darker labels.
                Each rule here starts with ``.gradio-container`` so it wins over the chart's own, smaller size.
+    Muted text Light mode darkens Gradio's pale grey and indigo labels through their variables, so ``charts.CSS`` and
+               ``dashboard.CSS`` keep using one variable and dark mode keeps its own values.
+    Phones     Under 600px: narrower page gutters, tabs that fit, a Log out button that leaves room for the words, and
+               a chat box that fits the screen. Touch screens hide the chart toolbar and get larger chat icons.
 """
 
 INK, LINE, ACCENT = "#0f172a", "#94a3b8", "#4f46e5"
 
 CSS = """
+body:not(.dark) .gradio-container {--body-text-color-subdued: #475569; --block-info-text-color: #475569;
+           --block-title-text-color: #3730a3; --block-label-text-color: #3730a3;}
 .gradio-container {--checkbox-border-color: #475569; --checkbox-border-width: 2px;
            --checkbox-border-color-hover: #4f46e5; --checkbox-border-color-focus: #4f46e5;
            --checkbox-background-color: #ffffff; --checkbox-background-color-selected: #4f46e5;
@@ -50,6 +56,7 @@ CSS = """
 /* Text outside the conversation: slightly larger; section headings bold with an underline */
 .gradio-container .prose:not(.bubble-wrap .prose) p, .gradio-container .prose:not(.bubble-wrap .prose) li {
            font-size: 1.07rem; line-height: 1.55;}
+.gradio-container .prose:not(.bubble-wrap .prose) p {max-width: 90ch;}
 .gradio-container .prose:not(.bubble-wrap .prose) h1 {font-size: 2rem; font-weight: 800; margin-bottom: .2em;}
 .gradio-container .prose:not(.bubble-wrap .prose) h3 {font-size: 1.35rem !important; font-weight: 700 !important;
            padding-bottom: 6px; margin: .3em 0 .5em; border-bottom: 2px solid #4f46e5;}
@@ -80,7 +87,8 @@ CSS = """
 .gradio-container .wrap-inner {border: 1.5px solid #64748b !important; border-radius: 8px !important;
            background: #ffffff !important; color: #0f172a !important; box-shadow: none !important;}
 .gradio-container .wrap-inner input[type=text], .gradio-container .wrap-inner input {border: none !important;
-           background: transparent !important;}
+           background: transparent !important; color: #0f172a !important; -webkit-text-fill-color: #0f172a;}
+.gradio-container .wrap-inner .icon-wrap {color: #475569 !important;}
 .gradio-container input[type=text]:focus, .gradio-container input[type=number]:focus,
 .gradio-container textarea:focus, .gradio-container .wrap-inner:focus-within {border-color: #4f46e5 !important;
            box-shadow: 0 0 0 3px rgba(79, 70, 229, .25) !important; outline: none !important;}
@@ -95,11 +103,20 @@ CSS = """
 .gradio-container button.example .example-text {font-size: 1.02rem !important; font-weight: 600 !important;
            color: #0f172a !important;}
 .gradio-container button.example:hover {border-color: #4f46e5 !important; background: #eef2ff !important;}
-.gradio-container .placeholder-content {justify-content: center;}
-.gradio-container .placeholder-content .placeholder {flex-grow: 0 !important; height: auto !important; margin: 0;}
+/* Centered with auto margins, not justify-content: when the questions are taller than the box (phones), centering
+   would push the first ones above the top, where scrolling can't reach them */
+.gradio-container .placeholder-content {justify-content: flex-start;}
+.gradio-container .placeholder-content > :first-child {margin-top: auto !important;}
+.gradio-container .placeholder-content > :last-child {margin-bottom: auto !important;}
+.gradio-container .placeholder-content .placeholder {flex-grow: 0 !important; height: auto !important;}
 .gradio-container .placeholder-content .placeholder p {font-size: 1.25rem !important; text-align: center;
            color: var(--body-text-color) !important; margin: 0;}
-.gradio-container .placeholder-content .examples {margin: 0 auto !important; padding-top: 16px !important;}
+.gradio-container .placeholder-content .examples {margin-left: auto !important; margin-right: auto !important;
+           padding-top: 16px !important;}
+/* A table in an answer scrolls sideways; its words stay whole */
+.gradio-container .bubble-wrap table {display: block; max-width: 100%; overflow-x: auto;}
+.gradio-container .bubble-wrap th, .gradio-container .bubble-wrap td {word-break: normal !important;
+           overflow-wrap: normal !important; min-width: 5em;}
 
 /* Charts: axis numbers, axis titles, legend and labels in the page's text color (not Plotly's mid grey), so they
    read on both themes. Hover boxes are left alone. */
@@ -130,4 +147,31 @@ CSS = """
 .gradio-container .cc-whatif-note {border-radius: 0 0 10px 10px;}
 .gradio-container fieldset .info, .gradio-container span.info, .gradio-container div.info {font-size: .95rem !important;
            color: #475569 !important;}
+
+/* Phones: narrower page gutters. Not in the @media below: this element is outside what Gradio's rescoping can reach */
+.gradio-container .main.fillable.app {padding-left: clamp(12px, calc((100vw - 600px) * 100), 32px) !important;
+           padding-right: clamp(12px, calc((100vw - 600px) * 100), 32px) !important;}
+
+/* Selectors in an @media start below .gradio-container: Gradio serves only its rescoped copy of them, which puts
+   ".gradio-container .contain" in front, so a selector that names .gradio-container again would match nothing. */
+
+/* Touch screens: the chart toolbar would sit over the chart's title for good; chat icons big enough to tap */
+@media (hover: none), (pointer: coarse) {
+  .js-plotly-plot .modebar-container {display: none !important;}
+  .bubble-wrap button.icon-button, .block button.icon-button {min-width: 32px; min-height: 32px;}
+}
+
+/* Phones: three tabs that fit, and room for the words beside Log out */
+@media (max-width: 600px) {
+  .tab-container {gap: 4px !important; padding: 4px !important; align-items: stretch !important;}
+  button[role="tab"] {flex: 1 1 auto; min-width: 0; padding: 8px 6px !important; font-size: .82rem !important;
+           line-height: 1.2; white-space: normal !important;}
+  .cc-logout {min-width: 0 !important; flex: 0 0 auto !important;}
+  .cc-ask {flex: 1 1 100% !important;}
+}
+
+/* A chat box that fits the screen, so the message box is never a long way below it */
+@media (max-width: 767px), (max-height: 500px) {
+  .block:has(> .wrapper > .bubble-wrap) {height: min(680px, max(320px, 70vh)) !important;}
+}
 """

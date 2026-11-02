@@ -44,6 +44,8 @@ ENTER_JS = "(t) => { if (t) { window.location.href = '/auth/enter?t=' + encodeUR
 
 CSS = """
 .cc-welcome {max-width: 860px; margin: 0 auto;}
+body:not(.dark) .gradio-container {--body-text-color-subdued: #475569; --block-info-text-color: #475569;
+           --block-title-text-color: #3730a3; --block-label-text-color: #3730a3;}
 .cc-modal {position: fixed !important; inset: 0; z-index: 1000; background: rgba(15, 23, 42, .62);
            display: flex; align-items: center; justify-content: flex-start; padding: 16px; overflow-y: auto;}
 .cc-modal > .cc-card {max-width: 560px; width: 100%; min-width: 0; box-sizing: border-box; margin: auto;
@@ -56,6 +58,8 @@ CSS = """
 /* Nothing in the pop-up may shrink or scroll on its own: on a short window the whole pop-up scrolls instead, so the
    User ID and password are always shown in full, one above the other. */
 .cc-card, .cc-card * {flex-shrink: 0 !important;}
+/* Except the words beside a tick box, which wrap to fit a phone */
+.cc-card .cc-tick label > span {flex-shrink: 1 !important; min-width: 0;}
 .cc-card .form, .cc-card .block, .cc-card .gap, .cc-card .column, .cc-card .row {overflow: visible !important;
            min-height: 0 !important;}
 .cc-card .cc-secret textarea, .cc-card .cc-secret input {overflow: hidden !important; white-space: nowrap; resize: none;}
@@ -120,6 +124,8 @@ CSS = """
 .cc-req-note {font-size: .98rem; font-weight: 600; color: #475569; margin: 2px 0 6px;}
 .dark .cc-req-note {color: #cbd5e1;}
 .cc-star {color: #dc2626; font-weight: 800; font-size: 1.15em;}
+.dark .cc-star {color: #f87171;}
+.dark .cc-required fieldset > span::after, .dark .cc-required [data-testid="block-info"]::after {color: #f87171;}
 .cc-secret textarea, .cc-secret input {font-family: ui-monospace, Menlo, monospace; font-size: 1.05rem;}
 """
 

@@ -607,6 +607,13 @@ def redraw_cost_scatter(shown: list[str], costs: dict | None, request: gr.Reques
     return dashboard.scatter_figure(costs, shown)
 
 
+# After the page opens: back to the top, since focusing the message box scrolls down to it, and the example questions
+# from their first one, since the chat box starts at its bottom. A box already holding a conversation stays there.
+OPEN_AT_TOP_JS = """() => { setTimeout(() => { window.scrollTo(0, 0);
+  const box = document.querySelector('.bubble-wrap');
+  if (box && box.querySelector('.placeholder-content')) { box.scrollTop = 0; } }, 300); }"""
+
+
 def build() -> gr.Blocks:
     """Create the page: a "Signed in as" line with a Log out button, the memory panel, then the tabs: the chat
     interface, "My credit" (the signed-in user's charts) and "Dashboard" (Task 31, counts across all users).
@@ -646,8 +653,8 @@ def build() -> gr.Blocks:
                     period = gr.Radio(charts.PERIODS, value=12, show_label=False, container=False,
                                       info="Period for the snapshot and the score story")
                     snapshot = gr.HTML()
-                    gr.Markdown("### Your score story\nYour score each month, how much it moved, and why. Hover a "
-                                "month for its reason, or pick a reason to highlight its months.")
+                    gr.Markdown("### Your score story\nYour score each month, how much it moved, and why. Hover or "
+                                "tap a month for its reason, or pick a reason to highlight its months.")
                     with gr.Row(equal_height=False):
                         with gr.Column(scale=3, min_width=320):
                             story = gr.Plot(show_label=False, container=False)
@@ -730,7 +737,7 @@ def build() -> gr.Blocks:
         chat.chatbot.like(feedback)
         ask.click(ask_about_month, inputs=month, outputs=[chat.textbox, tabs])
         start_ask.click(lambda: ask_in_chat(charts.START_QUESTION), outputs=[chat.textbox, tabs])
-        demo.load(start, outputs=[who, panel])
+        demo.load(start, outputs=[who, panel]).then(None, js=OPEN_AT_TOP_JS)
         gr.on([demo.load, chat.chatbot.change], my_answers, outputs=mine, show_progress="hidden",
               trigger_mode="always_last").then(None, js=counters.COUNT_UP_JS)
         demo.load(load_credit, inputs=period,
