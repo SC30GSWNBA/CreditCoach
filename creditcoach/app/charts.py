@@ -74,6 +74,7 @@ CSS = """
 .cc-empty ul { margin: 8px 0 0; padding-left: 1.2em; color: var(--body-text-color-subdued); }
 .cc-ask { align-self: end; }
 .cc-whatif-note { padding: 4px 12px 10px; }
+@media (min-width: 480px) and (max-width: 1023px) { .cc-tiles:has(> :nth-child(4):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .cc-debt { grid-template-columns: 1fr auto; } .cc-debt .cc-bar { grid-column: 1 / -1; grid-row: 2; } }
 """
 
@@ -280,7 +281,7 @@ def story_figure(history: dict, highlight: str | None = None) -> go.Figure:
                "spikethickness": 1, "spikedash": "solid", "spikecolor": INK, "tickfont": {"color": INK}},
         yaxis={**axis, "domain": [0.44, 1], "range": [lo, hi],
                "dtick": _axis_step(hi - lo, ((120, 50), (60, 25), (0, 10)))},
-        yaxis2={**axis, "domain": [0, 0.32], "range": [-lim * 1.25, lim], "tickformat": "+d",
+        yaxis2={**axis, "domain": [0, 0.32], "range": [-lim * 1.6, lim], "tickformat": "+d",
                 "dtick": _axis_step(lim, ((60, 40), (30, 20), (0, 10)))})
     return fig
 

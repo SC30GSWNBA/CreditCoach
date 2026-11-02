@@ -488,7 +488,9 @@ def _figure(fig, height: int = 300, **layout):
     clicking an entry hides or shows it."""
     fig.update_layout(height=height, margin=dict(l=10, r=10, t=10, b=10), paper_bgcolor="rgba(0,0,0,0)",
                       plot_bgcolor="rgba(0,0,0,0)", font=dict(color=GREY, size=13), hovermode="closest",
-                      legend=dict(orientation="h", y=-0.22, x=0, title_text="Click to hide or show: "), **layout)
+                      legend=dict(orientation="h", y=-0.3, x=0, title_text="Click to hide or show: ", title_side="top",
+                                  maxheight=0.65),  # a phone's stacked entries show in full, with no scrollbar
+                      **layout)
     fig.update_xaxes(gridcolor=GRID, zeroline=False, title_font_size=14)
     fig.update_yaxes(gridcolor=GRID, zeroline=False, rangemode="tozero", title_font_size=14)
     return fig
@@ -814,10 +816,12 @@ CSS = """
 .cc-dash-scroll { overflow-x: auto; }
 .cc-num td, .cc-num th { white-space: nowrap; }
 .cc-num td:not(:first-child), .cc-num th:not(:first-child) { text-align: right; }
-.cc-best { color: #0ca30c; font-weight: 700; }
+.cc-best { color: #006300; font-weight: 700; }
+.dark .cc-best { color: #0ca30c; }
 .cc-sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
 .cc-pill-now { font-size: .7rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-left: 6px;
   background: rgba(79, 70, 229, .14); color: #4f46e5; }
+.dark .cc-pill-now { color: #c7d2fe; background: rgba(129, 140, 248, .25); }
 .cc-insight { font-size: .86rem; border-left: 3px solid var(--border-color-primary); padding-left: 10px; margin-top: 8px; }
 .cc-stack { display: flex; gap: 2px; height: 24px; border-radius: 6px; overflow: hidden; margin: 8px 0 10px; }
 .cc-stack i { display: block; height: 100%; }

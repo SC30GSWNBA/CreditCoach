@@ -120,7 +120,8 @@ CSS = """
   color: var(--body-text-color); }
 .cc-count-sub { font-size: .86rem; color: var(--body-text-color-subdued); }
 .cc-live { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 700;
-  letter-spacing: .06em; text-transform: uppercase; color: #059669; }
+  letter-spacing: .06em; text-transform: uppercase; color: #047857; }
+.dark .cc-live { color: #34d399; }
 .cc-live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #059669;
   animation: cc-pulse 2s ease-out infinite; }
 @keyframes cc-pulse { 0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, .55); } 100% { box-shadow: 0 0 0 8px rgba(5, 150, 105, 0); } }

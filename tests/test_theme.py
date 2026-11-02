@@ -10,7 +10,7 @@ Run:
 
 import re
 
-from creditcoach.app import dashboard, main, theme, welcome
+from creditcoach.app import charts, counters, dashboard, main, theme, welcome
 
 
 def rule(css: str, selector_part: str) -> str:
@@ -64,3 +64,59 @@ def test_chart_legends_say_they_can_be_clicked():
     fig = dashboard._figure(go.Figure())
     assert fig.layout.legend.title.text.startswith("Click to hide or show")
     assert fig.layout.font.size == 13
+
+
+def media_blocks(css: str) -> list[str]:
+    """The text inside each ``@media`` block of a stylesheet."""
+    blocks = []
+    for start in [m.end() for m in re.finditer(r"@media[^{]*\{", css)]:
+        depth, i = 1, start
+        while depth:
+            depth += {"{": 1, "}": -1}.get(css[i], 0)
+            i += 1
+        blocks.append(css[start:i - 1])
+    return blocks
+
+
+def test_rules_in_a_media_query_can_match():
+    # Inside @media Gradio serves only its rescoped copy (".gradio-container ... .contain <selector>"), so a selector
+    # naming .gradio-container again would match nothing: the phone rules would silently do nothing
+    for css in (theme.CSS, welcome.CSS, charts.CSS, dashboard.CSS, counters.CSS):
+        for block in media_blocks(css):
+            assert ".gradio-container" not in block
+
+
+def test_phone_tabs_fit_and_the_chart_toolbar_stays_off_touch_screens():
+    blocks = media_blocks(theme.CSS)
+    assert any('button[role="tab"]' in b and "white-space: normal" in b for b in blocks)
+    assert any(".modebar-container" in b and "display: none" in b for b in blocks)
+
+
+def test_every_example_question_can_be_scrolled_to():
+    # Centering with justify-content pushes the first questions above the top of a box too short to hold them
+    assert "justify-content: flex-start" in rule(theme.CSS, ".placeholder-content")
+    assert "margin-top: auto" in rule(theme.CSS, ".placeholder-content > :first-child")
+
+
+def test_the_page_opens_at_the_top_with_the_first_question_in_view():
+    assert "window.scrollTo(0, 0)" in main.OPEN_AT_TOP_JS
+    assert "box.scrollTop = 0" in main.OPEN_AT_TOP_JS
+
+
+def test_dropdown_words_are_dark_on_their_white_field():
+    assert "color: #0f172a" in rule(theme.CSS, ".wrap-inner input[type=text]")
+
+
+def test_light_mode_darkens_the_muted_text_only_in_light_mode():
+    for css in (theme.CSS, welcome.CSS):
+        assert "--body-text-color-subdued: #475569" in rule(css, "body:not(.dark) .gradio-container")
+
+
+def test_words_beside_a_tick_box_wrap_in_the_pop_up():
+    assert "flex-shrink: 1" in rule(welcome.CSS, ".cc-card .cc-tick label > span")
+
+
+def test_chart_legend_title_leaves_the_full_width_to_the_entries():
+    import plotly.graph_objects as go
+
+    assert dashboard._figure(go.Figure()).layout.legend.title.side == "top"
