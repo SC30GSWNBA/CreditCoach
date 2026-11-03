@@ -7,7 +7,7 @@ This document is the checklist of rules CreditCoach must never break, each mappe
 The rules come in two groups:
 
 - **G1–G5: requirements.md §6 (Guardrail Requirements).** One rule per requirement. The three that tasks.md names for this task are G1–G3.
-- **S1–S5: security rules.** S1–S4 come from the implementation plan; S5 was added on 2026-10-31 after the persona test (an intern's question got a full system design of CreditCoach). Prompt injection, prompt leaking, personal identifiers and other users' data. §6 doesn't list them, but §4.7 partly expects them (#49, #50). The implementation plan (§3 and §4) builds the layer with NVIDIA NeMo Guardrails and a Colang config, and red-teams the agent with 20–30 adversarial prompts.
+- **S1–S5: security rules.** S1–S4 come from the implementation plan; S5 was added on 2026-10-31 after the persona test (an intern's question got a full system design of CreditCoach). Prompt injection, prompt leaking, personal identifiers, other users' data and how CreditCoach is built. §6 doesn't list them, but §4.7 partly expects them (#49, #50). The implementation plan (§3 and §4) builds the layer with NVIDIA NeMo Guardrails and a Colang config, and red-teams the agent with 20–30 adversarial prompts.
 
 ## 1. Rules at a glance
 

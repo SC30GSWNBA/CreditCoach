@@ -127,7 +127,7 @@ requirements.md §6 says every credit figure "must come from a live tool call, n
 The workload's overall hit rate was 57% (20 of 35), which cut its waiting time by 55% and its model cost by 57%. That rate belongs to the workload, where two thirds of the requests were deliberate repeats; real users repeat far less.
 
 **Miss, then hit (Task 22).** 
-[task-22-cache-log.md](evidence/week-3/task-22-cache-log.md), live against Redis: a question misses every layer and takes 11.0 s; the same question again hits and takes 0.01 s with no model call; a rewording hits; "last month" in place of "this month" misses on purpose; a different question reuses the user's cached lookups; another user shares nothing. `tests/test_cache.py` has 52 tests that need no Redis, API key or embedding model.
+[task-22-cache-log.md](evidence/week-3/task-22-cache-log.md), live against Redis: a question misses every layer and takes 11.0 s; the same question again hits and takes 0.01 s with no model call; a rewording hits; "last month" in place of "this month" misses on purpose; a different question reuses the user's cached lookups; another user shares nothing. `tests/test_cache.py` has 55 tests that need no Redis, API key or embedding model.
 
 ## 6. Open questions for team review
 

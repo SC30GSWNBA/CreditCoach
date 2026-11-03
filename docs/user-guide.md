@@ -212,7 +212,7 @@ When your data couldn't be loaded, the question **doesn't count** towards your 5
 
 ### My credit (your charts)
 
-This tab shows your latest score, how it changed, your card utilization, what you owe, and a month-by-month "score story" with the reason for each change. You can switch between 3, 6 and 12 months and try a "what if I pay down a card?" slider.
+This tab shows your latest score, how it changed, your card utilization, what you owe, and a month-by-month "score story" with the reason for each change. Hover over a month, or tap it on a phone or tablet, to see its reason. You can switch between 3, 6 and 12 months, and under "What if I pay down a card?" you can pick a card and move a slider.
 
 **Using My credit never uses up a question.** Picking a month and pressing **Ask in chat** only places a question in the chat box; it is not sent, and not counted, until you press Enter.
 
