@@ -89,7 +89,7 @@ def main() -> None:
 
         page = sign_in(TEAM[0])
         tab = page.get_by_role("tab", name="Dashboard")
-        checks.append(("A team login sees the Dashboard tab", tab.count() == 1))
+        checks.append(("A dataset user (USR-001) sees the Dashboard tab", tab.count() == 1))
         tab.click()
         page.locator(".cc-dash-table, .cc-empty").first.wait_for(timeout=30_000)
         page.wait_for_timeout(600)

@@ -41,7 +41,7 @@ Tool calls by tool (both kinds of traffic):
 
 ## Checks
 
-- ✅ A team login sees the Dashboard tab
+- ✅ A dataset user (USR-001) sees the Dashboard tab
 - ✅ Someone who signed up sees the Dashboard tab
 - ✅ Real use: the page shows the same counts as the traces
 - ✅ Eval and test runs: the page shows the same counts as the traces
