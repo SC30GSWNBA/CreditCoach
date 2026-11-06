@@ -70,7 +70,7 @@ def test_finished_trace_lists_tools_goal_and_passages():
     assert "• Why did my credit score drop?" in by_title["📚 Searched the CreditCoach library"]
     assert "Goal: target 720, by 2027, buy a car" in by_title["🧠 Recalled your memory"]
     assert "2 earlier conversations" in by_title["🧠 Recalled your memory"]
-    assert "Latest: 650 (2026-09, -20 that month, Hard inquiry + utilization spike)" in \
+    assert "Latest: 651 (2026-10, +1 that month, Stable (no major change))" in \
         by_title["📈 Checking your score history (period=latest)"]
 
 

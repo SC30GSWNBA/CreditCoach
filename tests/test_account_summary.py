@@ -31,7 +31,7 @@ def by_id(result):
 
 def test_t9_known_user():
     r = get_account_summary("USR-001")
-    assert r["ok"] and r["has_credit_file"] and r["as_of"] == "2026-09-01" and "note" not in r
+    assert r["ok"] and r["has_credit_file"] and r["as_of"] == "2026-10-01" and "note" not in r
     assert list(by_id(r)) == ["ACC-01", "ACC-02", "ACC-03", "ACC-04", "ACC-05"]
     acc01 = by_id(r)["ACC-01"]
     assert (acc01["balance_inr"], acc01["credit_limit_inr"], acc01["utilization_ratio"]) == (59000, 75000, 0.787)

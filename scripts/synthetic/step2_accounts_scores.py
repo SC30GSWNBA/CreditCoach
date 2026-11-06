@@ -5,7 +5,7 @@ Reads:
     sample_data/credit_profile_sample.xlsx    Aravind's (USR-001) original data, in USD.
 Writes:
     data/accounts.csv         One row per card or loan: balance and limit in INR, and card utilization.
-    data/score_history.csv    One row per user per month (Oct 2025 to Sep 2026): score and what changed.
+    data/score_history.csv    One row per user per month (Oct 2025 to Oct 2026): score and what changed.
 
 Indian consumer context: amounts in INR, scores on the 300-900 range used by Indian credit bureaus,
 and Indian loan types (education, car, home, personal, instant loan app).
@@ -18,8 +18,11 @@ How the data follows each profile:
               scenario (steady improver, hard inquiries, late payment, utilization spike, ...; see
               ``SCENARIOS``). Every monthly change must fall within the range allowed for its factor
               (``FACTOR_RANGES``), whose negative ranges come from credit_score_factors_guide.pdf.
-    USR-001   Scores copied unchanged from the sample; amounts scaled x50 into INR, so every ratio is
-              identical (79% on the main card, 37.4% overall).
+    USR-001   Scores copied unchanged from the sample (which ends in Sep 2026), plus a fixed Oct 2026 month
+              (``USR001_OCT_2026``); amounts scaled x50 into INR, so every ratio is identical (79% on the
+              main card, 37.4% overall).
+    Oct 2026  Added after the first 12 months. Its change is drawn after every earlier one, so the earlier
+              months are exactly what they were before it was added.
 
 The output is deterministic (each user has a fixed random seed), and nothing is written unless every
 validation check passes (see ``validate``).
@@ -36,7 +39,7 @@ import pandas as pd
 from creditcoach import config
 
 DATA = config.ROOT / "data"
-MONTHS = [f"{y}-{m:02d}-01" for y, m in [(2025, 10), (2025, 11), (2025, 12)] + [(2026, m) for m in range(1, 10)]]
+MONTHS = [f"{y}-{m:02d}-01" for y, m in [(2025, 10), (2025, 11), (2025, 12)] + [(2026, m) for m in range(1, 11)]]
 
 # Allowed monthly score change per factor. Negative ranges: guide's Score Impact Reference Table.
 # Positive ranges, "Utilization increase" (stays under 30%) and "Stable": our assumptions for synthetic data.
@@ -55,6 +58,9 @@ SCORE_MIN, SCORE_MAX = 300, 900  # Indian bureau (CIBIL-style) range
 SAMPLE_TO_INR = 50  # fixed scale for USR-001's USD sample amounts: keeps every ratio identical
 # Auto Loan keeps the sample's label, the same type interview users with a car loan get (see LOANS)
 SAMPLE_TYPE_TO_INDIA = {"Student Loan": "Education Loan", "Retail Card": "Credit Card"}
+# The sample ends in Sep 2026. Oct 2026: the card is still at 79%, so the score holds just above Sep's 650.
+USR001_OCT_2026 = {"user_id": "USR-001", "date": "2026-10-01", "score": 651,
+                   "primary_factor_change": "Stable (no major change)"}
 
 CARD_LIMIT_BY_YEARS = {"Less than 1 year": (30000, 75000), "1 to 3 years": (75000, 150000),
                        "4 to 8 years": (150000, 300000), "More than 8 years": (300000, 500000)}
@@ -122,33 +128,35 @@ def story(uid: str, u: dict, rng: random.Random) -> list[str]:
         rng: The user's random generator (not used for the labels, which are fixed per scenario).
 
     Returns:
-        11 factor labels, one for each month from Nov 2025 to Sep 2026 (Oct 2025 is the baseline).
+        12 factor labels, one for each month from Nov 2025 to Oct 2026 (Oct 2025 is the baseline).
     """
     scenario = SCENARIOS.get(uid, "Steady improver")
-    base = ["On-time payments"] * 11
+    base = ["On-time payments"] * 12
     base[5] = "Account age increase"  # Apr 2026
     if scenario == "Steady improver":
         if u["self_reported_score"] == "Excellent":  # near the top of the scale, scores mostly hold
-            base = ["Stable (no major change)" if i % 2 else "On-time payments" for i in range(11)]
+            base = ["Stable (no major change)" if i % 2 else "On-time payments" for i in range(12)]
         if u["card_usage"] in ("10 to 30%", "") or u["pays_card"].startswith("More than the minimum"):
             base[2], base[3] = "Utilization increase", "Utilization decreased"  # Jan dip, Feb recovery
     elif scenario == "Hard inquiries (car loan shopping)":
-        base[9], base[10] = "Hard inquiry", "Hard inquiry"  # Aug and Sep applications
+        base[9], base[10] = "Hard inquiry", "Hard inquiry"  # Aug and Sep applications; Oct on time
     elif scenario == "Loan-only file (no credit card)":
-        base = ["On-time payments" if i % 3 == 0 else "Stable (no major change)" for i in range(11)]
+        base = ["On-time payments" if i % 3 == 0 else "Stable (no major change)" for i in range(12)]
     elif scenario == "Late payment recovery":
         base[5] = "Late payment (30+ days)"  # Apr 2026
     elif scenario == "Unnoticed utilization spike":
         base[8], base[9], base[10] = "Utilization increase", "Utilization spike", "Stable (no major change)"
+        base[11] = "Stable (no major change)"  # Oct: the card stays at 48%, still unnoticed
     elif scenario == "High utilization and debt stress":
         base = ["On-time payments", "Utilization increase", "Utilization increase", "Stable (no major change)",
                 "Hard inquiry", "Utilization spike", "On-time payments", "Utilization increase",
-                "Utilization spike", "Stable (no major change)", "Utilization spike"]
+                "Utilization spike", "Stable (no major change)", "Utilization spike",
+                "Stable (no major change)"]  # Oct: still at 83%, no paydown yet
     return base
 
 
 def build_scores(u: dict, rng: random.Random) -> list[dict]:
-    """Create one user's 12 monthly score records: a baseline in Oct 2025, then one change per month.
+    """Create one user's 13 monthly score records: a baseline in Oct 2025, then one change per month.
 
     Args:
         u: A row from users.csv.
@@ -176,12 +184,13 @@ def sample_rows() -> tuple[list[dict], list[dict]]:
     """Load Aravind's (USR-001) data from the sample workbook, converted to INR and Indian account types.
 
     Returns:
-        ``(score_rows, account_rows)``. Scores are unchanged; amounts are multiplied by ``SAMPLE_TO_INR``.
+        ``(score_rows, account_rows)``. Scores are unchanged, followed by ``USR001_OCT_2026``; amounts are
+        multiplied by ``SAMPLE_TO_INR``.
     """
     s = pd.read_excel(config.SAMPLE_DATA, sheet_name="ScoreHistory")
     a = pd.read_excel(config.SAMPLE_DATA, sheet_name="Accounts")
     scores = [{"user_id": r.user_id, "date": str(r.date)[:10], "score": int(r.score),
-               "primary_factor_change": r.primary_factor_change} for r in s.itertuples()]
+               "primary_factor_change": r.primary_factor_change} for r in s.itertuples()] + [USR001_OCT_2026]
     accounts = [{"account_id": r.account_id, "user_id": r.user_id,
                  "account_type": SAMPLE_TYPE_TO_INDIA.get(r.account_type, r.account_type),
                  "balance_inr": int(r.balance_usd) * SAMPLE_TO_INR,
@@ -253,7 +262,7 @@ def validate(users: list[dict], scores: list[dict], accounts: list[dict]) -> lis
         if r["credit_limit_inr"] != "" and r["utilization_ratio"] != round(r["balance_inr"] / r["credit_limit_inr"], 2):
             errors.append(f"{r['account_id']}: utilization_ratio mismatch")
     sample = pd.read_excel(config.SAMPLE_DATA, sheet_name="ScoreHistory")
-    if list(s[s.user_id == "USR-001"].score) != list(sample.score):
+    if list(s[s.user_id == "USR-001"].score)[:len(sample)] != list(sample.score):
         errors.append("USR-001 scores differ from sample_data")
     sample_util = pd.read_excel(config.SAMPLE_DATA, sheet_name="Accounts").utilization_ratio.dropna().tolist()
     if a[(a.user_id == "USR-001") & (a.utilization_ratio != "")].utilization_ratio.astype(float).tolist() != sample_util:

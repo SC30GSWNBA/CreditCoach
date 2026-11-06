@@ -4,24 +4,24 @@
 
 *Indian consumer context: amounts in ₹, scores on the 300–900 range used by Indian credit bureaus.*
 
-**15 user profiles** (USR-001 from requirements.md + 14 from user interviews) · **28 accounts** · **156 monthly score records** · **13 users with 12 months of history (Oct 2025 to Sep 2026)**, 2 with no credit file
+**15 user profiles** (USR-001 from requirements.md + 14 from user interviews) · **28 accounts** · **169 monthly score records** · **13 users with 13 months of history (Oct 2025 to Oct 2026)**, 2 with no credit file
 
-| User | Name | Source | Scenario | Cards | Other accounts | Revolving utilization | Score Oct 2025 → Sep 2026 | Latest factor change |
+| User | Name | Source | Scenario | Cards | Other accounts | Revolving utilization | Score Oct 2025 → Oct 2026 | Latest factor change |
 |---|---|---|---|---|---|---|---|---|
-| USR-001 | Aravind | Persona | Utilization spike + hard inquiry | 3 | Education Loan, Auto Loan | ₹74,750 / ₹2,00,000 = 37.4% | 662 → 650 | Hard inquiry + utilization spike |
-| USR-002 | Arjun | P1 | Steady improver | 1 | Education Loan | ₹6,700 / ₹90,000 = 7.4% | 806 → 837 | On-time payments |
-| USR-003 | Vikram | P2 | Hard inquiries (car loan shopping) | 1 | Education Loan | ₹39,800 / ₹1,45,000 = 27.4% | 733 → 761 | Hard inquiry |
+| USR-001 | Aravind | Persona | Utilization spike + hard inquiry | 3 | Education Loan, Auto Loan | ₹74,750 / ₹2,00,000 = 37.4% | 662 → 651 | Stable (no major change) |
+| USR-002 | Arjun | P1 | Steady improver | 1 | Education Loan | ₹6,700 / ₹90,000 = 7.4% | 806 → 835 | Stable (no major change) |
+| USR-003 | Vikram | P2 | Hard inquiries (car loan shopping) | 1 | Education Loan | ₹39,800 / ₹1,45,000 = 27.4% | 733 → 763 | On-time payments |
 | USR-004 | Ananya | P3 | No credit file | 0 | none | n/a (no cards) | no credit file | — |
-| USR-005 | Kavya | P4 | Loan-only file (no credit card) | 0 | Education Loan | n/a (no cards) | 737 → 759 | Stable (no major change) |
-| USR-006 | Rahul | P5 | Steady improver | 1 | Education Loan | ₹66,000 / ₹2,50,000 = 26.4% | 753 → 802 | On-time payments |
+| USR-005 | Kavya | P4 | Loan-only file (no credit card) | 0 | Education Loan | n/a (no cards) | 737 → 758 | Stable (no major change) |
+| USR-006 | Rahul | P5 | Steady improver | 1 | Education Loan | ₹66,000 / ₹2,50,000 = 26.4% | 753 → 806 | On-time payments |
 | USR-007 | Karthik | P6 | No credit file | 0 | none | n/a (no cards) | no credit file | — |
-| USR-008 | Neha | P7 | Steady improver | 1 | none | ₹8,500 / ₹1,10,000 = 7.7% | 657 → 710 | On-time payments |
-| USR-009 | Nikhil | P8 | Late payment recovery | 1 | Auto Loan | ₹16,700 / ₹1,05,000 = 15.9% | 791 → 760 | On-time payments |
-| USR-010 | Shruti | P9 | Steady improver | 1 | Home Loan | ₹81,600 / ₹3,00,000 = 27.2% | 754 → 795 | On-time payments |
+| USR-008 | Neha | P7 | Steady improver | 1 | none | ₹8,500 / ₹1,10,000 = 7.7% | 657 → 714 | On-time payments |
+| USR-009 | Nikhil | P8 | Late payment recovery | 1 | Auto Loan | ₹16,700 / ₹1,05,000 = 15.9% | 791 → 763 | On-time payments |
+| USR-010 | Shruti | P9 | Steady improver | 1 | Home Loan | ₹81,600 / ₹3,00,000 = 27.2% | 754 → 802 | On-time payments |
 | USR-011 | Sameer | P10 | Unnoticed utilization spike | 1 | Home Loan | ₹2,10,900 / ₹4,40,000 = 47.9% | 695 → 692 | Stable (no major change) |
-| USR-012 | Aditya | P11 | High utilization and debt stress | 1 | Home Loan, Personal Loan, Instant Loan App | ₹3,78,100 / ₹4,55,000 = 83.1% | 746 → 684 | Utilization spike |
-| USR-013 | Manish | P12 | Steady improver | 2 | none | ₹59,200 / ₹6,65,000 = 8.9% | 809 → 841 | On-time payments |
-| USR-014 | Rohan | P13 | Steady improver | 1 | Home Loan | ₹57,600 / ₹4,35,000 = 13.2% | 815 → 839 | On-time payments |
-| USR-015 | Siddharth | P14 | Steady improver | 1 | none | ₹42,300 / ₹2,65,000 = 16.0% | 733 → 780 | On-time payments |
+| USR-012 | Aditya | P11 | High utilization and debt stress | 1 | Home Loan, Personal Loan, Instant Loan App | ₹3,78,100 / ₹4,55,000 = 83.1% | 746 → 683 | Stable (no major change) |
+| USR-013 | Manish | P12 | Steady improver | 2 | none | ₹59,200 / ₹6,65,000 = 8.9% | 809 → 843 | Stable (no major change) |
+| USR-014 | Rohan | P13 | Steady improver | 1 | Home Loan | ₹57,600 / ₹4,35,000 = 13.2% | 815 → 840 | Stable (no major change) |
+| USR-015 | Siddharth | P14 | Steady improver | 1 | none | ₹42,300 / ₹2,65,000 = 16.0% | 733 → 786 | On-time payments |
 
 **Validation (run on every generation):** accounts and scores reference existing users; card counts match each interview answer; scores stay within 300–900; every monthly change falls within its factor's range; any user above 30% utilization has a utilization change in the last 3 months; utilization ratios equal balance ÷ limit; USR-001's scores and utilization ratios are identical to `sample_data` (amounts scaled ×50 into ₹). **Result: all checks passed.**

@@ -172,6 +172,7 @@ The eval suite also runs the 44 additional queries in requirements.md §4. Each 
 | Jul 2026 | 690 | On-time payments |
 | Aug 2026 | 670 | Utilization spike |
 | Sep 2026 | 650 | Hard inquiry + utilization spike |
+| Oct 2026 | 651 | Stable (no major change); generated, added 2026-11-06 |
 
 | Account | Balance | Limit | Utilization |
 |---|---|---|---|

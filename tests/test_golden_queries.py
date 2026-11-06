@@ -78,11 +78,12 @@ def test_derived_figures_in_requirements():
     assert acc01["balance_inr"] - 0.30 * acc01["credit_limit_inr"] == 36500  # #16 ACC-01 paydown
     assert 0.30 * acc01["credit_limit_inr"] == 22500
     assert totals["total_balance_inr"] == 74750 + 420000 + 305000 == 799750  # #17
-    assert 720 - get_score_history("USR-001", "latest")["points"][0]["score"] == 70  # #25 gap
-    assert 850 - get_score_history("USR-013", "latest")["points"][0]["score"] == 9  # #36
-    assert 811 - get_score_history("USR-009", "latest")["points"][0]["score"] == 51  # #42
-    h12 = get_score_history("USR-012", "latest")
-    assert h12["summary"]["start_score"] == 703 and h12["points"][0]["score"] == 684  # #12 latest drop 703 -> 684
+    assert 720 - get_score_history("USR-001", "latest")["points"][0]["score"] == 69  # #25 gap
+    assert 850 - get_score_history("USR-013", "latest")["points"][0]["score"] == 7  # #36
+    assert 811 - get_score_history("USR-009", "latest")["points"][0]["score"] == 48  # #42
+    h12 = get_score_history("USR-012", "2026-09")
+    assert h12["summary"]["start_score"] == 703 and h12["points"][0]["score"] == 684  # #12 Sep's drop 703 -> 684
+    assert get_score_history("USR-012", "latest")["points"][0]["score"] == 683  # #12 Oct held (-1)
 
 
 def test_users_without_a_query_are_known():

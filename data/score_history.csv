@@ -11,6 +11,7 @@ USR-001,2026-06-01,684,On-time payments
 USR-001,2026-07-01,690,On-time payments
 USR-001,2026-08-01,670,Utilization spike
 USR-001,2026-09-01,650,Hard inquiry + utilization spike
+USR-001,2026-10-01,651,Stable (no major change)
 USR-002,2025-10-01,806,Baseline
 USR-002,2025-11-01,811,On-time payments
 USR-002,2025-12-01,813,Stable (no major change)
@@ -23,6 +24,7 @@ USR-002,2026-06-01,827,Stable (no major change)
 USR-002,2026-07-01,835,On-time payments
 USR-002,2026-08-01,833,Stable (no major change)
 USR-002,2026-09-01,837,On-time payments
+USR-002,2026-10-01,835,Stable (no major change)
 USR-003,2025-10-01,733,Baseline
 USR-003,2025-11-01,737,On-time payments
 USR-003,2025-12-01,741,On-time payments
@@ -35,6 +37,7 @@ USR-003,2026-06-01,770,On-time payments
 USR-003,2026-07-01,772,On-time payments
 USR-003,2026-08-01,763,Hard inquiry
 USR-003,2026-09-01,761,Hard inquiry
+USR-003,2026-10-01,763,On-time payments
 USR-005,2025-10-01,737,Baseline
 USR-005,2025-11-01,742,On-time payments
 USR-005,2025-12-01,742,Stable (no major change)
@@ -47,6 +50,7 @@ USR-005,2026-06-01,751,Stable (no major change)
 USR-005,2026-07-01,752,Stable (no major change)
 USR-005,2026-08-01,757,On-time payments
 USR-005,2026-09-01,759,Stable (no major change)
+USR-005,2026-10-01,758,Stable (no major change)
 USR-006,2025-10-01,753,Baseline
 USR-006,2025-11-01,759,On-time payments
 USR-006,2025-12-01,765,On-time payments
@@ -59,6 +63,7 @@ USR-006,2026-06-01,786,On-time payments
 USR-006,2026-07-01,793,On-time payments
 USR-006,2026-08-01,797,On-time payments
 USR-006,2026-09-01,802,On-time payments
+USR-006,2026-10-01,806,On-time payments
 USR-008,2025-10-01,657,Baseline
 USR-008,2025-11-01,663,On-time payments
 USR-008,2025-12-01,670,On-time payments
@@ -71,6 +76,7 @@ USR-008,2026-06-01,696,On-time payments
 USR-008,2026-07-01,704,On-time payments
 USR-008,2026-08-01,708,On-time payments
 USR-008,2026-09-01,710,On-time payments
+USR-008,2026-10-01,714,On-time payments
 USR-009,2025-10-01,791,Baseline
 USR-009,2025-11-01,797,On-time payments
 USR-009,2025-12-01,799,On-time payments
@@ -83,6 +89,7 @@ USR-009,2026-06-01,738,On-time payments
 USR-009,2026-07-01,746,On-time payments
 USR-009,2026-08-01,753,On-time payments
 USR-009,2026-09-01,760,On-time payments
+USR-009,2026-10-01,763,On-time payments
 USR-010,2025-10-01,754,Baseline
 USR-010,2025-11-01,757,On-time payments
 USR-010,2025-12-01,764,On-time payments
@@ -95,6 +102,7 @@ USR-010,2026-06-01,784,On-time payments
 USR-010,2026-07-01,790,On-time payments
 USR-010,2026-08-01,793,On-time payments
 USR-010,2026-09-01,795,On-time payments
+USR-010,2026-10-01,802,On-time payments
 USR-011,2025-10-01,695,Baseline
 USR-011,2025-11-01,700,On-time payments
 USR-011,2025-12-01,708,On-time payments
@@ -107,6 +115,7 @@ USR-011,2026-06-01,728,On-time payments
 USR-011,2026-07-01,724,Utilization increase
 USR-011,2026-08-01,691,Utilization spike
 USR-011,2026-09-01,692,Stable (no major change)
+USR-011,2026-10-01,692,Stable (no major change)
 USR-012,2025-10-01,746,Baseline
 USR-012,2025-11-01,752,On-time payments
 USR-012,2025-12-01,750,Utilization increase
@@ -119,6 +128,7 @@ USR-012,2026-06-01,716,Utilization increase
 USR-012,2026-07-01,703,Utilization spike
 USR-012,2026-08-01,703,Stable (no major change)
 USR-012,2026-09-01,684,Utilization spike
+USR-012,2026-10-01,683,Stable (no major change)
 USR-013,2025-10-01,809,Baseline
 USR-013,2025-11-01,814,On-time payments
 USR-013,2025-12-01,816,Stable (no major change)
@@ -131,6 +141,7 @@ USR-013,2026-06-01,828,Stable (no major change)
 USR-013,2026-07-01,831,On-time payments
 USR-013,2026-08-01,833,Stable (no major change)
 USR-013,2026-09-01,841,On-time payments
+USR-013,2026-10-01,843,Stable (no major change)
 USR-014,2025-10-01,815,Baseline
 USR-014,2025-11-01,818,On-time payments
 USR-014,2025-12-01,817,Stable (no major change)
@@ -143,6 +154,7 @@ USR-014,2026-06-01,827,Stable (no major change)
 USR-014,2026-07-01,833,On-time payments
 USR-014,2026-08-01,834,Stable (no major change)
 USR-014,2026-09-01,839,On-time payments
+USR-014,2026-10-01,840,Stable (no major change)
 USR-015,2025-10-01,733,Baseline
 USR-015,2025-11-01,739,On-time payments
 USR-015,2025-12-01,742,On-time payments
@@ -155,3 +167,4 @@ USR-015,2026-06-01,763,On-time payments
 USR-015,2026-07-01,768,On-time payments
 USR-015,2026-08-01,772,On-time payments
 USR-015,2026-09-01,780,On-time payments
+USR-015,2026-10-01,786,On-time payments

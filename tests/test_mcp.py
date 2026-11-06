@@ -46,7 +46,7 @@ def test_server_errors_set_is_error():
         bad = await host._session.call_tool("get_score_history", {"user_id": "USR-001", "period": "2025-01"})
         return ok, bad
     ok, bad = run(with_host("USR-001", body))
-    assert ok.is_error is False and json.loads(ok.content[0].text)["points"][0]["score"] == 650
+    assert ok.is_error is False and json.loads(ok.content[0].text)["points"][0]["score"] == 651
     assert bad.is_error is True and json.loads(bad.content[0].text)["error"]["code"] == "PERIOD_OUT_OF_RANGE"
 
 
@@ -153,7 +153,7 @@ def test_agent_loop_runs_both_tools_over_mcp_and_returns_results(monkeypatch):
     assert text.startswith("Your score is 650") and model == "scripted-model"
     assert [(c.tool, c.ok) for c in calls] == [("get_score_history", True), ("get_account_summary", True)]
     results = {m["tool_call_id"]: json.loads(m["content"]) for m in seen[1]["messages"] if m["role"] == "tool"}
-    assert results["c1"]["points"][0]["score"] == 650            # the model got the real tool output back
+    assert results["c1"]["points"][0]["score"] == 651            # the model got the real tool output back
     assert results["c2"]["totals"]["overall_utilization_ratio"] == 0.374
     assert seen[0]["tools"] and all("user_id" not in t["function"]["parameters"]["properties"] for t in seen[0]["tools"])
 
@@ -194,7 +194,7 @@ def test_agent_loop_prefetches_both_tools_before_the_first_turn(monkeypatch):
     ids = [c["id"] for c in sent[1]["tool_calls"]]
     results = {m["tool_call_id"]: json.loads(m["content"]) for m in sent[2:]}
     assert list(results) == ids  # every prefetched call has its result, in order
-    assert results[ids[0]]["points"][-1]["score"] == 650
+    assert results[ids[0]]["points"][-1]["score"] == 651
     assert results[ids[1]]["totals"]["overall_utilization_ratio"] == 0.374
     assert seen[0]["tools"]  # the model can still ask for more
 

@@ -18,7 +18,7 @@ Example:
     >>> from creditcoach import dataset
     >>> users, accounts, scores = dataset.load()
     >>> len(users), len(accounts), len(scores)
-    (15, 28, 156)
+    (15, 28, 169)
 """
 
 import io

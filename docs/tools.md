@@ -17,7 +17,7 @@ These rules come from requirements.md §6 and the edge cases in §4.7.
 2. **`user_id` comes from the signed-in session, never from the model or the user's text.** The MCP host (Task #15) fills `user_id` from the session before each call. If the model passes any other id, the host refuses the call with `USER_MISMATCH` and the tool doesn't run. This covers "What's Vikram's credit score?" (§4 #49). Inside the tool, every row is filtered by `user_id` and checked again before it's returned, as `user_data.py` does today.
 3. **No credit file is a normal result, not an error.** A user with no accounts and no score history (USR-004, USR-007) gets `ok: true`, `has_credit_file: false`, empty lists and a `note`. The agent must say "no credit history yet", not show an error or invent a score (§4 #14, #20).
 4. **Errors are structured and never partly filled.** A failed call returns the error envelope in §4 and no data. The agent explains the error in plain language and never fills the gap with an estimate.
-5. **"Now" is the dataset's latest month, not today's date.** The dataset is a static snapshot (read from `data/*.csv`, or from its copy in Neon when `DATABASE_URL` is set; see `creditcoach/dataset.py`). Both tools return `as_of`, the latest month in `score_history.csv` (today `2026-09-01`). "This month" means that month.
+5. **"Now" is the dataset's latest month, not today's date.** The dataset is a static snapshot (read from `data/*.csv`, or from its copy in Neon when `DATABASE_URL` is set; see `creditcoach/dataset.py`). Both tools return `as_of`, the latest month in `score_history.csv` (`2026-10-01` since 2026-11-06; `2026-09-01` before). "This month" means that month.
 6. **Read-only.** Neither tool writes anything. Goal memory is a separate component (Task #16).
 7. **Amounts are whole rupees (`int`).** Ratios are decimals from 0 to 1, rounded to 3 places (0.374 = 37.4%).
 
@@ -44,7 +44,7 @@ Returns the user's monthly credit scores for a period, with each month's change 
 
 The agent turns relative wording into one of these forms. It resolves "March" or "April" to the most recent such month on or before `as_of`.
 
-**Partial overlap.** If the window runs past the months on file (for example `last_24_months` against 12 months of history), the tool returns the months it has and sets `period.clipped: true`. The agent should say the history starts in `available.start`. A window with no months on file at all is an error (`PERIOD_OUT_OF_RANGE`).
+**Partial overlap.** If the window runs past the months on file (for example `last_24_months` against 13 months of history), the tool returns the months it has and sets `period.clipped: true`. The agent should say the history starts in `available.start`. A window with no months on file at all is an error (`PERIOD_OUT_OF_RANGE`).
 
 ### Output
 
@@ -94,27 +94,29 @@ Response:
 {
   "ok": true,
   "user_id": "USR-001",
-  "as_of": "2026-09-01",
+  "as_of": "2026-10-01",
   "has_credit_file": true,
-  "period": {"requested": "latest", "start": "2026-09", "end": "2026-09", "clipped": false},
-  "available": {"start": "2025-10", "end": "2026-09"},
+  "period": {"requested": "latest", "start": "2026-10", "end": "2026-10", "clipped": false},
+  "available": {"start": "2025-10", "end": "2026-10"},
   "points": [
-    {"date": "2026-09-01", "score": 650, "change": -20, "factor_change": "Hard inquiry + utilization spike"}
+    {"date": "2026-10-01", "score": 651, "change": 1, "factor_change": "Stable (no major change)"}
   ],
   "summary": {
-    "start_score": 670, "end_score": 650, "net_change": -20,
-    "lowest": {"date": "2026-09-01", "score": 650},
-    "highest": {"date": "2026-09-01", "score": 650}
+    "start_score": 650, "end_score": 651, "net_change": 1,
+    "lowest": {"date": "2026-10-01", "score": 651},
+    "highest": {"date": "2026-10-01", "score": 651}
   }
 }
 ```
+
+Since Oct 2026 is on file (2026-11-06), "this month" held at 651: the 20-point drop the user means was September's. The agent says so and explains September from `{"period": "2026-09"}`: 650, change −20, `Hard inquiry + utilization spike` (requirements.md §3 #1).
 
 ### Example 2: "My score went from 690 to 650. What happened over the last two months?" (USR-001, §4 #7)
 
 Request:
 
 ```json
-{"user_id": "USR-001", "period": "last_2_months"}
+{"user_id": "USR-001", "period": "2026-08:2026-09"}
 ```
 
 Response:
@@ -123,10 +125,10 @@ Response:
 {
   "ok": true,
   "user_id": "USR-001",
-  "as_of": "2026-09-01",
+  "as_of": "2026-10-01",
   "has_credit_file": true,
-  "period": {"requested": "last_2_months", "start": "2026-08", "end": "2026-09", "clipped": false},
-  "available": {"start": "2025-10", "end": "2026-09"},
+  "period": {"requested": "2026-08:2026-09", "start": "2026-08", "end": "2026-09", "clipped": false},
+  "available": {"start": "2025-10", "end": "2026-10"},
   "points": [
     {"date": "2026-08-01", "score": 670, "change": -20, "factor_change": "Utilization spike"},
     {"date": "2026-09-01", "score": 650, "change": -20, "factor_change": "Hard inquiry + utilization spike"}
@@ -139,7 +141,7 @@ Response:
 }
 ```
 
-`start_score` is 690, the July score just before the window, so the user's "690 to 650" matches `net_change` exactly.
+`start_score` is 690, the July score just before the window, so the user's "690 to 650" matches `net_change` exactly. With Oct 2026 on file, `last_2_months` is Sep–Oct (670 → 651), which doesn't hold the fall the user describes, so the agent asks for the months that match their figures and adds that the score has since held (Oct: 651, +1).
 
 ### Example 3: "What was my score in March?" (USR-001, §4 #22)
 
@@ -159,7 +161,7 @@ Request: `{"user_id": "USR-004", "period": "latest"}`
 {
   "ok": true,
   "user_id": "USR-004",
-  "as_of": "2026-09-01",
+  "as_of": "2026-10-01",
   "has_credit_file": false,
   "period": {"requested": "latest", "start": null, "end": null, "clipped": false},
   "available": null,
@@ -176,7 +178,7 @@ A user with no credit file never gets `PERIOD_OUT_OF_RANGE`, because there is no
 | Code | When | `retryable` | What the agent says |
 |---|---|---|---|
 | `INVALID_PERIOD` | `period` doesn't match any form: `"last quarter"`, `"2026-13"`, `"last_0_months"`, `"last_30_months"`, or a range whose start is after its end | `false` | Nothing to the user. The agent retries once with a valid form. If it still can't express the request, it asks the user which months they mean. |
-| `PERIOD_OUT_OF_RANGE` | The period is valid but no month in it is on file, such as `"2025-01"` | `false` | "I don't have your score for January 2025. Your history on file runs from October 2025 to September 2026." It gives no estimate or nearby month (§4 #46). |
+| `PERIOD_OUT_OF_RANGE` | The period is valid but no month in it is on file, such as `"2025-01"` | `false` | "I don't have your score for January 2025. Your history on file runs from October 2025 to October 2026." It gives no estimate or nearby month (§4 #46). |
 | `UNKNOWN_USER` | `user_id` is empty, malformed, or not in `users.csv` | `false` | "I can't find your account data." This points to a session bug, since the host sets `user_id`. |
 | `USER_MISMATCH` | Raised by the host, not the tool: the model asked for a `user_id` other than the session user | `false` | Declines to look up another person's data (§4 #49) |
 | `DATA_UNAVAILABLE` | The data source can't be read, or the call takes longer than 5 seconds | `true` | "I can't pull your latest score history right now." It may repeat a figure a tool confirmed earlier this session, labeled as last confirmed (§4 #45). |
@@ -188,9 +190,9 @@ Example error, `period: "2025-01"` for USR-001:
   "ok": false,
   "error": {
     "code": "PERIOD_OUT_OF_RANGE",
-    "message": "No score history for 2025-01. History on file runs from 2025-10 to 2026-09.",
+    "message": "No score history for 2025-01. History on file runs from 2025-10 to 2026-10.",
     "retryable": false,
-    "details": {"requested": "2025-01", "available": {"start": "2025-10", "end": "2026-09"}}
+    "details": {"requested": "2025-01", "available": {"start": "2025-10", "end": "2026-10"}}
   }
 }
 ```
@@ -256,7 +258,7 @@ Response:
 {
   "ok": true,
   "user_id": "USR-001",
-  "as_of": "2026-09-01",
+  "as_of": "2026-10-01",
   "has_credit_file": true,
   "accounts": [
     {"account_id": "ACC-01", "type": "Credit Card", "category": "revolving", "balance_inr": 59000, "credit_limit_inr": 75000, "utilization_ratio": 0.787, "high_risk_product": false},
@@ -285,7 +287,7 @@ Request: `{"user_id": "USR-005"}`
 {
   "ok": true,
   "user_id": "USR-005",
-  "as_of": "2026-09-01",
+  "as_of": "2026-10-01",
   "has_credit_file": true,
   "accounts": [
     {"account_id": "ACC-10", "type": "Education Loan", "category": "installment", "balance_inr": 330000, "credit_limit_inr": null, "utilization_ratio": null, "high_risk_product": false}
@@ -319,7 +321,7 @@ with `totals.overall_utilization_ratio` 0.831 (₹3,78,100 ÷ ₹4,55,000) and `
 {
   "ok": true,
   "user_id": "USR-007",
-  "as_of": "2026-09-01",
+  "as_of": "2026-10-01",
   "has_credit_file": false,
   "accounts": [],
   "totals": {
@@ -386,13 +388,13 @@ Beyond T1–T15, every figure that an expected answer in requirements.md §3 and
 
 | # | Tool | Input | Expected |
 |---|---|---|---|
-| T1 | `get_score_history` | USR-001, `latest` | One point: 650, change −20, `Hard inquiry + utilization spike` |
-| T2 | `get_score_history` | USR-001, `last_2_months` | 670 (−20, `Utilization spike`), 650 (−20); `start_score` 690, `net_change` −40 |
+| T1 | `get_score_history` | USR-001, `latest` | One point: 651, change +1, `Stable (no major change)` |
+| T2 | `get_score_history` | USR-001, `last_2_months` | 650 (−20, `Hard inquiry + utilization spike`), 651 (+1); `start_score` 670, `net_change` −19 |
 | T3 | `get_score_history` | USR-001, `2026-03` | 678, change +5, `On-time payments` |
-| T4 | `get_score_history` | USR-012, `all` | 12 points, 746 → 684, `net_change` −62; first point's `change` is `null` |
-| T5 | `get_score_history` | USR-001, `last_24_months` | 12 points, `clipped: true` |
+| T4 | `get_score_history` | USR-012, `all` | 13 points, 746 → 683, `net_change` −63; first point's `change` is `null` |
+| T5 | `get_score_history` | USR-001, `last_24_months` | 13 points, `clipped: true` |
 | T6 | `get_score_history` | USR-004, `latest` | `ok: true`, `has_credit_file: false`, no points |
-| T7 | `get_score_history` | USR-001, `2025-01` | `PERIOD_OUT_OF_RANGE`, `available` 2025-10 to 2026-09 |
+| T7 | `get_score_history` | USR-001, `2025-01` | `PERIOD_OUT_OF_RANGE`, `available` 2025-10 to 2026-10 |
 | T8 | `get_score_history` | USR-001, `last quarter` | `INVALID_PERIOD` |
 | T9 | `get_account_summary` | USR-001 | 5 accounts; ACC-01 0.787; overall 0.374 (₹74,750 ÷ ₹2,00,000); total ₹7,99,750 |
 | T10 | `get_account_summary` | USR-013 | 2 cards at 0.089 each; overall 0.089 (₹59,200 ÷ ₹6,65,000) |

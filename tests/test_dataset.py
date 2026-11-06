@@ -20,7 +20,7 @@ from creditcoach.tools.score_history import get_score_history
 
 def test_files_backend_reads_the_csvs():
     users, accounts, scores = dataset.load()
-    assert (len(users), len(accounts), len(scores)) == (15, 28, 156)
+    assert (len(users), len(accounts), len(scores)) == (15, 28, 169)
     assert users.equals(pd.read_csv(config.DATA_DIR / "users.csv", dtype=str, keep_default_na=False))
 
 

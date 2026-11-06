@@ -58,7 +58,7 @@ def test_story_figure_shares_one_month_axis_and_dims_other_reasons():
     fig = C.story_figure(history("USR-001"), highlight="Utilization spike")
     floor, line, bars = fig.data
     assert line.yaxis in (None, "y") and bars.yaxis == "y2" and fig.layout.hoversubplots == "axis"
-    assert len(bars.x) == 11                              # the baseline month has no change
+    assert len(bars.x) == 12                              # Nov 2025 to Oct 2026: every month has its change
     lit = [o for o in bars.marker.opacity if o == 1]
     assert len(lit) == 1                                  # only Aug 2026 is a plain "Utilization spike"
     assert any(s.y0 == C.STRONG_SCORE for s in fig.layout.shapes)
@@ -66,7 +66,7 @@ def test_story_figure_shares_one_month_axis_and_dims_other_reasons():
 
 def test_snapshot_shows_the_tools_figures():
     html = C.snapshot_html(history("USR-001"), get_account_summary("USR-001"), "Buying a car")
-    for text in ("650", "100 points below 750", "-12", "37.4%", "Above 30%", "₹7,99,750", "3 cards · 2 loans",
+    for text in ("651", "99 points below 750", "-11", "37.4%", "Above 30%", "₹7,99,750", "3 cards · 2 loans",
                  "Buying a car"):
         assert text in html
 
@@ -96,7 +96,7 @@ def test_instant_loan_app_is_flagged_high_risk():
 
 def test_month_question_and_choices():
     choices = C.month_choices(history("USR-011", 3))
-    assert choices[0] == ("Sep 2026: 692 (+1)", "2026-09-01")
+    assert choices[0] == ("Oct 2026: 692 (0)", "2026-10-01") and choices[1] == ("Sep 2026: 692 (+1)", "2026-09-01")
     assert C.month_question("2026-08-01") == "Why did my score change in Aug 2026?"
 
 
