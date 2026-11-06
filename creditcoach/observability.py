@@ -151,9 +151,17 @@ def configure(exporters: list[SpanExporter] | None = None) -> TracerProvider:
         return provider
 
 
+_first_use = threading.Lock()
+
+
 def tracer() -> trace.Tracer:
+    """The tracer, building the provider on first use. Only one thread builds it: when 4 answers started at once
+    (an eval's parallel cases), each built its own and shut down the one before, so the spans already started on it,
+    the answers' root spans among them, were never exported (3 answers lost per parallel run, found 2026-11-06)."""
     if _tracer is None:
-        configure()
+        with _first_use:
+            if _tracer is None:
+                configure()
     return _tracer
 
 

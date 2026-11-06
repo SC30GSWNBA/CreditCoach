@@ -436,13 +436,42 @@ reads lower than the eval's goal cases.</p>
 <h3>By day</h3>{days}"""
 
 
+BENCHMARK = Path(__file__).resolve().parents[1] / "evals" / "benchmark_traffic.json"
+"""The 2026-11-05/06 model benchmark's answers, one record each as ``requests`` makes them. It ran with Langfuse off,
+so its traces stayed on the machine that ran it; the records ship with the app so the dashboard counts them too."""
+
+
+def shipped(days: int, now: datetime | None = None) -> list[dict]:
+    """The benchmark's answers in the last ``days`` days (none if the file is missing or unreadable)."""
+    since = ((now or datetime.now(UTC)) - timedelta(days=days)).date().isoformat()
+    try:
+        records = json.loads(BENCHMARK.read_text(encoding="utf-8"))["records"]
+    except (OSError, json.JSONDecodeError, KeyError):
+        log.warning("No benchmark answers at %s", BENCHMARK)
+        return []
+    return [r for r in records if r["day"] >= since]
+
+
+def answers(days: int) -> tuple[list[dict], str]:
+    """Every answer of the last ``days`` days and where they came from: the traces (``load``), and the benchmark's
+    shipped answers that aren't among them."""
+    spans, source = load(days)
+    records = requests(spans)
+    seen = {r["trace_id"] for r in records}
+    extra = [r for r in shipped(days) if r["trace_id"] not in seen]
+    if extra:
+        source += (f"; and {len(extra):,} answer{'s' if len(extra) != 1 else ''} of the 2026-11-05/06 model benchmark, "
+                   "which ran with Langfuse off and ships with the app")
+    return records + extra, source
+
+
 def view(days: int, traffic: str) -> str:
     """The dashboard HTML for a period (in days) and a traffic kind, or a short note if the traces can't be read."""
     period = next((label for label, d in PERIODS if d == days), f"Last {days} days")
     kind = next((label for label, k in TRAFFIC if k == traffic), traffic)
     try:
-        spans, source = load(days)
-        return html(summarize(requests(spans), traffic), source, period, kind)
+        records, source = answers(days)
+        return html(summarize(records, traffic), source, period, kind)
     except Exception:
         log.exception("Dashboard unavailable")
         return ('<div class="cc-empty"><b>The dashboard is unavailable right now.</b>'
@@ -485,6 +514,8 @@ def model_name(model: str) -> str:
     parts = model.split("/")[-1].split("-")
     if parts[0] == "gpt" and len(parts) > 1:
         return " ".join([f"GPT-{parts[1]}", *(p.capitalize() for p in parts[2:])])
+    if len(parts) > 2 and parts[-1] == "0" and parts[-2].isdigit():
+        parts = parts[:-1]  # mistral-large-4-0 is "Mistral Large 4"
     return " ".join(_word(p) for p in parts)
 
 
@@ -887,8 +918,8 @@ def cost_view(days: int, traffic: str) -> dict:
     kind = next((label for label, k in TRAFFIC if k == traffic), traffic)
     cmp = comparison()
     try:
-        spans, source = load(days)
-        c = summarize(requests(spans), traffic)["cost"]
+        records, source = answers(days)
+        c = summarize(records, traffic)["cost"]
     except Exception:
         log.exception("Cost and speed unavailable")
         return {**dict.fromkeys(COST_PARTS), "costs": None, "top": ('<div class="cc-empty"><b>Cost and speed are unavailable right '

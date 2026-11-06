@@ -52,6 +52,8 @@ Since 2026-11-01 the spend, response time and tokens by day charts show dates on
 
 Every run is in `runs/` with its report here (`eval-bench-*.md`, `eval-router-*.md`, `red-team-*.md`). 19 new pytest tests in `test_router.py` and 1 in `test_dashboard.py`; 2 dashboard tests and the cache tests' fake model updated (it now answers as the model the router picked). 814 tests in all.
 
+**Fixed after the merge (2026-11-06): the Dashboard tab didn't count the benchmark.** Checked on the deployed app: the eval and test runs view showed 630 answers over 30 days and none of the models tried on 5–6 Nov, because the benchmark ran with Langfuse off. Its 1,752 answers now ship with the app as records (no question or answer in them) and are counted by day: 2,382 eval answers over 30 days, every model tried, each run listed. Found on the way: when 4 answers started at once, the tracer was built 4 times and 3 answers' root spans were dropped, so parallel runs lost 3 answers each from the counts (the 31 Oct screens show 5 of 8 per model). Fixed in `observability.tracer`. 3 new pytest tests.
+
 ## Week 4 demo goal
 
 > *Full live walkthrough: Gradio UI + observability dashboard, an eval score shown before/after your error-analysis fixes, and a predatory-product refusal on demand.* (tasks.md)
