@@ -145,6 +145,35 @@ def test_the_file_exporter_writes_one_line_per_span_and_load_reads_a_trace_back(
     assert spans[0]["events"][0]["attributes"] == {"layer": "retrieval", "result": "hit"}
 
 
+def test_answers_started_at_once_share_one_provider_so_no_root_span_is_lost(tmp_path, monkeypatch):
+    """2026-11-06: 4 parallel answers each built a provider and shut down the one before, losing 3 root spans."""
+    import threading
+    import time
+    built, real = [], obs.configure
+
+    def slow_configure(exporters=None):
+        time.sleep(0.05)  # widen the window in which the threads race
+        built.append(1)
+        return real([obs.FileExporter(tmp_path)])
+    monkeypatch.setattr(obs, "configure", slow_configure)
+    monkeypatch.setattr(obs, "_tracer", None)
+    monkeypatch.setattr(obs, "_provider", None)
+    start, ids = threading.Barrier(4), []
+
+    def answer():
+        start.wait()
+        with obs.span("creditcoach.answer", root=True):
+            time.sleep(0.1)
+            ids.append(obs.trace_id())
+    threads = [threading.Thread(target=answer) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(built) == 1
+    assert all([s["name"] for s in obs.load(i, tmp_path)] == ["creditcoach.answer"] for i in ids)
+
+
 def test_attribute_values_are_made_safe_for_opentelemetry():
     long = "x" * (obs.MAX_TEXT + 10)
     attrs = obs.attributes(a=None, b={"k": 1}, c=long, d=[1, 2], e=[], f=True)

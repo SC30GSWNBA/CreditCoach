@@ -23,10 +23,12 @@ GOAL = {"target_score": 720, "target_date": "2027", "purpose": "saving for a car
 
 
 @pytest.fixture(autouse=True)
-def no_langfuse(monkeypatch):
-    """No test reads the developer's Langfuse project, and every test starts with nothing loaded."""
+def no_langfuse(monkeypatch, tmp_path):
+    """No test reads the developer's Langfuse project, every test starts with nothing loaded, and the shipped
+    benchmark answers stay out unless a test puts them back."""
     monkeypatch.setattr(config, "LANGFUSE_PUBLIC_KEY", "")
     monkeypatch.setattr(config, "LANGFUSE_SECRET_KEY", "")
+    monkeypatch.setattr(D, "BENCHMARK", tmp_path / "no-benchmark.json")
     D.forget()
 
 
@@ -359,6 +361,7 @@ def test_model_ids_are_named_as_people_say_them():
     assert D.model_name("deepseek/deepseek-v4.1-flash") == "DeepSeek V4.1 Flash"
     assert D.model_name("qwen/qwen3.8-27b") == "Qwen3.8 27B" and D.model_name("z-ai/glm-5.3-flash") == "GLM 5.3 Flash"
     assert D.model_name("nvidia/nemotron-3-ultra-550b-a55b") == "Nemotron 3 Ultra 550B A55B"
+    assert D.model_name("mistralai/mistral-large-4-0") == "Mistral Large 4"
 
 
 def test_the_cost_view_has_every_part_and_never_a_question_answer_or_user(monkeypatch):
@@ -498,3 +501,35 @@ def test_the_by_day_charts_show_dates_and_never_a_time_of_day(days, step):
     c, _ = real_costs()
     for fig in (D.spend_figure(c), D.latency_figure(c), D.tokens_figure(c)):
         assert fig.layout.xaxis.tickformat == "%b %-d" and fig.layout.xaxis.dtick % D.DAY_MS == 0
+
+
+def test_the_benchmark_answers_ship_with_the_app_and_cover_every_run():
+    """2026-11-06: the 5-6 Nov benchmark ran with Langfuse off, so the dashboard showed none of its answers."""
+    import json
+    from pathlib import Path
+    records = json.loads((Path(D.__file__).resolve().parents[1] / "evals" / "benchmark_traffic.json")
+                         .read_text(encoding="utf-8"))["records"]
+    runs = {r["run"] for r in records}
+    cmp = D.comparison()
+    assert {f"eval:{r['label']}" for r in cmp["runs"] if r["date"] >= "2026-11-05"} <= runs
+    assert len(records) == 50 * sum(r.startswith("eval:") for r in runs) + 38 * sum("red-team" in r for r in runs) \
+        + 8 * sum("screen" in r for r in runs)
+    assert all(r["eval"] and r["model"] and "question" not in r for r in records)
+
+
+def test_the_benchmark_answers_are_counted_by_period_once_each(monkeypatch, tmp_path):
+    import json
+    bench = [{**rec, "trace_id": f"b{i}", "run": "eval:router-1", "eval": True, "day": day}
+             for i, (rec, day) in enumerate([(D.requests(costed("x"))[0], "2026-10-27"),
+                                             (D.requests(costed("y"))[0], "2026-10-01")])]
+    path = tmp_path / "benchmark.json"
+    path.write_text(json.dumps({"records": bench}))
+    monkeypatch.setattr(D, "BENCHMARK", path)
+    monkeypatch.setattr(D, "load", lambda days: (cost_traces(), "local trace files"))
+    assert [r["trace_id"] for r in D.shipped(7, NOW)] == ["b0"]  # the October 1 answer is outside the week
+    monkeypatch.setattr(D, "shipped", lambda days: D.requests(costed("c4", tags=["eval", "eval:baseline"])) + bench[:1])
+    records, source = D.answers(7)
+    assert [r["trace_id"] for r in records].count("c4") == 1 and "b0" in {r["trace_id"] for r in records}
+    assert "1 answer of the 2026-11-05/06 model benchmark" in source
+    page = D.view(7, "eval")
+    assert "eval:router-1 1" in page
