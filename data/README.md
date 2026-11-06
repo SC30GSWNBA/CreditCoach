@@ -29,7 +29,7 @@ With `DATABASE_URL` set, the app reads a copy of these three files from Neon Pos
 |---|---|---|
 | `users.csv` | user (15) | `user_id`, `first_name`, `gender`, `age`, `age_band`, `years_working`, `credit_cards`, `checks_score`, `learns_from`, `self_reported_score`, `knowledge_score` (0–6, Q7–Q12), `unexplained_drop`, `pays_card`, `card_usage`, `knows_apr`, `late_payments_12m`, `loans`, `risky_product_exposure`, `invests_in`, `emergency_fund`, `emi_pct`, `invest_pct`, `goals_2yr`, `source` |
 | `accounts.csv` | account (28) | `account_id`, `user_id`, `account_type`, `balance_inr`, `credit_limit_inr` (blank for installment loans), `utilization_ratio` (blank for installment loans) |
-| `score_history.csv` | user × month (156) | `user_id`, `date` (1st of month, Oct 2025 to Sep 2026), `score`, `primary_factor_change` |
+| `score_history.csv` | user × month (169) | `user_id`, `date` (1st of month, Oct 2025 to Oct 2026), `score`, `primary_factor_change` |
 
 `accounts.csv` and `score_history.csv` follow the sample workbook's columns, with amounts in ₹ (`_inr` instead of `_usd`). The Week 2 tools (`get_score_history`, `get_account_summary`), specified in [docs/tools.md](../docs/tools.md), serve them (Tasks 13–14). Since Task 15 the chat reads scores and accounts only through those tools, over MCP, and `creditcoach/user_data.py` supplies just the signed-in user's profile from `users.csv`. Both return the signed-in user's own rows and never another user's. The tools add fields that module doesn't have yet, such as each month's score change, account totals, and utilization computed from balance ÷ limit to 3 places. The `users.csv` answers use the questionnaire's wording. For USR-001, fields the persona doesn't state are left blank.
 
@@ -42,7 +42,7 @@ A sign-up follows the table below and the score bounds further down, with three 
 - **The self-reported score is the latest month,** not the first: Excellent 800–845, Good 740–790, Average/fair 660–720, Below average/poor 560–640, don't know 690–740. Late payments can still leave the latest month below the band.
 - **Answers the interviews never gave:** "4 or more" cards gives four cards, a buy-now-pay-later plan gives a `Buy Now Pay Later` account (₹2,000–30,000), and a current payday loan gives an `Instant Loan App` account.
 
-Score history covers the same 12 months as everyone else's, so the tools' latest month doesn't move when someone signs up.
+Score history covers the latest 12 months on file, so the tools' latest month doesn't move when someone signs up. When the CSVs gain a month (Oct 2026, added on 2026-11-06), `scripts/data_import.py` carries every sign-up's history on to it, one month at a time, continuing the same story (`generate.extend`): on-time payments, or a high card that stays high, with the months already on file unchanged.
 
 ## How Interview Answers Become Accounts and Scores
 
@@ -60,7 +60,7 @@ Score history covers the same 12 months as everyone else's, so the tools' latest
 | User | Source | Scenario | What happens | Queries it exercises (requirements.md §3, §4) |
 |---|---|---|---|---|
 | USR-001 Aravind | Persona | Utilization spike + hard inquiry | 690 → 670 → 650; card at 79% | #1–#6 (the main demo user); §4: #7, #8, #15–#17, #22, #25, #30, #31, #33, #37–#41, #43, #45–#50 |
-| USR-003 Vikram | P2 | Hard inquiries (car loan shopping) | Two inquiry dips in Aug and Sep; wants a car | #1 with a different cause; #3 car plan; §4: #9, #23 |
+| USR-003 Vikram | P2 | Hard inquiries (car loan shopping) | Two inquiry dips in Aug and Sep, then on time in Oct; wants a car | #1 with a different cause; #3 car plan; §4: #9, #23 |
 | USR-009 Nikhil | P8 ("prefer not to say" on late payments) | Late payment recovery | Payment 30+ days past due in Apr 2026 (811 → 729), recovering since | The guide's biggest factor; §4: #11, #34, #42 |
 | USR-011 Sameer | P10 | Unnoticed utilization spike | Card creeps to 48%; Aug drop of 33 points (724 → 691) he didn't notice | #1 and #2 for a user who never checks; §4: #10, #32 |
 | USR-012 Aditya | P11 | High utilization and debt stress | 83% card usage, personal loan, **Instant Loan App**; 746 → 684 | #2 high utilization; #4 predatory-product guardrail; §4: #12, #21, #29, #44 |

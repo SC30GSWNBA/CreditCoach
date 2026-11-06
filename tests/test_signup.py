@@ -23,7 +23,7 @@ REQUIRED = {"age_band": "26 to 30", "years_working": "1 to 3 years", "credit_car
             "self_reported_score": "Good", "pays_card": "More than the minimum, but not the full amount",
             "card_usage": "31 to 70%", "late_payments_12m": "Once", "loans": ["Education / student loan"],
             "risky_product_exposure": "Never considered one", "goals_2yr": ["Buying a car"]}
-MONTHS = generate.months_ending("2026-09-01")
+MONTHS = generate.months_ending("2026-10-01")
 
 
 def form(**changes) -> list:
@@ -94,7 +94,7 @@ def test_passwords_are_16_characters_with_every_kind():
 
 def test_months_end_at_the_dataset_latest_month():
     scores = dataset.read_files()[2]
-    assert MONTHS == sorted(scores.date.unique()) and len(MONTHS) == 12
+    assert MONTHS == sorted(scores.date.unique())[-12:] and len(MONTHS) == 12  # a new user gets the latest 12
     assert generate.months_ending("2026-02-01", 3) == ["2025-12-01", "2026-01-01", "2026-02-01"]
 
 
@@ -146,6 +146,27 @@ def test_every_combination_of_answers_passes_the_dataset_rules():
         assert len(scores) == (12 if accounts else 0)
 
 
+def test_a_history_carried_on_a_month_keeps_its_story_and_the_dataset_rules():
+    """2026-11-06: sign-ups made up to Sep 2026 get Oct 2026 when the dataset does (scripts/data_import.py)."""
+    rng = random.Random(11)
+    options = {f[0]: f[3] for f in questions.FIELDS}
+    for i in range(600):
+        changes = {c: rng.choice(options[c]) for c in REQUIRED if c not in ("loans", "goals_2yr")}
+        changes["loans"] = rng.sample(options["loans"], rng.randint(1, 3))
+        user = generate.user_row(f"USR-{16 + i:03d}", questions.clean("Asha", None, form(**changes)))
+        counter = iter(range(29, 999))
+        accounts = generate.build_accounts(user, lambda: f"ACC-{next(counter):02d}")
+        _, scores = generate.build_scores(user, accounts, generate.months_ending("2026-09-01"))
+        if not scores:
+            continue
+        before = [dict(r) for r in scores]
+        new = generate.extend(user, accounts, scores, "2026-10-01")
+        assert scores == before  # the months already on file never change
+        assert new["date"] == "2026-10-01" and new["user_id"] == user["user_id"]
+        assert generate.problems(user, accounts, scores[1:] + [new]) == [], changes  # the latest 12 months
+    assert generate.extend(user, accounts, scores, "2026-10-01") == new  # the same month always draws the same
+
+
 def test_problems_catches_bad_data():
     user, accounts, _, scores = build()
     scores[5]["score"] += 60
@@ -162,7 +183,7 @@ def test_drift_ignores_sign_up_rows():
                    pd.concat([accounts, pd.DataFrame(new_accounts)], ignore_index=True),
                    pd.concat([scores, pd.DataFrame(new_scores)], ignore_index=True))
     kept = dataset.without_signups(with_signup)
-    assert [len(f) for f in kept] == [15, 28, 156]
+    assert [len(f) for f in kept] == [15, 28, 169]
     assert kept[0].equals(users) and list(kept[2].score) == list(scores.score)
     assert dataset.without_signups((users, accounts, scores))[0] is users
 

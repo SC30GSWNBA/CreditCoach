@@ -14,7 +14,7 @@ from creditcoach import config
 from creditcoach.tools import common
 from creditcoach.tools.score_history import get_score_history
 
-AVAILABLE = {"start": "2025-10", "end": "2026-09"}
+AVAILABLE = {"start": "2025-10", "end": "2026-10"}
 
 
 def points(result):
@@ -26,19 +26,19 @@ def points(result):
 
 def test_t1_latest_month():
     r = get_score_history("USR-001", "latest")
-    assert r["ok"] and r["has_credit_file"] and r["as_of"] == "2026-09-01"
-    assert points(r) == [("2026-09-01", 650, -20, "Hard inquiry + utilization spike")]
-    assert r["summary"]["start_score"] == 670 and r["summary"]["net_change"] == -20
+    assert r["ok"] and r["has_credit_file"] and r["as_of"] == "2026-10-01"
+    assert points(r) == [("2026-10-01", 651, 1, "Stable (no major change)")]
+    assert r["summary"]["start_score"] == 650 and r["summary"]["net_change"] == 1
 
 
 def test_t2_last_two_months():
     r = get_score_history("USR-001", "last_2_months")
-    assert points(r) == [("2026-08-01", 670, -20, "Utilization spike"),
-                         ("2026-09-01", 650, -20, "Hard inquiry + utilization spike")]
-    assert r["period"] == {"requested": "last_2_months", "start": "2026-08", "end": "2026-09", "clipped": False}
-    assert r["summary"] == {"start_score": 690, "end_score": 650, "net_change": -40,
+    assert points(r) == [("2026-09-01", 650, -20, "Hard inquiry + utilization spike"),
+                         ("2026-10-01", 651, 1, "Stable (no major change)")]
+    assert r["period"] == {"requested": "last_2_months", "start": "2026-09", "end": "2026-10", "clipped": False}
+    assert r["summary"] == {"start_score": 670, "end_score": 651, "net_change": -19,
                             "lowest": {"date": "2026-09-01", "score": 650},
-                            "highest": {"date": "2026-08-01", "score": 670}}
+                            "highest": {"date": "2026-10-01", "score": 651}}
 
 
 def test_t3_single_month():
@@ -48,16 +48,16 @@ def test_t3_single_month():
 
 def test_t4_all_months():
     r = get_score_history("USR-012", "all")
-    assert len(r["points"]) == 12
+    assert len(r["points"]) == 13
     assert r["points"][0] == {"date": "2025-10-01", "score": 746, "change": None, "factor_change": "Baseline"}
-    assert r["summary"]["start_score"] == 746 and r["summary"]["end_score"] == 684
-    assert r["summary"]["net_change"] == -62
+    assert r["summary"]["start_score"] == 746 and r["summary"]["end_score"] == 683
+    assert r["summary"]["net_change"] == -63
 
 
 def test_t5_window_longer_than_history_is_clipped():
     r = get_score_history("USR-001", "last_24_months")
-    assert r["ok"] and len(r["points"]) == 12
-    assert r["period"] == {"requested": "last_24_months", "start": "2025-10", "end": "2026-09", "clipped": True}
+    assert r["ok"] and len(r["points"]) == 13
+    assert r["period"] == {"requested": "last_24_months", "start": "2025-10", "end": "2026-10", "clipped": True}
 
 
 def test_t6_no_credit_file_is_not_an_error():
@@ -71,7 +71,7 @@ def test_t7_period_out_of_range():
     r = get_score_history("USR-001", "2025-01")
     assert r == {"ok": False, "error": {
         "code": "PERIOD_OUT_OF_RANGE",
-        "message": "No score history for 2025-01. History on file runs from 2025-10 to 2026-09.",
+        "message": "No score history for 2025-01. History on file runs from 2025-10 to 2026-10.",
         "retryable": False,
         "details": {"requested": "2025-01", "available": AVAILABLE}}}
 
@@ -103,7 +103,7 @@ def test_range_form_and_change_across_window_edge():
 
 def test_range_running_past_as_of_is_clipped():
     r = get_score_history("USR-001", "2026-08:2026-12")
-    assert r["period"] == {"requested": "2026-08:2026-12", "start": "2026-08", "end": "2026-09", "clipped": True}
+    assert r["period"] == {"requested": "2026-08:2026-12", "start": "2026-08", "end": "2026-10", "clipped": True}
 
 
 def test_range_entirely_before_history_is_out_of_range():
@@ -144,7 +144,7 @@ def test_unknown_user(user_id):
 
 def test_new_interview_users_are_served():
     r = get_score_history("USR-015", "all")
-    assert r["ok"] and len(r["points"]) == 12 and r["summary"]["start_score"] == 733
+    assert r["ok"] and len(r["points"]) == 13 and r["summary"]["start_score"] == 733
 
 
 def test_every_change_matches_the_data():

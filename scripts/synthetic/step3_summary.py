@@ -52,9 +52,9 @@ def main() -> None:
         "*Indian consumer context: amounts in ₹, scores on the 300–900 range used by Indian credit bureaus.*\n",
         f"**{len(users)} user profiles** (USR-001 from requirements.md + {len(users) - 1} from user interviews) · "
         f"**{len(accounts)} accounts** · **{len(scores)} monthly score records** · "
-        f"**{with_history} users with 12 months of history (Oct 2025 to Sep 2026)**, "
+        f"**{with_history} users with 13 months of history (Oct 2025 to Oct 2026)**, "
         f"{len(users) - with_history} with no credit file\n",
-        "| User | Name | Source | Scenario | Cards | Other accounts | Revolving utilization | Score Oct 2025 → Sep 2026 | Latest factor change |",
+        "| User | Name | Source | Scenario | Cards | Other accounts | Revolving utilization | Score Oct 2025 → Oct 2026 | Latest factor change |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
     for u in users.itertuples():

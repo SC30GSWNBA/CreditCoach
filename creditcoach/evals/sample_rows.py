@@ -73,9 +73,11 @@ def criteria(qid: int, a, goal, goal_before) -> list[tuple[str, bool | None, str
             ("Calls the score-history tool", tool_ok(a, "get_score_history"), "get_score_history returned data"),
             ("Retrieves the scoring-factor explanation via RAG", "scoring_factor" in cats and bool(cited),
              f"passages: {', '.join(p.id for p in a.passages)}; cites {cited}"),
-            ("Reports the actual change (−20, to 650)", has(t, ["20"], ["650"]), "20 and 650 both stated"),
-            ("Gives the tool's reason: a hard inquiry and a utilization spike", has(t, ["inquiry"], ["utilization"]),
-             "tool factor: \"Hard inquiry + utilization spike\""),
+            # since Oct 2026 is in the data, "this month" rose 1 point: the 20-point drop the user means was September's
+            ("Corrects the timing: October rose to 651; the drop was September's (−20, to 650)",
+             has(t, ["651"], ["20"], ["650"], ["september", "sep"]), "651, 20, 650 and September all stated"),
+            ("Gives the tool's reason for the September drop: a hard inquiry and a utilization spike",
+             has(t, ["inquiry"], ["utilization"]), "tool factor for Sep 2026: \"Hard inquiry + utilization spike\""),
             no_invented]
     if qid == 2:
         return [

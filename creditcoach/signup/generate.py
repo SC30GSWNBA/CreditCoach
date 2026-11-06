@@ -216,6 +216,41 @@ def build_scores(u: dict, accounts: list[dict], months: list[str]) -> tuple[str,
     return name, rows
 
 
+def next_label(u: dict, accounts: list[dict], rows: list[dict]) -> str:
+    """The factor label for the month after ``rows``: the person's story carried on, as step 2 carries the dataset
+    users' (``scripts/synthetic/step2_accounts_scores.py``). A high card stays high, since nothing in the data pays
+    it down; late payments stay in the past."""
+    name, _ = story(u, accounts)
+    i = len(rows) - 1  # months since the baseline so far: 11 for a 12-month history
+    if name.startswith("Loan-only"):
+        return "On-time payments" if i % 3 == 0 else "Stable (no major change)"
+    if name.startswith(("High utilization", "Utilization spike")):
+        return "Stable (no major change)"
+    if u["self_reported_score"] == "Excellent":  # near the top of the scale, scores mostly hold
+        return "Stable (no major change)" if i % 2 else "On-time payments"
+    return "On-time payments"
+
+
+def extend(u: dict, accounts: list[dict], rows: list[dict], month: str) -> dict:
+    """One more month for an existing history (2026-11-06: the sign-ups' Oct 2026, when the dataset gained it). Its
+    change is drawn from its own seed, so the months before it stay exactly as they were.
+
+    Args:
+        u: The person's ``dataset_users`` row.
+        accounts: Their ``dataset_accounts`` rows.
+        rows: Their score history so far, oldest first.
+        month: The new month, ``YYYY-MM-01``.
+
+    Returns:
+        A row with ``dataset.SCORE_COLUMNS``.
+    """
+    label = next_label(u, accounts, rows)
+    last = rows[-1]["score"]
+    lo, hi = FACTOR_RANGES[label]
+    change = random.Random(f"{u['user_id']}:scores:{month}").randint(max(lo, SCORE_MIN - last), min(hi, SCORE_MAX - last))
+    return {"user_id": u["user_id"], "date": month, "score": last + change, "primary_factor_change": label}
+
+
 def problems(u: dict, accounts: list[dict], scores: list[dict]) -> list[str]:
     """Step 2's validation rules, applied to one new user. Empty means the data is consistent."""
     errors = []
