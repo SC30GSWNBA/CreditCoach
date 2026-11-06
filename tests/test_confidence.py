@@ -118,7 +118,7 @@ def test_reply_survives_a_failing_confidence_check(monkeypatch):
 def test_answer_keeps_what_the_model_was_given_as_sources(monkeypatch):
     monkeypatch.setattr(pipeline, "retrieve", lambda q, k=3: [])
     monkeypatch.setattr(pipeline, "load_system_prompt", lambda: "SYSTEM PROMPT 123456")
-    monkeypatch.setattr(pipeline, "chat_with_tools", lambda messages, tools: (
+    monkeypatch.setattr(pipeline, "chat_with_tools", lambda messages, tools, model=None: (
         SimpleNamespace(content="Your score is 650.", tool_calls=None), "m"))
     a = pipeline.answer("What's my score?", user_id="USR-001")
     assert "What's my score?" in a.sources and '"score": 650' in a.sources and "123456" not in a.sources

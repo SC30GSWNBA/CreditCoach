@@ -42,6 +42,16 @@ Since 2026-11-01 the spend, response time and tokens by day charts show dates on
 
 [responsive-and-layout-fixes.md](responsive-and-layout-fixes.md), merged as #72: a test of 22 screen sizes in light and dark mode (572 captures, emulated browsers, 320px to 5120px) found 10 layout bugs. Tabs were cut off on phones, the first example questions couldn't be reached, and the month and card dropdowns on My credit were unreadable in dark mode on every size. All 10 are fixed, and the re-run shows no sideways scrolling, nothing off-screen, no cut tabs and no chart text cut off. 8 pytest tests (`test_theme.py`). Still to try on real devices, and production hasn't been rechecked since the merge.
 
+## Open-weight models, and routing between two models (2026-11-05 and 06)
+
+[model-choice-and-caching.md](model-choice-and-caching.md): the brief was $0.015 per question without losing response time (about 15 s) or eval score. Sonnet alone can't reach it: its prompt alone costs $0.015.
+
+- **Benchmark.** Run with [scripts/model_benchmark.py](../../../scripts/model_benchmark.py), the real pipeline, guardrails on, cache off. 11 speed screens, then 31 full eval runs on 15 models and settings, with thinking set per run and open-weight models served only by zero-data-retention hosts. Sonnet was re-run as the same-day baseline: 45, 44 and 46 of 50. No open-weight model matched it. The closest, **DeepSeek V4.1 Flash** at high thinking, scored 44, 45, 38 and 40 at $0.0013 an answer and 8.4 s at the 90th percentile. Qwen3.8 27B scored 36 with thinking off and on. Reading the answers found a tool call leaked as text (1 in 200), an arithmetic slip and an untrue "saved", and showed that some failures were the checks, not the model.
+- **The router** ([router.py](../../../creditcoach/agent/router.py), on by default, `CREDITCOACH_ROUTER`). Flagged, goal and multi-step questions go to Sonnet; the rest go to DeepSeek V4.1 Flash. A tool call written as text is asked of Sonnet instead, and DeepSeek falls back to Sonnet. Three eval runs scored **45, 43, 45** (Sonnet alone 45, 44, 46), median 8.6 s and 90th percentile 12.2 s (Sonnet 9.7 s and 13.9 s), at **$0.0151** an answer ($0.0255). Red team 31/31 held, 5/5 controls ([red-team-router.md](red-team-router.md)). 54% of the eval's questions go to Sonnet; 41% of 37 real questions on the deployed app would, about $0.011 an answer.
+- **On the dashboard.** Cost against speed and quality now has one row per model and setting averaged over its runs, the router marked as current, and **Test runs behind the choice**: 37 eval runs (1,850 answers), 17 speed screens and 4 red-team runs on 21 models, each listed. The eval harness now records each case's cost, so the table no longer needs the traces.
+
+Every run is in `runs/` with its report here (`eval-bench-*.md`, `eval-router-*.md`, `red-team-*.md`). 19 new pytest tests in `test_router.py` and 1 in `test_dashboard.py`; 2 dashboard tests and the cache tests' fake model updated (it now answers as the model the router picked). 814 tests in all.
+
 ## Week 4 demo goal
 
 > *Full live walkthrough: Gradio UI + observability dashboard, an eval score shown before/after your error-analysis fixes, and a predatory-product refusal on demand.* (tasks.md)

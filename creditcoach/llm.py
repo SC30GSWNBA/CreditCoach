@@ -27,6 +27,9 @@ from creditcoach import observability as obs
 log = logging.getLogger(__name__)
 
 _usage: contextvars.ContextVar[list | None] = contextvars.ContextVar("llm_usage", default=None)
+# OpenRouter routing for FAST_MODEL: zero-data-retention hosts only, that honour every parameter sent (the reasoning
+# effort), fastest first. Users' credit data must not be stored by whichever host serves the open-weight model.
+FAST_PROVIDER = {"zdr": True, "require_parameters": True, "sort": "throughput"}
 
 
 @contextmanager
@@ -71,23 +74,27 @@ def get_client() -> OpenAI:
 
 
 def _complete(messages: list[dict], model: str | None = None, effort: str | None = None, **kwargs):
-    """Run one chat completion, falling back once to ``FALLBACK_MODEL`` if the first model fails.
+    """Run one chat completion, falling back once if the first model fails: to ``CHAT_MODEL`` from ``FAST_MODEL``,
+    else to ``FALLBACK_MODEL``.
 
     Returns:
         ``(message, model_used)``, where ``message`` is the SDK's reply message (content and any tool calls).
     """
     client = get_client()
     primary = model or config.CHAT_MODEL
+    fallback = config.CHAT_MODEL if primary == config.FAST_MODEL != config.CHAT_MODEL else config.FALLBACK_MODEL
     with obs.span("llm.chat", **{"langfuse.observation.type": "generation", "gen_ai.system": "openrouter",
                                  "gen_ai.request.model": primary, "gen_ai.request.reasoning_effort": effort or
                                  config.REASONING_EFFORT, "llm.tools": [t["function"]["name"] for t in
                                                                          kwargs.get("tools") or []] or None,
                                  "langfuse.observation.input": messages}):
-        for candidate in (primary, config.FALLBACK_MODEL):
+        for candidate in (primary, fallback):
             try:
                 extra = {"extra_body": {"usage": {"include": True}}}  # OpenRouter then returns the call's cost
                 if candidate.startswith("openai/gpt-5") and (effort or config.REASONING_EFFORT):
                     extra["extra_body"]["reasoning"] = {"effort": effort or config.REASONING_EFFORT}
+                if candidate == config.FAST_MODEL:  # open-weight models are served by many hosts: only ZDR ones
+                    extra["extra_body"] |= {"reasoning": {"effort": config.FAST_MODEL_EFFORT}, "provider": FAST_PROVIDER}
                 kwargs.setdefault("max_tokens", config.MAX_OUTPUT_TOKENS)
                 response = client.chat.completions.create(model=candidate, messages=messages, timeout=90, **extra,
                                                           **kwargs)
@@ -95,12 +102,12 @@ def _complete(messages: list[dict], model: str | None = None, effort: str | None
                 _annotate(candidate, response, fallback=candidate != primary)
                 return response.choices[0].message, candidate
             except Exception as exc:
-                if candidate == config.FALLBACK_MODEL:
+                if candidate == fallback:
                     raise
                 log.warning("Chat model %s failed (%s: %s); falling back to %s",
-                            candidate, type(exc).__name__, exc, config.FALLBACK_MODEL)
+                            candidate, type(exc).__name__, exc, fallback)
                 obs.event("llm.fallback", failed_model=candidate, error=f"{type(exc).__name__}: {exc}",
-                          fallback_model=config.FALLBACK_MODEL)
+                          fallback_model=fallback)
     raise AssertionError("unreachable")
 
 

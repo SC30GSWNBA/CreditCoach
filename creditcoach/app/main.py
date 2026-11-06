@@ -703,9 +703,11 @@ def build() -> gr.Blocks:
                     cost_shown = gr.CheckboxGroup(label="Models shown", elem_classes="cc-shown")
                     cost_scatter = gr.Plot(show_label=False)
                     cost_models = gr.HTML()
-                    gr.Markdown("### Cost against speed and quality\nThe same 50 eval questions put to each model, "
-                                "so this is a like-for-like comparison. Dot size is cost per answer; the shaded side "
-                                "of the dashed line meets the response-time target.")
+                    gr.Markdown("### Cost against speed and quality\nThe same 50 eval questions put to each model and "
+                                "setting, so this is a like-for-like comparison. Each dot is one model and setting, "
+                                "averaged over its runs; dot size is cost per answer; the shaded side of the dashed "
+                                "line meets the response-time target. Below the table: every test run behind the "
+                                "choice of model.")
                     cost_quality = gr.Plot(show_label=False)
                     cost_quality_table = gr.HTML()
                     with gr.Row(equal_height=False):

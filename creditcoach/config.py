@@ -11,6 +11,9 @@ Settings (environment variable -> default):
     FALLBACK_MODEL      "openai/gpt-4o"      Used automatically if the chat model fails.
     REASONING_EFFORT    "low"                How long a GPT-5-family model "thinks" before answering; unused by Sonnet.
     MAX_OUTPUT_TOKENS   16000                Cap on each reply's tokens, reasoning included.
+    CREDITCOACH_ROUTER  "on"                 Routes general questions to FAST_MODEL (``agent.router``); "off": none.
+    FAST_MODEL          "deepseek/deepseek-v4.1-flash"  Answers the routed questions; falls back to CHAT_MODEL.
+    FAST_MODEL_EFFORT   "high"               FAST_MODEL's reasoning effort.
     EMBEDDING_MODEL     all-MiniLM-L6-v2     Local model that turns text into vectors for search.
                                              Rebuild the vector store after changing it.
     RERANKER_MODEL      ms-marco-MiniLM-L-6-v2  Local model that reorders search results by relevance.
@@ -90,6 +93,13 @@ REASONING_EFFORT = os.getenv("REASONING_EFFORT", "low")
 # limit, and a key with less credit than that gets a 402 on every call, so every answer silently came from
 # FALLBACK_MODEL (seen 2026-10-03). Answers use a few thousand tokens at "low" effort.
 MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "16000"))
+# Model routing (creditcoach.agent.router), on since 2026-11-06: flagged, goal and multi-step questions go to
+# CHAT_MODEL and the rest to FAST_MODEL. Routed, the eval scored 45, 43, 45 of 50 (Sonnet alone 45, 44, 46) with 90%
+# of answers within 12.2 s (13.9 s), at $0.0151 an answer ($0.0255); docs/evidence/week-4/model-choice-and-caching.md.
+# FAST_MODEL is called only through zero-data-retention providers. "off" sends every question to CHAT_MODEL.
+ROUTER = os.getenv("CREDITCOACH_ROUTER", "on")
+FAST_MODEL = os.getenv("FAST_MODEL", "deepseek/deepseek-v4.1-flash")
+FAST_MODEL_EFFORT = os.getenv("FAST_MODEL_EFFORT", "high")
 
 SAMPLE_DATA = ROOT / "sample_data" / "credit_profile_sample.xlsx"
 DATA_DIR = ROOT / "data"  # synthetic dataset (Indian context: INR, 300-900 scores)

@@ -31,7 +31,7 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-from creditcoach import cache
+from creditcoach import cache, config, llm
 from creditcoach import observability as obs
 from creditcoach.agent import pipeline
 from creditcoach.agent.mcp_host import McpHost
@@ -71,6 +71,13 @@ def _record(q: golden.Query, mode: str, a: pipeline.Answer | None, error: str | 
     return rec
 
 
+def cost(calls: list[dict]) -> dict:
+    """What one answer's model calls cost (``llm.track``), in US dollars: the answer model and any rewrite
+    (``answer``), and the guardrail layer's ``SMALL_MODEL`` reviews (``check``). The model-comparison table reads it."""
+    return {"answer": round(sum(c["cost"] for c in calls if c["model"] != config.SMALL_MODEL), 6),
+            "check": round(sum(c["cost"] for c in calls if c["model"] == config.SMALL_MODEL), 6)}
+
+
 def _ask(q: golden.Query, mode: str, case_span=None) -> dict:
     """Answer one golden query in the given mode, never raising (an exception is saved in the record).
 
@@ -78,14 +85,14 @@ def _ask(q: golden.Query, mode: str, case_span=None) -> dict:
     whatever the caller adds to that span share one trace.
     """
     start = time.perf_counter()
-    with case_span(q) if case_span else contextlib.nullcontext():
+    with case_span(q) if case_span else contextlib.nullcontext(), llm.track() as calls:
         try:
             a = pipeline.answer(q.query, user_id=q.user_id if mode == "tools" else None)
-            return _record(q, mode, a, None, time.perf_counter() - start)
+            rec = _record(q, mode, a, None, time.perf_counter() - start)
         except Exception:  # a crash is a finding to report, not a reason to lose the other 49 answers
             rec = _record(q, mode, None, traceback.format_exc(limit=3), time.perf_counter() - start)
             rec["trace_id"] = obs.trace_id()
-            return rec
+    return {**rec, "cost": cost(calls)}
 
 
 def run(mode: str, ids: list[int] | None = None, workers: int = 4, case_span=None) -> list[dict]:

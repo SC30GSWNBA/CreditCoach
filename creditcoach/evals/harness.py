@@ -148,7 +148,7 @@ def run_sample_rows(label: str) -> list[dict]:
                 print(f"  §3 #{qid} (session {number}) {q.query}", flush=True)
                 before, error, reply, a, t0 = goal(), None, "", None, time.perf_counter()
                 captured.clear()
-                with case_span(q, label):
+                with case_span(q, label), llm.track() as calls:
                     try:
                         reply = app.final_reply(q.query, history, req)
                         a = captured[-1] if captured else None
@@ -165,7 +165,7 @@ def run_sample_rows(label: str) -> list[dict]:
                                 "tools": [{"tool": c.tool, "ok": c.ok, "code": c.code} for c in a.tool_calls] if a else [],
                                 "passages": [p.id for p in a.passages] if a else [],
                                 "snapshot": sample_rows.snapshot(a) if a else None,
-                                "goal_before": before, "goal_after": goal()})
+                                "goal_before": before, "goal_after": goal(), "cost": live.cost(calls)})
             app.log_out(req)
             if number == 1:
                 dream.dream(USER_ID)  # what the next sign-in does
@@ -185,14 +185,14 @@ def run_with_stored_goal(q: golden.Query, label: str) -> dict:
     store.set_goal(store.start_session(q.user_id, source="eval"), goal, quote)
     session = store.start_session(q.user_id, source="eval")
     start = time.perf_counter()
-    with case_span(q, label):
+    with case_span(q, label), llm.track() as calls:
         try:
             rec = live._record(q, "tools", pipeline.answer(q.query, user_id=q.user_id, session=session), None,
                                time.perf_counter() - start)
         except Exception:  # recorded, so one crash doesn't lose the run
             rec = live._record(q, "tools", None, traceback.format_exc(limit=3), time.perf_counter() - start)
             rec["trace_id"] = obs.trace_id()
-    return {**rec, "seeded_goal": goal}
+    return {**rec, "seeded_goal": goal, "cost": live.cost(calls)}
 
 
 def run_additional(label: str) -> list[dict]:
@@ -266,15 +266,16 @@ def judge_score(j: dict) -> Score:
                  f"clear {j['clear']}/5. {j['why']}")
 
 
-def run_score(rec: dict, model: str) -> Score:
+def run_score(rec: dict, model: str, fast_model: str | None = None) -> Score:
+    """``fast_model``: with the router on, the second model an answer may come from without being a fallback."""
     problems = []
     if rec["error"]:
         problems.append(f"crashed: {rec['error'].strip().splitlines()[-1]}")
     elif not rec["answer"]:
         problems.append("no answer")
     else:
-        if rec["model"] != model:
-            problems.append(f"answered by {rec['model']}, not {model}")
+        if rec["model"] not in (model, fast_model):
+            problems.append(f"answered by {rec['model']}, not {model}" + (f" or {fast_model}" if fast_model else ""))
         if rec["guardrail"] == "blocked":
             problems.append("the guardrail layer blocked the answer")
     return Score("run", not problems, 0.0 if problems else 1.0,
@@ -308,7 +309,8 @@ def score_run(run: dict) -> None:
             stray = golden.untraced_numbers(r["answer"], sources(r), known=rails.COMMON) if r["answer"] else []
             scores.append(Score("figures", bool(r["answer"]) and not stray, 0.0 if stray else 1.0,
                                 f"untraced: {', '.join(stray)}" if stray else "every figure traced"))
-        scores += [judge_score(r.get("judge") or {"error": "not judged"}), run_score(r, run["model"])]
+        scores += [judge_score(r.get("judge") or {"error": "not judged"}),
+                   run_score(r, run["model"], run.get("fast_model") if run.get("router") == "on" else None)]
         r["scores"] = [asdict(s) for s in scores]
         r["pass"] = all(s.passed for s in scores)
 
@@ -354,6 +356,7 @@ def run(label: str = "latest", everything: bool = False) -> dict:
     judge_all(recs)
     result = {"created": datetime.now().isoformat(timespec="seconds"), "label": label,
               "scope": "all" if everything else "sample", "model": config.CHAT_MODEL, "judge_model": config.SMALL_MODEL,
+              "router": config.ROUTER, "fast_model": config.FAST_MODEL,
               "minutes": round((time.perf_counter() - started) / 60, 1), "records": sorted(recs, key=lambda r: r["id"])}
     score_run(result)
     result["langfuse_cases"] = push_scores(result["records"])

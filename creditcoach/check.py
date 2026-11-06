@@ -63,7 +63,9 @@ def main() -> int:
     key = config.OPENROUTER_API_KEY
     key_set = bool(key) and not key.startswith("sk-or-your-key")
     report(key_set, "OPENROUTER_API_KEY set in .env", f"{key[:8]}..." if key_set else "copy .env.example to .env and add your key")
-    print(f"       models: chat={config.CHAT_MODEL} small={config.SMALL_MODEL} fallback={config.FALLBACK_MODEL}")
+    print(f"       models: chat={config.CHAT_MODEL} small={config.SMALL_MODEL} fallback={config.FALLBACK_MODEL}"
+          f" router={config.ROUTER}" + (f" fast={config.FAST_MODEL} ({config.FAST_MODEL_EFFORT} effort)"
+                                        if config.ROUTER == "on" else ""))
 
     from creditcoach import dataset
 

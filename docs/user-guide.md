@@ -222,7 +222,7 @@ This tab shows your latest score, how it changed, your card utilization, what yo
 
 This tab shows how CreditCoach is performing for everyone who uses it: how often its data lookups fail, how often its safety checks step in (by rule), and how often it remembers a saved goal. Pick the last day, week or month, and real use or the team's test runs. It shows **counts only**: never anyone's questions, answers or name. Using it never uses up a question. Right after you log in it may say "Loading the dashboard…" for a few seconds while it gathers the latest figures. **Real use** counts only answers people got in the app; the note under the figures says how many more are under **Eval and test runs**.
 
-Pick **Cost and speed** above the figures to see what answers cost and how long they take: spend, cost per answer, response time, a chart of every answer's cost against its wait (untick models to compare just some; the number of answers, the median and the average on the chart change to match), each model compared, and where the time and money go. It also shows the team's comparison of models on the same 50 test questions. Like the rest of the tab, it shows counts only.
+Pick **Cost and speed** above the figures to see what answers cost and how long they take: spend, cost per answer, response time, a chart of every answer's cost against its wait (untick models to compare just some; the number of answers, the median and the average on the chart change to match), each model compared, and where the time and money go. It also shows the team's comparison of models on the same 50 test questions, and every test run behind the choice of the models CreditCoach uses. Like the rest of the tab, it shows counts only.
 
 ---
 
@@ -292,7 +292,7 @@ If CreditCoach cannot check your allowance for a technical reason, it tells you 
 - **No name, phone number, PAN, bank login or email is needed** to sign up. You answer in ranges, never exact amounts.
 - **Your answers are used only to build your practice profile**, so that the coaching feels personal.
 - **CreditCoach never sells your answers or passes them** to lenders, banks, credit bureaus, employers or advertisers.
-- **To write an answer, your question and practice profile are processed by the AI model service CreditCoach runs on** and kept in CreditCoach's own database. Nothing in them says who you are.
+- **To write an answer, your question and practice profile are processed by the AI model service CreditCoach runs on** and kept in CreditCoach's own database. Nothing in them says who you are. Questions about goals, risky products or calculations are answered by Claude; general questions are answered by DeepSeek, an open model, through a provider that keeps no copy of what it is sent.
 - **Your conversations are saved** so CreditCoach can remember your goal and pick up where you left off. The project team can read them to check that answers are accurate.
 - **How each answer was built is recorded** (which library passages and tools it used, how long each step took) in a monitoring service the team uses to find and fix mistakes, together with any 👍 or 👎 you give.
 - **Your password is stored only in scrambled form.** Nobody can read it back.

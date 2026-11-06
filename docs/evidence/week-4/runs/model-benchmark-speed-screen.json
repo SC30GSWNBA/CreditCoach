@@ -1,0 +1,1128 @@
+{
+ "created": "2026-11-05",
+ "questions": [
+  1,
+  2,
+  4,
+  6,
+  11,
+  16,
+  18,
+  28
+ ],
+ "screens": [
+  {
+   "model": "anthropic/claude-sonnet-5.5",
+   "thinking": null,
+   "provider": null,
+   "spend": 0.216,
+   "answers": [
+    {
+     "id": 1,
+     "seconds": 11.9,
+     "model": "anthropic/claude-sonnet-5.5",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.02664,
+      "check": 0.0003515
+     }
+    },
+    {
+     "id": 2,
+     "seconds": 9.4,
+     "model": "anthropic/claude-sonnet-5.5",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.02212,
+      "check": 0.00033925
+     }
+    },
+    {
+     "id": 4,
+     "seconds": 11.9,
+     "model": "anthropic/claude-sonnet-5.5",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.025626,
+      "check": 0.00034
+     }
+    },
+    {
+     "id": 6,
+     "seconds": 11.4,
+     "model": "anthropic/claude-sonnet-5.5",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.024528,
+      "check": 0.0003285
+     }
+    },
+    {
+     "id": 11,
+     "seconds": 8.4,
+     "model": "anthropic/claude-sonnet-5.5",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.020732,
+      "check": 0.00032775
+     }
+    },
+    {
+     "id": 16,
+     "seconds": 20.1,
+     "model": "anthropic/claude-sonnet-5.5",
+     "guardrail": "reframed",
+     "error": null,
+     "cost": {
+      "answer": 0.054002,
+      "check": 0.0007167499999999999
+     }
+    },
+    {
+     "id": 18,
+     "seconds": 6.8,
+     "model": "anthropic/claude-sonnet-5.5",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.019016,
+      "check": 0.00029825
+     }
+    },
+    {
+     "id": 28,
+     "seconds": 8.2,
+     "model": "anthropic/claude-sonnet-5.5",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.020276,
+      "check": 0.000337
+     }
+    }
+   ]
+  },
+  {
+   "model": "qwen/qwen3.8-27b",
+   "thinking": {
+    "enabled": false
+   },
+   "provider": {
+    "zdr": true,
+    "require_parameters": true,
+    "sort": "throughput"
+   },
+   "spend": 0.0203,
+   "answers": [
+    {
+     "id": 1,
+     "seconds": 7.1,
+     "model": "qwen/qwen3.8-27b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0025047,
+      "check": 0.0003645
+     }
+    },
+    {
+     "id": 2,
+     "seconds": 3.5,
+     "model": "qwen/qwen3.8-27b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00160855,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 4,
+     "seconds": 7.5,
+     "model": "qwen/qwen3.8-27b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0026379,
+      "check": 0.00037525
+     }
+    },
+    {
+     "id": 6,
+     "seconds": 6.8,
+     "model": "qwen/qwen3.8-27b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.002903,
+      "check": 0.00033825
+     }
+    },
+    {
+     "id": 11,
+     "seconds": 4.5,
+     "model": "qwen/qwen3.8-27b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0030405,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 16,
+     "seconds": 5.6,
+     "model": "qwen/qwen3.8-27b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0027504,
+      "check": 0.000322
+     }
+    },
+    {
+     "id": 18,
+     "seconds": 2.9,
+     "model": "qwen/qwen3.8-27b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00151085,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 28,
+     "seconds": 3.9,
+     "model": "qwen/qwen3.8-27b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0019764,
+      "check": 0.0
+     }
+    }
+   ]
+  },
+  {
+   "model": "deepseek/deepseek-v4.1-flash",
+   "thinking": {
+    "enabled": false
+   },
+   "provider": {
+    "zdr": true,
+    "require_parameters": true,
+    "sort": "throughput"
+   },
+   "spend": 0.0154,
+   "answers": [
+    {
+     "id": 1,
+     "seconds": 3.6,
+     "model": "deepseek/deepseek-v4.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.001273272,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 2,
+     "seconds": 3.3,
+     "model": "deepseek/deepseek-v4.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.001108572,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 4,
+     "seconds": 10.6,
+     "model": "deepseek/deepseek-v4.1-flash",
+     "guardrail": "reframed",
+     "error": null,
+     "cost": {
+      "answer": 0.002924736,
+      "check": 0.0007735
+     }
+    },
+    {
+     "id": 6,
+     "seconds": 5.0,
+     "model": "deepseek/deepseek-v4.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0022587,
+      "check": 0.00035975
+     }
+    },
+    {
+     "id": 11,
+     "seconds": 5.0,
+     "model": "deepseek/deepseek-v4.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0023475,
+      "check": 0.00037725
+     }
+    },
+    {
+     "id": 16,
+     "seconds": 4.7,
+     "model": "deepseek/deepseek-v4.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.001197072,
+      "check": 0.000355
+     }
+    },
+    {
+     "id": 18,
+     "seconds": 4.1,
+     "model": "deepseek/deepseek-v4.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.000939336,
+      "check": 0.00031075
+     }
+    },
+    {
+     "id": 28,
+     "seconds": 4.0,
+     "model": "deepseek/deepseek-v4.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.001166136,
+      "check": 0.0
+     }
+    }
+   ]
+  },
+  {
+   "model": "minimax/minimax-m3",
+   "thinking": {
+    "enabled": false
+   },
+   "provider": {
+    "zdr": true,
+    "require_parameters": true,
+    "sort": "throughput"
+   },
+   "spend": 0.0111,
+   "answers": [
+    {
+     "id": 1,
+     "seconds": 4.2,
+     "model": "minimax/minimax-m3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00120955,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 2,
+     "seconds": 3.3,
+     "model": "minimax/minimax-m3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00157902,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 4,
+     "seconds": 5.9,
+     "model": "minimax/minimax-m3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00109804,
+      "check": 0.0003425
+     }
+    },
+    {
+     "id": 6,
+     "seconds": 6.2,
+     "model": "minimax/minimax-m3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00174354,
+      "check": 0.00035275
+     }
+    },
+    {
+     "id": 11,
+     "seconds": 3.2,
+     "model": "minimax/minimax-m3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00116048,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 16,
+     "seconds": 5.4,
+     "model": "minimax/minimax-m3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00105408,
+      "check": 0.00032075
+     }
+    },
+    {
+     "id": 18,
+     "seconds": 2.5,
+     "model": "minimax/minimax-m3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00086523,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 28,
+     "seconds": 6.0,
+     "model": "minimax/minimax-m3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00106932,
+      "check": 0.0003315
+     }
+    }
+   ]
+  },
+  {
+   "model": "nvidia/nemotron-3.5-super-vl",
+   "thinking": {
+    "enabled": false
+   },
+   "provider": {
+    "zdr": true,
+    "require_parameters": true,
+    "sort": "throughput"
+   },
+   "spend": 0.0105,
+   "answers": [
+    {
+     "id": 1,
+     "seconds": 6.2,
+     "model": "nvidia/nemotron-3.5-super-vl",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00112285,
+      "check": 0.00031475
+     }
+    },
+    {
+     "id": 2,
+     "seconds": 6.3,
+     "model": "nvidia/nemotron-3.5-super-vl",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.001301,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 4,
+     "seconds": 6.1,
+     "model": "nvidia/nemotron-3.5-super-vl",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00108535,
+      "check": 0.000333
+     }
+    },
+    {
+     "id": 6,
+     "seconds": 5.9,
+     "model": "nvidia/nemotron-3.5-super-vl",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0010066,
+      "check": 0.00029
+     }
+    },
+    {
+     "id": 11,
+     "seconds": 4.3,
+     "model": "nvidia/nemotron-3.5-super-vl",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0010132,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 16,
+     "seconds": 6.5,
+     "model": "nvidia/nemotron-3.5-super-vl",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0010561,
+      "check": 0.00031925
+     }
+    },
+    {
+     "id": 18,
+     "seconds": 4.5,
+     "model": "nvidia/nemotron-3.5-super-vl",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00094945,
+      "check": 0.00028025
+     }
+    },
+    {
+     "id": 28,
+     "seconds": 4.9,
+     "model": "nvidia/nemotron-3.5-super-vl",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00105055,
+      "check": 0.00033275
+     }
+    }
+   ]
+  },
+  {
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "thinking": {
+    "enabled": false
+   },
+   "provider": {
+    "zdr": true,
+    "require_parameters": true,
+    "sort": "throughput"
+   },
+   "spend": 0.0419,
+   "answers": [
+    {
+     "id": 1,
+     "seconds": 7.0,
+     "model": "nvidia/nemotron-3-ultra-550b-a55b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0052986,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 2,
+     "seconds": 6.5,
+     "model": "nvidia/nemotron-3-ultra-550b-a55b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.004293,
+      "check": 0.0002925
+     }
+    },
+    {
+     "id": 4,
+     "seconds": 14.6,
+     "model": "nvidia/nemotron-3-ultra-550b-a55b",
+     "guardrail": "reframed",
+     "error": null,
+     "cost": {
+      "answer": 0.010789799999999999,
+      "check": 0.00081
+     }
+    },
+    {
+     "id": 6,
+     "seconds": 7.8,
+     "model": "nvidia/nemotron-3-ultra-550b-a55b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0045168,
+      "check": 0.0003245
+     }
+    },
+    {
+     "id": 11,
+     "seconds": 8.1,
+     "model": "nvidia/nemotron-3-ultra-550b-a55b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0048336,
+      "check": 0.00037075
+     }
+    },
+    {
+     "id": 16,
+     "seconds": 6.0,
+     "model": "nvidia/nemotron-3-ultra-550b-a55b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00307824,
+      "check": 0.000343
+     }
+    },
+    {
+     "id": 18,
+     "seconds": 2.5,
+     "model": "nvidia/nemotron-3-ultra-550b-a55b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0037998,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 28,
+     "seconds": 6.0,
+     "model": "nvidia/nemotron-3-ultra-550b-a55b",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00282948,
+      "check": 0.00034575
+     }
+    }
+   ]
+  },
+  {
+   "model": "mistralai/mistral-large-4-0",
+   "thinking": null,
+   "provider": {
+    "zdr": true,
+    "sort": "throughput"
+   },
+   "spend": 0.0543,
+   "answers": [
+    {
+     "id": 1,
+     "seconds": 10.9,
+     "model": "mistralai/mistral-large-4-0",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00648186,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 2,
+     "seconds": 12.2,
+     "model": "mistralai/mistral-large-4-0",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00499037,
+      "check": 0.001164
+     }
+    },
+    {
+     "id": 4,
+     "seconds": 10.2,
+     "model": "mistralai/mistral-large-4-0",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00567028,
+      "check": 0.00037525
+     }
+    },
+    {
+     "id": 6,
+     "seconds": 9.5,
+     "model": "mistralai/mistral-large-4-0",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00523369,
+      "check": 0.00031525
+     }
+    },
+    {
+     "id": 11,
+     "seconds": 14.3,
+     "model": "mistralai/mistral-large-4-0",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00607838,
+      "check": 0.0003595
+     }
+    },
+    {
+     "id": 16,
+     "seconds": 35.8,
+     "model": "mistralai/mistral-large-4-0",
+     "guardrail": "blocked",
+     "error": null,
+     "cost": {
+      "answer": 0.01160852,
+      "check": 0.00065325
+     }
+    },
+    {
+     "id": 18,
+     "seconds": 5.8,
+     "model": "mistralai/mistral-large-4-0",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00490336,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 28,
+     "seconds": 11.6,
+     "model": "mistralai/mistral-large-4-0",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00642796,
+      "check": 0.0
+     }
+    }
+   ]
+  },
+  {
+   "model": "z-ai/glm-5.3",
+   "thinking": {
+    "effort": "low"
+   },
+   "provider": {
+    "zdr": true,
+    "require_parameters": true,
+    "sort": "throughput"
+   },
+   "spend": 0.0992,
+   "answers": [
+    {
+     "id": 1,
+     "seconds": 4.5,
+     "model": "z-ai/glm-5.3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0149751,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 2,
+     "seconds": 5.2,
+     "model": "z-ai/glm-5.3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.013395,
+      "check": 0.0003045
+     }
+    },
+    {
+     "id": 4,
+     "seconds": 29.1,
+     "model": "z-ai/glm-5.3",
+     "guardrail": "reframed",
+     "error": null,
+     "cost": {
+      "answer": 0.0283014,
+      "check": 0.000685
+     }
+    },
+    {
+     "id": 6,
+     "seconds": 9.8,
+     "model": "z-ai/glm-5.3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00733458,
+      "check": 0.00031625
+     }
+    },
+    {
+     "id": 11,
+     "seconds": 20.9,
+     "model": "z-ai/glm-5.3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0134064,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 16,
+     "seconds": 7.4,
+     "model": "z-ai/glm-5.3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00754281,
+      "check": 0.0003075
+     }
+    },
+    {
+     "id": 18,
+     "seconds": 4.0,
+     "model": "z-ai/glm-5.3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00565545,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 28,
+     "seconds": 7.5,
+     "model": "z-ai/glm-5.3",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00693015,
+      "check": 0.0
+     }
+    }
+   ]
+  },
+  {
+   "model": "z-ai/glm-5.3-flash",
+   "thinking": {
+    "effort": "low"
+   },
+   "provider": {
+    "zdr": true,
+    "require_parameters": true,
+    "sort": "throughput"
+   },
+   "spend": 0.0094,
+   "answers": [
+    {
+     "id": 1,
+     "seconds": 4.1,
+     "model": "z-ai/glm-5.3-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00104365,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 2,
+     "seconds": 4.9,
+     "model": "z-ai/glm-5.3-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0009311,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 4,
+     "seconds": 5.7,
+     "model": "z-ai/glm-5.3-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00093075,
+      "check": 0.00029175
+     }
+    },
+    {
+     "id": 6,
+     "seconds": 7.3,
+     "model": "z-ai/glm-5.3-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00097895,
+      "check": 0.00032125
+     }
+    },
+    {
+     "id": 11,
+     "seconds": 4.6,
+     "model": "z-ai/glm-5.3-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0010294,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 16,
+     "seconds": 17.7,
+     "model": "z-ai/glm-5.3-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0010263,
+      "check": 0.0010715
+     }
+    },
+    {
+     "id": 18,
+     "seconds": 3.6,
+     "model": "z-ai/glm-5.3-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0008768,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 28,
+     "seconds": 4.0,
+     "model": "z-ai/glm-5.3-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00091725,
+      "check": 0.0
+     }
+    }
+   ]
+  },
+  {
+   "model": "minimax/minimax-m3.1-flash",
+   "thinking": {
+    "effort": "low"
+   },
+   "provider": {
+    "zdr": true,
+    "require_parameters": true,
+    "sort": "throughput"
+   },
+   "spend": 0.0091,
+   "answers": [
+    {
+     "id": 1,
+     "seconds": 12.6,
+     "model": "minimax/minimax-m3.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00120837,
+      "check": 0.0003525
+     }
+    },
+    {
+     "id": 2,
+     "seconds": 10.2,
+     "model": "minimax/minimax-m3.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00052848,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 4,
+     "seconds": 12.8,
+     "model": "minimax/minimax-m3.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00064893,
+      "check": 0.00036175
+     }
+    },
+    {
+     "id": 6,
+     "seconds": 14.2,
+     "model": "minimax/minimax-m3.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00118692,
+      "check": 0.00036975
+     }
+    },
+    {
+     "id": 11,
+     "seconds": 4.7,
+     "model": "minimax/minimax-m3.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00063666,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 16,
+     "seconds": 15.5,
+     "model": "minimax/minimax-m3.1-flash",
+     "guardrail": "blocked",
+     "error": null,
+     "cost": {
+      "answer": 0.00208485,
+      "check": 0.00071325
+     }
+    },
+    {
+     "id": 18,
+     "seconds": 3.6,
+     "model": "minimax/minimax-m3.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00044241,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 28,
+     "seconds": 5.7,
+     "model": "minimax/minimax-m3.1-flash",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00060846,
+      "check": 0.0
+     }
+    }
+   ]
+  },
+  {
+   "model": "openai/gpt-6.1-terra",
+   "thinking": {
+    "enabled": false
+   },
+   "provider": {
+    "zdr": true,
+    "require_parameters": true,
+    "sort": "throughput"
+   },
+   "spend": 0.0651,
+   "answers": [
+    {
+     "id": 1,
+     "seconds": 4.5,
+     "model": "openai/gpt-6.1-terra",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00796675,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 2,
+     "seconds": 3.3,
+     "model": "openai/gpt-6.1-terra",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00671175,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 4,
+     "seconds": 6.9,
+     "model": "openai/gpt-6.1-terra",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00720675,
+      "check": 0.00027075
+     }
+    },
+    {
+     "id": 6,
+     "seconds": 6.2,
+     "model": "openai/gpt-6.1-terra",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00712675,
+      "check": 0.000261
+     }
+    },
+    {
+     "id": 11,
+     "seconds": 3.7,
+     "model": "openai/gpt-6.1-terra",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.0070405,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 16,
+     "seconds": 9.9,
+     "model": "openai/gpt-6.1-terra",
+     "guardrail": "blocked",
+     "error": null,
+     "cost": {
+      "answer": 0.014713500000000001,
+      "check": 0.0005445000000000001
+     }
+    },
+    {
+     "id": 18,
+     "seconds": 2.3,
+     "model": "openai/gpt-6.1-terra",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.006373,
+      "check": 0.0
+     }
+    },
+    {
+     "id": 28,
+     "seconds": 3.5,
+     "model": "openai/gpt-6.1-terra",
+     "guardrail": "passed",
+     "error": null,
+     "cost": {
+      "answer": 0.00686175,
+      "check": 0.0
+     }
+    }
+   ]
+  }
+ ]
+}
