@@ -45,6 +45,10 @@ no passages (``NO_PASSAGES``), if the profile can't be read it gets ``NO_PROFILE
 gives ``DATA_UNAVAILABLE`` results (with the session's last confirmed figures, ``agent.mcp_host``). A question about
 "this loan" when no loan was named gets a CLARIFY note asking the model to find out which first (``agent.clarify``).
 
+With ``CREDITCOACH_ROUTER=on``, the input rails' findings and the question's wording pick the model before the agent
+loop (``agent.router``): flagged, goal and multi-step questions go to ``CHAT_MODEL``, the rest to ``FAST_MODEL``. The
+same model writes any guardrail rewrite.
+
 Scores, balances, limits and utilization reach the model only through tool calls, so every figure it states
 comes from a live tool result. With no ``user_id`` (the Task 10 runs), no tools are offered and the model is
 told to say it can't see account data. The Gradio UI (``creditcoach.app``) calls ``answer()`` for every chat
@@ -73,7 +77,7 @@ from pathlib import Path
 
 from creditcoach import cache, config, guardrails
 from creditcoach import observability as obs
-from creditcoach.agent import clarify
+from creditcoach.agent import clarify, router
 from creditcoach.agent.mcp_host import McpHost, ToolCall, cached_call, tool_attributes, trace_call
 from creditcoach.cache import answers as answer_cache
 from creditcoach.llm import chat, chat_with_tools
@@ -220,7 +224,8 @@ def build_context(passages: list[Result], user_id: str | None = None, memory: st
 
 
 async def run_agent(messages: list[dict], user_id: str, memory: recall.MemoryTools | None = None,
-                    progress: Progress | None = None, prefetch: bool = True) -> tuple[str, str, list[ToolCall]]:
+                    progress: Progress | None = None, prefetch: bool = True,
+                    model: str | None = None) -> tuple[str, str, list[ToolCall]]:
     """Run the tool-calling loop for one question over MCP.
 
     With ``prefetch``, the host first runs the ``PREFETCH`` calls and adds them to ``messages`` as one assistant
@@ -234,15 +239,17 @@ async def run_agent(messages: list[dict], user_id: str, memory: recall.MemoryToo
         memory: The memory tools for this session (Task 17), or None to offer only the data tools.
         progress: Optional callback for live progress (Task 18): each model turn and each tool call.
         prefetch: Fetch the ``PREFETCH`` data before the model's first turn (default True).
+        model: The chat model to use (the router's choice); None for ``CHAT_MODEL``. A turn from another model that
+            writes a tool call out as text (``router.looks_like_tool_markup``) is asked again of ``CHAT_MODEL``.
 
     Returns:
         ``(answer_text, model_used, tool_calls)``.
     """
     with obs.span("agent", **{"langfuse.observation.type": "agent", "agent.prefetch": prefetch}):
-        return await _agent_loop(messages, user_id, memory, progress, prefetch)
+        return await _agent_loop(messages, user_id, memory, progress, prefetch, model)
 
 
-async def _agent_loop(messages, user_id, memory, progress, prefetch) -> tuple[str, str, list[ToolCall]]:
+async def _agent_loop(messages, user_id, memory, progress, prefetch, model=None) -> tuple[str, str, list[ToolCall]]:
     async with McpHost(user_id, scope=memory.session.session if memory else None) as host:
         offered = host.openai_tools + (memory.specs if memory else [])
         calls: list[ToolCall] = []
@@ -263,9 +270,12 @@ async def _agent_loop(messages, user_id, memory, progress, prefetch) -> tuple[st
         for round_ in range(MAX_TOOL_ROUNDS + 1):
             tools = (offered or None) if round_ < MAX_TOOL_ROUNDS else None  # none when the server is down
             _report(progress, "model", round=round_ + 1)
-            message, model = await asyncio.to_thread(chat_with_tools, messages, tools)
+            message, used = await asyncio.to_thread(chat_with_tools, messages, tools, model)
+            if not message.tool_calls and used != config.CHAT_MODEL and router.looks_like_tool_markup(message.content):
+                obs.event("llm.tool_markup", model=used)  # a tool call written as text: never shown to the user
+                message, used = await asyncio.to_thread(chat_with_tools, messages, tools, config.CHAT_MODEL)
             if not message.tool_calls:
-                return message.content or "", model, calls
+                return message.content or "", used, calls
             messages.append({"role": "assistant", "content": message.content or "",
                              "tool_calls": [{"id": c.id, "type": "function",
                                              "function": {"name": c.function.name, "arguments": c.function.arguments}}
@@ -346,7 +356,8 @@ def answer_version(k: int) -> str:
         if path.suffix in (".py", ".co", ".yml"):
             digest.update(path.read_bytes())
     digest.update(json.dumps([config.CHAT_MODEL, config.REASONING_EFFORT, config.EMBEDDING_MODEL, config.RERANKER_MODEL,
-                              rag.corpus_version(), k, RISK_PASSAGES, PREFETCH]).encode())
+                              rag.corpus_version(), k, RISK_PASSAGES, PREFETCH, config.ROUTER, config.FAST_MODEL,
+                              config.FAST_MODEL_EFFORT]).encode())
     return digest.hexdigest()[:16]
 
 
@@ -402,7 +413,9 @@ def _answer(question, k, user_id, session, history, progress, guard, use_cache) 
         obs.annotate(**{"guardrail.rules": sorted({f.rule for f in screened.findings}) or None,
                         "guardrail.products": screened.products or None})
     question = screened.text
-    obs.annotate(**{"langfuse.trace.input": question, "langfuse.observation.input": question, "question": question})
+    chosen = router.route(question, screened)
+    obs.annotate(**{"langfuse.trace.input": question, "langfuse.observation.input": question, "question": question,
+                    "router.model": chosen.model, "router.reason": chosen.reason})
     t0 = time.perf_counter()
     memory = None
     if session is not None:
@@ -488,16 +501,16 @@ def _answer(question, k, user_id, session, history, progress, guard, use_cache) 
                     {"role": "user", "content": question}]
     if user_id:
         tools = recall.MemoryTools(session, question) if session is not None else None
-        text, model, calls = asyncio.run(run_agent(messages, user_id, tools, progress))
+        text, model, calls = asyncio.run(run_agent(messages, user_id, tools, progress, model=chosen.model))
     else:
         _report(progress, "model", round=1)
-        (text, model), calls = chat(messages), []
+        (text, model), calls = chat(messages, model=chosen.model), []
     sources = "\n".join(m["content"] for m in messages[1:] if m.get("content"))
     decision = None
     if guard:
         def rewrite(draft: str, findings: list[guardrails.Finding]) -> str:
             return chat([*messages, {"role": "assistant", "content": draft},
-                         {"role": "system", "content": guardrails.rewrite_instruction(findings)}])[0]
+                         {"role": "system", "content": guardrails.rewrite_instruction(findings)}], model=model)[0]
 
         _report(progress, "guardrail", status="start")
         with obs.span("guardrail.output", **{"langfuse.observation.type": "guardrail"}):
@@ -518,7 +531,7 @@ def _answer(question, k, user_id, session, history, progress, guard, use_cache) 
         why_not = ("the answer was blocked by the guardrail layer" if decision.action == "blocked" else
                    "a tool call failed" if fingerprint is None or not all(c.ok for c in calls) else
                    "the answer changed the user's goal" if any(c.tool in recall.NAMES for c in calls) else
-                   "the answer came from the fallback model" if model != config.CHAT_MODEL else None)
+                   "the answer came from the fallback model" if model != chosen.model else None)
         if why_not:
             cache.skip("answer", why_not, user_id=user_id)
             report = {**report, "stored": False, "reason": why_not}

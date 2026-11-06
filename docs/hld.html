@@ -526,18 +526,18 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
 <text class="b" x="1120" y="2291.0">cost.</text>
 </g>
 <g class="bx l8"><rect x="1971" y="2124.5" width="170" height="212.0" rx="7"/>
-<text class="t" x="1984" y="2147.5">Sonnet writes the</text>
-<text class="t" x="1984" y="2163.5">draft</text>
+<text class="t" x="1984" y="2147.5">Sonnet or DeepSeek</text>
+<text class="t" x="1984" y="2163.5">writes the draft</text>
 <text class="b" x="1984" y="2183.5">Reads the briefing, then</text>
 <text class="b" x="1984" y="2198.0">answers or asks for a</text>
 <text class="b" x="1984" y="2212.5">tool: up to 4 tool</text>
 <text class="b" x="1984" y="2227.0">rounds, then it must</text>
 <text class="b" x="1984" y="2241.5">answer.</text>
-<text class="b" x="1984" y="2260.0">Low reasoning effort,</text>
+<text class="b" x="1984" y="2260.0">Routed per question,</text>
 <text class="b" x="1984" y="2274.5">16,000-token cap.</text>
-<text class="b" x="1984" y="2293.0">If it fails, GPT-4o</text>
-<text class="b" x="1984" y="2307.5">steps in once and the</text>
-<text class="b" x="1984" y="2322.0">log says so.</text>
+<text class="b" x="1984" y="2293.0">If it fails, Sonnet</text>
+<text class="b" x="1984" y="2307.5">(or GPT-4o) steps in</text>
+<text class="b" x="1984" y="2322.0">once, and it's logged.</text>
 </g>
 <circle class="step" cx="1971" cy="2124.5" r="11.5"/><text class="step-t" x="1971" y="2128.5" text-anchor="middle">10</text>
 <g class="bx l8"><rect x="2187" y="2172.0" width="170" height="117.0" rx="7"/>
@@ -722,7 +722,8 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
       <h3>LLMs: who writes what</h3>
       <div class="tbl"><table>
         <tr><th>Model</th><th>Job</th><th>Runs</th></tr>
-        <tr><td>Claude Sonnet 5.5</td><td>Writes every fresh answer and any rewrite (GPT-5 until 2026-10-31)</td><td>Cloud, via OpenRouter</td></tr>
+        <tr><td>Claude Sonnet 5.5</td><td>Writes the answer, and any rewrite, for flagged, goal and multi-step questions (every question until 2026-11-06; GPT-5 until 2026-10-31)</td><td>Cloud, via OpenRouter</td></tr>
+        <tr><td>DeepSeek V4.1 Flash</td><td>Writes the answer, and any rewrite, for every other question (since 2026-11-06). Open-weight, high thinking, served only by hosts that keep no data</td><td>Cloud, via OpenRouter</td></tr>
         <tr><td>GPT-5 mini</td><td>Dreaming, "same question?" for the cache, the wording review</td><td>Cloud, via OpenRouter</td></tr>
         <tr><td>GPT-4o</td><td>Backup when the main model errors or times out</td><td>Cloud, via OpenRouter</td></tr>
         <tr><td>all-MiniLM-L6-v2</td><td>Turns text into 384-number vectors</td><td>Locally</td></tr>
@@ -769,7 +770,7 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
         <li>Built with OpenTelemetry. Every trace is written to local files (<code>.traces/</code>) and, when its keys are set, sent to Langfuse Cloud.</li>
         <li>The trace ID is saved with each reply in memory, so any answer can be traced back step by step.</li>
         <li>Questions are recorded only after personal identifiers are masked. Recording can never break an answer.</li>
-        <li>A <b>Dashboard</b> tab, for every signed-in user, reads the traces back (Task 31): tool-call failure rate, guardrail triggers per rule, and goal-recall accuracy. Real use is what the chat app answered (traces tagged <code>app</code>); eval and test runs (<code>eval:&lt;label&gt;</code>, <code>script:&lt;name&gt;</code>) are kept apart and listed by run. A second view, <b>Cost and speed</b> (2026-11-01), costs every model call by the step it sits under (answer model, output check, rewrite) and shows spend, response time and tokens per model and per step, with the 50-case eval runs as cost against speed and quality.</li>
+        <li>A <b>Dashboard</b> tab, for every signed-in user, reads the traces back (Task 31): tool-call failure rate, guardrail triggers per rule, and goal-recall accuracy. Real use is what the chat app answered (traces tagged <code>app</code>); eval and test runs (<code>eval:&lt;label&gt;</code>, <code>script:&lt;name&gt;</code>) are kept apart and listed by run. A second view, <b>Cost and speed</b> (2026-11-01), costs every model call by the step it sits under (answer model, output check, rewrite) and shows spend, response time and tokens per model and per step, with the 50-case eval runs as cost against speed and quality and, since 2026-11-06, every test run behind the choice of model.</li>
         <li>Usage counters (2026-11-01): the welcome page shows the questions answered by the chat app and the people signed up, and the signed-in page each user's own count, all read from Neon (memory events and the dataset's sign-ups).</li>
       </ul>
     </section>
@@ -812,7 +813,7 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
       <h3>When something breaks</h3>
       <div class="tbl"><table>
         <tr><th>If this fails</th><th>This happens</th></tr>
-        <tr><td>The main model</td><td>GPT-4o answers once, and the fallback is logged</td></tr>
+        <tr><td>The answer model</td><td>DeepSeek's question goes to Sonnet, Sonnet's to GPT-4o, once, and the fallback is logged. A DeepSeek reply that is a tool call written as text is asked of Sonnet instead</td></tr>
         <tr><td>A tool call</td><td>5 s timeout, one retry, then "I can't pull your latest data right now". No estimate. If the same lookup worked earlier in the conversation, that figure is shared, labelled as last confirmed and when. A sign-up's question is handed back</td></tr>
         <tr><td>The tool server</td><td>Can't start, hangs at startup (20 s) or dies mid-call: every lookup reports the data as unavailable, and the answer goes on</td></tr>
         <tr><td>The library or the user's profile</td><td>The answer goes on without it, and says it has no library information</td></tr>

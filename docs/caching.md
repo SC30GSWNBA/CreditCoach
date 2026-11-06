@@ -1,6 +1,6 @@
 # CreditCoach: Caching
 
-*Week 3 · Task #22 · Last updated: 2026-10-31 (answer cost with Claude Sonnet 5.5; S5 questions not reused) · Status: Draft for team review · Code: `creditcoach/cache/`*
+*Week 3 · Task #22 · Last updated: 2026-11-06 (a stored answer is tied to the router's settings and the model it chose; S5 questions not reused) · Status: Draft for team review · Code: `creditcoach/cache/`*
 
 An answer takes about 10 seconds and one chat-model call. Almost all of that is the model. This document defines what CreditCoach caches so repeated work isn't done twice, and the rules that keep a cached answer from being a wrong answer. Task #23 measures the hit rate and the latency improvement, and since Task #25 the chat UI shows a cache badge above each answer ([screenshots](evidence/week-3/task-25-badges.md)).
 
@@ -47,7 +47,7 @@ A cached answer can do harm in two ways: it can answer a different question, or 
 |---|---|
 | **Same user** | Entries live under the signed-in user's keys. There is no lookup across users (guardrail rule S4). |
 | **Same question** | Exact, same words, or model-confirmed (below). |
-| **Same setup** | The system prompt, guardrail layer, models and corpus are the ones the answer was built with, and the user's stored goal and remembered facts are unchanged. Any change makes every older answer unusable. |
+| **Same setup** | The system prompt, guardrail layer, models (and, since 2026-11-06, the router's settings: on or off, the fast model and its effort) and corpus are the ones the answer was built with, and the user's stored goal and remembered facts are unchanged. Any change makes every older answer unusable. |
 | **Same figures** | The user's score history and account summary are read (from the tool cache, at most 5 minutes old, or live) and compared with the ones the answer used. If they differ, the stored answer is deleted and a fresh one is written. |
 | **Fresh** | Stored less than an hour ago. |
 
@@ -99,7 +99,7 @@ Showing the model the stored answer was dropped: an answer often touches the nei
 | The guardrail layer blocked the answer | A fixed safe message isn't an answer; the next try may do better |
 | A tool call failed | The answer says "I can't pull your data right now", which must not outlive the failure |
 | The answer saved or cleared the user's goal | Replaying it would skip the save |
-| The fallback model wrote the answer | A degraded answer shouldn't be replayed for an hour |
+| The fallback model wrote the answer (any model other than the one the router chose, since 2026-11-06) | A degraded answer shouldn't be replayed for an hour |
 | The question leans on the conversation ("this loan", "the other one", "instead"), once there is a conversation | Its answer depends on what was said before. A self-contained question is stored and served at any point in a chat, so repeating it later in the same chat hits (found in Task 25: the first version stored only a chat's opening question, and the repeat in the demo flow missed). The model did see the earlier turns when it wrote such an answer, so it may refer to them |
 
 A stored answer already passed the output rails under the same guardrail configuration, so it isn't checked again on a hit. A reframed answer is stored as rewritten; the draft is never stored.

@@ -356,6 +356,9 @@ def test_model_ids_are_named_as_people_say_them():
     assert D.model_name("anthropic/claude-sonnet-5.5") == "Claude Sonnet 5.5"
     assert D.model_name("openai/gpt-5.6-terra") == "GPT-5.6 Terra"
     assert D.model_name("openai/gpt-5") == "GPT-5" and D.model_name("") == "No model call"
+    assert D.model_name("deepseek/deepseek-v4.1-flash") == "DeepSeek V4.1 Flash"
+    assert D.model_name("qwen/qwen3.8-27b") == "Qwen3.8 27B" and D.model_name("z-ai/glm-5.3-flash") == "GLM 5.3 Flash"
+    assert D.model_name("nvidia/nemotron-3-ultra-550b-a55b") == "Nemotron 3 Ultra 550B A55B"
 
 
 def test_the_cost_view_has_every_part_and_never_a_question_answer_or_user(monkeypatch):
@@ -375,15 +378,30 @@ def test_the_cost_view_says_so_when_the_traces_cant_be_read(monkeypatch):
     assert "unavailable" in parts["top"] and parts["scatter"] is None
 
 
-def test_the_model_comparison_ships_with_the_app_and_names_the_model_that_meets_the_target(monkeypatch):
+def test_the_model_comparison_ships_with_the_app_and_marks_the_setup_in_use(monkeypatch):
     cmp = D.comparison()
     assert cmp and cmp["target_seconds"] == 15 and len(cmp["rows"]) >= 5
     assert all(r["cases"] == 50 and r["per_answer"] for r in cmp["rows"])
     monkeypatch.setattr(config, "CHAT_MODEL", "anthropic/claude-sonnet-5.5")
+    monkeypatch.setattr(config, "FAST_MODEL", "deepseek/deepseek-v4.1-flash")
+    monkeypatch.setattr(config, "ROUTER", "on")
     page = D.quality_html(cmp)
-    assert "Claude Sonnet 5.5 is the only model with the top score (43/50)" in page
     assert page.count("Current") == 1 and "over target" in page
+    assert "In use: Router: Claude Sonnet 5.5 + DeepSeek V4.1 Flash, 44.3/50 on average over 3 runs" in page
+    monkeypatch.setattr(config, "ROUTER", "off")  # Sonnet alone: its latest round is the one marked
+    sonnet = [r for r in cmp["rows"] if r["model"] == "anthropic/claude-sonnet-5.5"]
+    assert [D.is_current(cmp, r) for r in sonnet] == [r["dates"][-1] >= "2026-11" for r in sonnet]
     assert "isn't available" in D.quality_html(None)
+
+
+def test_the_test_runs_behind_the_choice_are_listed_with_their_totals():
+    cmp = D.comparison()
+    t = cmp["totals"]
+    assert t["eval_runs"] == len(cmp["runs"]) >= 37 and t["eval_answers"] == 50 * t["eval_runs"]
+    assert t["red_team_runs"] == len(cmp["red_team"]) and t["screens"] == len(cmp["screens"])
+    page = D.runs_html(cmp)
+    assert f"Every eval run ({t['eval_runs']})" in page and "not counted" in page  # the run that fell back
+    assert all(r["held"] <= r["attacks"] for r in cmp["red_team"])
 
 
 def test_the_cost_view_is_built_only_when_picked_and_only_for_a_signed_in_user(monkeypatch, signed_up):

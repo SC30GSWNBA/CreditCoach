@@ -456,9 +456,21 @@ COST_PARTS = ("top", "scatter", "models", "quality", "quality_table", "spend", "
 COMPARISON = Path(__file__).resolve().parents[1] / "evals" / "model_comparison.json"  # scripts/model_comparison.py
 # A model keeps its color whatever the period shows; models not listed here are grey
 COLORS = {"openai/gpt-5": "#2a78d6", "anthropic/claude-sonnet-5.5": "#eb6834", "google/gemini-3.8-flash": "#1baf7a",
-          "openai/gpt-5.6-terra": "#eda100", "anthropic/claude-haiku-5.5": "#e87ba4", "check": "#008300"}
+          "openai/gpt-5.6-terra": "#eda100", "anthropic/claude-haiku-5.5": "#e87ba4", "check": "#008300",
+          "deepseek/deepseek-v4.1-flash": "#6250d6", "router": "#4f46e5"}
 GREY = "#898781"
 GRID = "rgba(137, 135, 129, 0.22)"
+ROUTER = "router"  # the model key of the routed runs in the model comparison (scripts/model_comparison.py)
+
+
+def current() -> str:
+    """The answer setup in use, as the model comparison names it: ``ROUTER`` when routing is on, else ``CHAT_MODEL``."""
+    return ROUTER if config.ROUTER == "on" else config.CHAT_MODEL
+
+
+def current_models() -> set[str]:
+    """The models that answer questions now: ``CHAT_MODEL``, and ``FAST_MODEL`` when routing is on."""
+    return {config.CHAT_MODEL, *([config.FAST_MODEL] if config.ROUTER == "on" else [])}
 
 
 def model_name(model: str) -> str:
@@ -468,10 +480,24 @@ def model_name(model: str) -> str:
         return "No model call"
     if model == "check":
         return f"Output check ({model_name(config.SMALL_MODEL)})"
+    if model == ROUTER:
+        return f"Router: {model_name(config.CHAT_MODEL)} + {model_name(config.FAST_MODEL)}"
     parts = model.split("/")[-1].split("-")
     if parts[0] == "gpt" and len(parts) > 1:
         return " ".join([f"GPT-{parts[1]}", *(p.capitalize() for p in parts[2:])])
-    return " ".join(p.capitalize() for p in parts)
+    return " ".join(_word(p) for p in parts)
+
+
+SPELLINGS = {"deepseek": "DeepSeek", "glm": "GLM", "mimo": "MiMo", "minimax": "MiniMax", "vl": "VL"}
+
+
+def _word(part: str) -> str:
+    """One word of a model id as its maker writes it: "DeepSeek", "GLM", "27B", "A55B", else capitalized."""
+    if part in SPELLINGS:
+        return SPELLINGS[part]
+    if re.fullmatch(r"a?\d+(\.\d+)?b", part):
+        return part.upper()
+    return part[0].upper() + part[1:] if part else part
 
 
 def _usd(v: float | None, places: int = 4) -> str:
@@ -627,32 +653,54 @@ def comparison() -> dict | None:
         return None
 
 
+def is_current(cmp: dict, row: dict) -> bool:
+    """True for the row of the setup in use (``current``), from the latest round it was tested in."""
+    mine = [r for r in cmp["rows"] if r["model"] == current()]
+    return bool(mine) and row is max(mine, key=lambda r: r["dates"][-1])
+
+
+def _passed(r: dict) -> str:
+    """Cases passed: the average over the runs, with each run's score when there were several."""
+    runs = r.get("passed_runs") or [r["passed"]]
+    return f"{r['passed']:g}/{r['cases']}" + (f" ({', '.join(map(str, runs))})" if len(runs) > 1 else "")
+
+
+def _label(r: dict) -> str:
+    """A row's model, with its setting unless that is the default."""
+    return model_name(r["model"]) + ("" if r.get("setting", "default") in ("default", "routed") else f", {r['setting']}")
+
+
 def quality_figure(cmp: dict):
-    """Eval cases passed against the time 90% of answers came within; dot size is cost per answer, and the shaded
-    side of the dashed line meets the response-time target."""
+    """Eval cases passed against the time 90% of answers came within, one dot per model and setting (averaged over
+    its runs); dot size is cost per answer, and the shaded side of the dashed line meets the response-time target.
+    The setup in use, the baseline and the top scorers are named on the chart; every dot names itself on hover."""
     import plotly.graph_objects as go
 
     target, top = cmp["target_seconds"], max(r["per_answer"] or 0 for r in cmp["rows"]) or 1
-    rightmost = max(r["p90"] for r in cmp["rows"])
+    rightmost, best = max(r["p90"] for r in cmp["rows"]), max(r["passed"] for r in cmp["rows"])
     fig = go.Figure()
     fig.add_vrect(x0=0, x1=target, fillcolor="rgba(79, 70, 229, .08)", line_width=0)
     fig.add_vline(x=target, line=dict(color="#4f46e5", dash="dash", width=1.5),
                   annotation_text=f"{target} s target", annotation_position="bottom left")
     for r in cmp["rows"]:
-        tag = " (current)" if r["model"] == config.CHAT_MODEL else ""
+        now = is_current(cmp, r)
+        named = now or r["passed"] == best or (r["model"] == cmp["baseline"] and r["setting"] == "low thinking")
+        when = ", ".join(r.get("dates", []))
         fig.add_trace(go.Scatter(
-            x=[r["p90"]], y=[r["passed"]], mode="markers+text", showlegend=False,
-            text=[f"{model_name(r['model'])}{tag} · {_usd(r['per_answer'])}"],
-            textposition="middle left" if r["p90"] == rightmost else "middle right",
+            x=[r["p90"]], y=[r["passed"]], mode="markers+text" if named else "markers", showlegend=False,
+            text=[f"{'Sonnet + DeepSeek, routed' if r['model'] == ROUTER else _label(r)}{' (current)' if now else ''}"
+                  f" · {_usd(r['per_answer'])}"],  # the router's full name is too long beside its dot
+            textposition=("middle left" if now else "top center" if r["passed"] == best else
+                          "middle left" if r["p90"] == rightmost else "middle right"),  # the top two sit close
             textfont=dict(size=13), marker=dict(color=COLORS.get(r["model"], GREY), line=dict(color="white", width=2),
                                                 size=12 + 18 * ((r["per_answer"] or 0) / top) ** .5),
-            hovertemplate=(f"<b>{escape(model_name(r['model']))}</b><br>{r['passed']}/{r['cases']} passed<br>median "
-                           f"{r['median']} s · 90% within {r['p90']} s<br>{_usd(r['per_answer'])} per answer"
-                           "<extra></extra>")))
+            hovertemplate=(f"<b>{escape(_label(r))}</b><br>{escape(_passed(r))} passed over {r.get('runs', 1)} "
+                           f"run(s) ({escape(when)})<br>median {r['median']} s · 90% within {r['p90']} s<br>"
+                           f"{_usd(r['per_answer'])} per answer<extra></extra>")))
     ys = [r["passed"] for r in cmp["rows"]]
     return _figure(fig, 340, xaxis_title="90% of answers within (seconds)", xaxis_ticksuffix=" s",
                    yaxis_title=f"Eval cases passed (of {cmp['rows'][0]['cases']})",
-                   yaxis_range=[min(ys) - 2, max(ys) + 2], yaxis_rangemode="normal",
+                   yaxis_range=[min(ys) - 2, max(ys) + 3], yaxis_rangemode="normal",  # room for the top label
                    xaxis_range=[0, rightmost * 1.12])
 
 
@@ -667,9 +715,12 @@ def _swatch(model: str) -> str:
     return f'<i class="cc-sw" style="background:{COLORS.get(model, GREY)}"></i>'
 
 
-def _model_cell(model: str) -> str:
-    pill = '<span class="cc-pill-now">Current</span>' if model == config.CHAT_MODEL else ""
-    return f"{_swatch(model)}{escape(model_name(model))}{pill}"
+def _model_cell(model: str, now: bool | None = None, label: str | None = None) -> str:
+    """A model's swatch and name, with a "Current" pill when it answers questions now (``now``, else
+    ``current_models``)."""
+    now = model in current_models() if now is None else now
+    pill = '<span class="cc-pill-now">Current</span>' if now else ""
+    return f"{_swatch(model)}{escape(label or model_name(model))}{pill}"
 
 
 def models_html(c: dict) -> str:
@@ -697,28 +748,70 @@ def quality_html(cmp: dict | None) -> str:
     """The table under "Cost against speed and quality"."""
     if not cmp:
         return '<p class="cc-note">The model comparison isn\'t available on this copy of CreditCoach.</p>'
-    base = next((r["per_answer"] for r in cmp["rows"] if r["model"] == cmp["baseline"]), None)
     rows, target = cmp["rows"], cmp["target_seconds"]
+    base = next((r["per_answer"] for r in rows if r["model"] == cmp["baseline"] and r["setting"] == "low thinking"),
+                None)
     hi, fast = max(r["passed"] for r in rows), min(r["p90"] for r in rows)
     cheap = min(r["per_answer"] for r in rows if r["per_answer"] is not None)
-    table = _cells(["Model", "Passed", "Median", "90% within", "Cost per answer", f"vs {model_name(cmp['baseline'])}",
-                    "Per 1,000 questions"],
-                   [[_model_cell(r["model"]),
-                     f'<span class="{"cc-best" if r["passed"] == hi else ""}">{r["passed"]}/{r["cases"]}</span>',
+    table = _cells(["Model", "Setting", "Runs", "Passed", "Median", "90% within", "Cost per answer",
+                    f"vs {model_name(cmp['baseline'])}", "Per 1,000 questions"],
+                   [[_model_cell(r["model"], now=is_current(cmp, r)), escape(r.get("setting", "default")),
+                     f"{r.get('runs', 1)} <span class=\"cc-note\">{escape(', '.join(d[5:] for d in r.get('dates', [])))}</span>",
+                     f'<span class="{"cc-best" if r["passed"] == hi else ""}">{escape(_passed(r))}</span>',
                      _secs(r["median"]),
                      f'<span class="{"cc-best" if r["p90"] == fast else ""}">{_secs(r["p90"])}</span>'
                      + (' <span class="cc-note">over target</span>' if r["p90"] > target else ""),
                      f'<span class="{"cc-best" if r["per_answer"] == cheap else ""}">{_usd(r["per_answer"])}</span>',
                      f"{r['per_answer'] / base:.1f}×" if base and r["per_answer"] is not None else "–",
                      f"~${r['per_answer'] * 1000:,.0f}" if r["per_answer"] is not None else "–"] for r in rows])
-    meets = [r for r in rows if r["passed"] == hi and r["p90"] <= target]
-    insight = (f"{' and '.join(model_name(r['model']) for r in meets)} "
-               f"{'is the only model with' if len(meets) == 1 else 'are the models with'} the top score "
-               f"({hi}/{rows[0]['cases']}) and 90% of answers within {target} s." if meets else "")
-    runs = ", ".join(sorted({r["date"] for r in rows}))
-    return (table + f'<p class="cc-note">From the 50-case eval runs ({escape(runs)}). Cost is the answer model only; '
-            "the guardrail reviews add about $0.0003 per question on top.</p>"
-            + (f'<p class="cc-insight">{escape(insight)}</p>' if insight else ""))
+    now = next((r for r in rows if is_current(cmp, r)), None)
+    leader = rows[0]
+    insight = ""
+    if now and now is not leader:
+        insight = (f"In use: {_label(now)}, {now['passed']:g}/{now['cases']} on average over {now.get('runs', 1)} "
+                   f"runs, against {_label(leader)}'s {leader['passed']:g}; 90% of answers within {now['p90']} s "
+                   f"(target {target} s), at {_usd(now['per_answer'])} per answer, "
+                   f"{now['per_answer'] / leader['per_answer']:.0%} of {_label(leader)}'s cost.")
+    elif now:
+        insight = f"In use: {_label(now)}, the top average score ({now['passed']:g}/{now['cases']})."
+    return (table + '<p class="cc-note">Each row averages its runs; the 90% figure is over all their answers. Cost is '
+            "the answer model only (both models for the router); the guardrail reviews add about $0.0003 per "
+            "question on top.</p>" + (f'<p class="cc-insight">{escape(insight)}</p>' if insight else "")
+            + runs_html(cmp))
+
+
+def runs_html(cmp: dict) -> str:
+    """"Test runs behind the choice": how many runs and answers the model choice rests on, and every run, screen
+    and red-team run in a list that opens on a click."""
+    t = cmp.get("totals")
+    if not t:
+        return ""
+    tiles = [("Eval runs", f"{t['eval_runs']}", f"{t['eval_answers']:,} answers, 50 questions each"),
+             ("Speed screens", f"{t['screens']}", f"{t['screen_answers']} answers, 8 questions each"),
+             ("Red-team runs", f"{t['red_team_runs']}", f"{t['red_team_answers']} prompts in all"),
+             ("Models tried", f"{t['models']}", f"{t['first'][5:]} to {t['last'][5:]}"),
+             ("Answer-model spend", _usd(t["spend"], 2), "eval runs; judges and guardrail reviews left out")]
+    runs = _cells(["Run", "Date", "Model", "Setting", "Passed", "Median", "90% within", "Cost per answer"],
+                  [[escape(r["label"]) + ("" if r["valid"] else ' <span class="cc-note">not counted: the model '
+                                                                  "under test didn't answer</span>"),
+                    escape(r["date"]), _model_cell(r["model"], now=False), escape(r["setting"]),
+                    f"{r['passed']}/{r['cases']}", _secs(r["median"]), _secs(r["p90"]), _usd(r["per_answer"])]
+                   for r in cmp["runs"]])
+    screens = _cells(["Date", "Model", "Setting", "Answers", "Median", "Slowest", "Cost per answer"],
+                     [[escape(s["date"]), _model_cell(s["model"], now=False), escape(s["setting"]), str(s["answers"]),
+                       _secs(s["median"]), _secs(s["slowest"]), _usd(s["per_answer"])] for s in cmp["screens"]])
+    red = _cells(["Date", "Model", "Attacks held", "Benign controls passed"],
+                 [[escape(r["date"]), _model_cell(r["model"], now=False), f"{r['held']}/{r['attacks']}",
+                   f"{r['controls_passed']}/{r['controls']}"] for r in cmp["red_team"]])
+    return ('<h3>Test runs behind the choice</h3><p class="cc-note">Every run the choice of model rests on: the same '
+            "pipeline as the chat, guardrails on, answer cache off. Details in "
+            "docs/evidence/week-4/model-choice-and-caching.md.</p>"
+            '<div class="cc-tiles">' + "".join(
+                f'<div class="cc-tile"><span class="cc-k">{k}</span><span class="cc-v">{v}</span>'
+                f'<span class="cc-n">{escape(n)}</span></div>' for k, v, n in tiles) + "</div>"
+            f"<details><summary>Every eval run ({len(cmp['runs'])})</summary>{runs}</details>"
+            f"<details><summary>Speed screens ({len(cmp['screens'])})</summary>{screens}</details>"
+            f"<details><summary>Red-team runs ({len(cmp['red_team'])})</summary>{red}</details>")
 
 
 def _stack(parts: list[tuple[str, float, str]], fmt) -> str:
@@ -829,4 +922,5 @@ CSS = """
 .cc-keys > div { display: flex; gap: 6px; align-items: baseline; }
 .cc-keys b { margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cc-keys-1 { grid-template-columns: 1fr; max-width: 420px; }
+details > summary { cursor: pointer; margin: 10px 0 4px; font-weight: 600; }
 """

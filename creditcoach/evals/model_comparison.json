@@ -3,59 +3,1123 @@
  "baseline": "openai/gpt-5",
  "rows": [
   {
-   "model": "openai/gpt-5",
-   "run": "effort-low",
-   "date": "2026-10-27",
+   "model": "anthropic/claude-sonnet-5.5",
+   "setting": "default",
+   "runs": 3,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 45,
+   "passed_runs": [
+    45,
+    44,
+    46
+   ],
    "cases": 50,
-   "passed": 43,
-   "median": 20.4,
-   "p90": 30.8,
-   "per_answer": 0.0118,
-   "costed": 50
+   "median": 9.7,
+   "p90": 13.9,
+   "per_answer": 0.0255,
+   "costed": 150
+  },
+  {
+   "model": "router",
+   "setting": "routed",
+   "runs": 3,
+   "dates": [
+    "2026-11-06"
+   ],
+   "passed": 44.3,
+   "passed_runs": [
+    45,
+    43,
+    45
+   ],
+   "cases": 50,
+   "median": 8.6,
+   "p90": 12.2,
+   "per_answer": 0.0151,
+   "costed": 150
   },
   {
    "model": "anthropic/claude-sonnet-5.5",
-   "run": "model-claude-sonnet-5-5",
-   "date": "2026-10-31",
-   "cases": 50,
+   "setting": "default",
+   "runs": 1,
+   "dates": [
+    "2026-10-31"
+   ],
    "passed": 43,
+   "passed_runs": [
+    43
+   ],
+   "cases": 50,
    "median": 10.4,
    "p90": 14.9,
    "per_answer": 0.0256,
    "costed": 50
   },
   {
-   "model": "openai/gpt-5.6-terra",
-   "run": "model-gpt-5-6-terra",
-   "date": "2026-10-31",
+   "model": "openai/gpt-5",
+   "setting": "low thinking",
+   "runs": 1,
+   "dates": [
+    "2026-10-27"
+   ],
+   "passed": 43,
+   "passed_runs": [
+    43
+   ],
    "cases": 50,
-   "passed": 39,
-   "median": 6.8,
-   "p90": 10.9,
-   "per_answer": 0.0159,
+   "median": 20.4,
+   "p90": 30.8,
+   "per_answer": 0.0118,
+   "costed": 50
+  },
+  {
+   "model": "deepseek/deepseek-v4.1-flash",
+   "setting": "high thinking",
+   "runs": 4,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 41.8,
+   "passed_runs": [
+    44,
+    45,
+    38,
+    40
+   ],
+   "cases": 50,
+   "median": 5.1,
+   "p90": 8.4,
+   "per_answer": 0.0013,
+   "costed": 200
+  },
+  {
+   "model": "deepseek/deepseek-v4.1-flash",
+   "setting": "medium thinking",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 41,
+   "passed_runs": [
+    41
+   ],
+   "cases": 50,
+   "median": 5.0,
+   "p90": 7.4,
+   "per_answer": 0.0016,
    "costed": 50
   },
   {
    "model": "google/gemini-3.8-flash",
-   "run": "model-gemini-3-8-flash",
-   "date": "2026-10-31",
-   "cases": 50,
+   "setting": "default",
+   "runs": 1,
+   "dates": [
+    "2026-10-31"
+   ],
    "passed": 41,
+   "passed_runs": [
+    41
+   ],
+   "cases": 50,
    "median": 9.7,
    "p90": 17.6,
    "per_answer": 0.0067,
    "costed": 50
   },
   {
-   "model": "anthropic/claude-haiku-5.5",
-   "run": "model-claude-haiku-5-5",
-   "date": "2026-10-31",
+   "model": "moonshotai/kimi-k2.6",
+   "setting": "medium thinking",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 41,
+   "passed_runs": [
+    41
+   ],
    "cases": 50,
+   "median": 9.4,
+   "p90": 21.6,
+   "per_answer": 0.0083,
+   "costed": 50
+  },
+  {
+   "model": "xiaomi/mimo-v2.6-pro",
+   "setting": "medium thinking",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 41,
+   "passed_runs": [
+    41
+   ],
+   "cases": 50,
+   "median": 17.5,
+   "p90": 36.0,
+   "per_answer": 0.0097,
+   "costed": 50
+  },
+  {
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "setting": "high thinking",
+   "runs": 3,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 39.3,
+   "passed_runs": [
+    39,
+    38,
+    41
+   ],
+   "cases": 50,
+   "median": 6.2,
+   "p90": 12.1,
+   "per_answer": 0.0016,
+   "costed": 150
+  },
+  {
+   "model": "deepseek/deepseek-v4.1-flash",
+   "setting": "thinking off",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 39,
+   "passed_runs": [
+    39
+   ],
+   "cases": 50,
+   "median": 5.5,
+   "p90": 9.5,
+   "per_answer": 0.0014,
+   "costed": 50
+  },
+  {
+   "model": "openai/gpt-5.6-terra",
+   "setting": "default",
+   "runs": 1,
+   "dates": [
+    "2026-10-31"
+   ],
+   "passed": 39,
+   "passed_runs": [
+    39
+   ],
+   "cases": 50,
+   "median": 6.8,
+   "p90": 10.9,
+   "per_answer": 0.0159,
+   "costed": 50
+  },
+  {
+   "model": "z-ai/glm-5.3-flash",
+   "setting": "medium thinking",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 39,
+   "passed_runs": [
+    39
+   ],
+   "cases": 50,
+   "median": 9.5,
+   "p90": 17.1,
+   "per_answer": 0.0011,
+   "costed": 50
+  },
+  {
+   "model": "openai/gpt-5",
+   "setting": "minimal thinking",
+   "runs": 1,
+   "dates": [
+    "2026-10-27"
+   ],
+   "passed": 39,
+   "passed_runs": [
+    39
+   ],
+   "cases": 50,
+   "median": 12.3,
+   "p90": 18.6,
+   "per_answer": 0.0069,
+   "costed": 50
+  },
+  {
+   "model": "google/gemini-3.8-flash",
+   "setting": "default",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 39,
+   "passed_runs": [
+    39
+   ],
+   "cases": 50,
+   "median": 10.1,
+   "p90": 20.7,
+   "per_answer": 0.0079,
+   "costed": 50
+  },
+  {
+   "model": "z-ai/glm-5.3",
+   "setting": "low thinking",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 38,
+   "passed_runs": [
+    38
+   ],
+   "cases": 50,
+   "median": 7.2,
+   "p90": 21.9,
+   "per_answer": 0.0091,
+   "costed": 50
+  },
+  {
+   "model": "z-ai/glm-5.3-flash",
+   "setting": "low thinking",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 37,
+   "passed_runs": [
+    37
+   ],
+   "cases": 50,
+   "median": 5.3,
+   "p90": 9.2,
+   "per_answer": 0.0011,
+   "costed": 50
+  },
+  {
+   "model": "deepseek/deepseek-v4-pro",
+   "setting": "medium thinking",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 37,
+   "passed_runs": [
+    37
+   ],
+   "cases": 50,
+   "median": 12.2,
+   "p90": 20.5,
+   "per_answer": 0.0107,
+   "costed": 50
+  },
+  {
+   "model": "qwen/qwen3.8-27b",
+   "setting": "medium thinking",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
    "passed": 36,
+   "passed_runs": [
+    36
+   ],
+   "cases": 50,
+   "median": 5.7,
+   "p90": 11.1,
+   "per_answer": 0.0056,
+   "costed": 50
+  },
+  {
+   "model": "qwen/qwen3.8-27b",
+   "setting": "thinking off",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 36,
+   "passed_runs": [
+    36
+   ],
+   "cases": 50,
+   "median": 6.0,
+   "p90": 11.6,
+   "per_answer": 0.0037,
+   "costed": 50
+  },
+  {
+   "model": "anthropic/claude-haiku-5.5",
+   "setting": "default",
+   "runs": 1,
+   "dates": [
+    "2026-10-31"
+   ],
+   "passed": 36,
+   "passed_runs": [
+    36
+   ],
+   "cases": 50,
    "median": 9.2,
    "p90": 12.2,
    "per_answer": 0.0013,
    "costed": 50
+  },
+  {
+   "model": "minimax/minimax-m3",
+   "setting": "thinking off",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 34,
+   "passed_runs": [
+    34
+   ],
+   "cases": 50,
+   "median": 4.4,
+   "p90": 6.3,
+   "per_answer": 0.0012,
+   "costed": 50
+  },
+  {
+   "model": "nvidia/nemotron-3.5-super-vl",
+   "setting": "thinking off",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 34,
+   "passed_runs": [
+    34
+   ],
+   "cases": 50,
+   "median": 4.9,
+   "p90": 6.8,
+   "per_answer": 0.0011,
+   "costed": 50
+  },
+  {
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "setting": "thinking off",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 34,
+   "passed_runs": [
+    34
+   ],
+   "cases": 50,
+   "median": 6.8,
+   "p90": 13.0,
+   "per_answer": 0.0044,
+   "costed": 50
+  },
+  {
+   "model": "deepseek/deepseek-v4-pro-0813",
+   "setting": "medium thinking",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 34,
+   "passed_runs": [
+    34
+   ],
+   "cases": 50,
+   "median": 9.4,
+   "p90": 15.1,
+   "per_answer": 0.007,
+   "costed": 50
+  },
+  {
+   "model": "openai/gpt-6.1-terra",
+   "setting": "medium thinking",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 29,
+   "passed_runs": [
+    29
+   ],
+   "cases": 50,
+   "median": 5.5,
+   "p90": 8.3,
+   "per_answer": 0.0076,
+   "costed": 50
+  },
+  {
+   "model": "openai/gpt-6.1-terra",
+   "setting": "thinking off",
+   "runs": 1,
+   "dates": [
+    "2026-11-05"
+   ],
+   "passed": 28,
+   "passed_runs": [
+    28
+   ],
+   "cases": 50,
+   "median": 4.4,
+   "p90": 5.9,
+   "per_answer": 0.0071,
+   "costed": 50
+  }
+ ],
+ "totals": {
+  "eval_runs": 37,
+  "eval_answers": 1850,
+  "screens": 17,
+  "screen_answers": 136,
+  "red_team_runs": 4,
+  "red_team_answers": 152,
+  "models": 21,
+  "spend": 15.07,
+  "first": "2026-10-27",
+  "last": "2026-11-06"
+ },
+ "runs": [
+  {
+   "label": "effort-low",
+   "date": "2026-10-27",
+   "model": "openai/gpt-5",
+   "setting": "low thinking",
+   "cases": 50,
+   "passed": 43,
+   "valid": true,
+   "median": 20.4,
+   "p90": 30.8,
+   "per_answer": 0.0118
+  },
+  {
+   "label": "effort-minimal",
+   "date": "2026-10-27",
+   "model": "openai/gpt-5",
+   "setting": "minimal thinking",
+   "cases": 50,
+   "passed": 39,
+   "valid": true,
+   "median": 12.3,
+   "p90": 18.6,
+   "per_answer": 0.0069
+  },
+  {
+   "label": "model-claude-sonnet-5-5",
+   "date": "2026-10-31",
+   "model": "anthropic/claude-sonnet-5.5",
+   "setting": "default",
+   "cases": 50,
+   "passed": 43,
+   "valid": true,
+   "median": 10.4,
+   "p90": 14.9,
+   "per_answer": 0.0256
+  },
+  {
+   "label": "model-gpt-5-6-terra",
+   "date": "2026-10-31",
+   "model": "openai/gpt-5.6-terra",
+   "setting": "default",
+   "cases": 50,
+   "passed": 39,
+   "valid": true,
+   "median": 6.8,
+   "p90": 10.9,
+   "per_answer": 0.0159
+  },
+  {
+   "label": "model-gemini-3-8-flash",
+   "date": "2026-10-31",
+   "model": "google/gemini-3.8-flash",
+   "setting": "default",
+   "cases": 50,
+   "passed": 41,
+   "valid": true,
+   "median": 9.7,
+   "p90": 17.6,
+   "per_answer": 0.0067
+  },
+  {
+   "label": "model-claude-haiku-5-5",
+   "date": "2026-10-31",
+   "model": "anthropic/claude-haiku-5.5",
+   "setting": "default",
+   "cases": 50,
+   "passed": 36,
+   "valid": true,
+   "median": 9.2,
+   "p90": 12.2,
+   "per_answer": 0.0013
+  },
+  {
+   "label": "bench-claude-sonnet-5-5-1",
+   "date": "2026-11-05",
+   "model": "anthropic/claude-sonnet-5.5",
+   "setting": "default",
+   "cases": 50,
+   "passed": 45,
+   "valid": true,
+   "median": 9.8,
+   "p90": 13.4,
+   "per_answer": 0.026
+  },
+  {
+   "label": "bench-claude-sonnet-5-5-2",
+   "date": "2026-11-05",
+   "model": "anthropic/claude-sonnet-5.5",
+   "setting": "default",
+   "cases": 50,
+   "passed": 44,
+   "valid": true,
+   "median": 9.5,
+   "p90": 16.2,
+   "per_answer": 0.0258
+  },
+  {
+   "label": "bench-claude-sonnet-5-5-3",
+   "date": "2026-11-05",
+   "model": "anthropic/claude-sonnet-5.5",
+   "setting": "default",
+   "cases": 50,
+   "passed": 46,
+   "valid": true,
+   "median": 9.7,
+   "p90": 12.0,
+   "per_answer": 0.0247
+  },
+  {
+   "label": "bench-claude-sonnet-5-5-thinking-off",
+   "date": "2026-11-05",
+   "model": "anthropic/claude-sonnet-5.5",
+   "setting": "thinking off",
+   "cases": 50,
+   "passed": 0,
+   "valid": false,
+   "median": 6.2,
+   "p90": 10.9,
+   "per_answer": 0.0131
+  },
+  {
+   "label": "bench-deepseek-v4-1-flash-1017-high-1",
+   "date": "2026-11-05",
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "setting": "high thinking",
+   "cases": 50,
+   "passed": 39,
+   "valid": true,
+   "median": 6.9,
+   "p90": 12.5,
+   "per_answer": 0.0019
+  },
+  {
+   "label": "bench-deepseek-v4-1-flash-1017-high-2",
+   "date": "2026-11-05",
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "setting": "high thinking",
+   "cases": 50,
+   "passed": 38,
+   "valid": true,
+   "median": 6.0,
+   "p90": 13.3,
+   "per_answer": 0.0015
+  },
+  {
+   "label": "bench-deepseek-v4-1-flash-1017-high-3",
+   "date": "2026-11-05",
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "setting": "high thinking",
+   "cases": 50,
+   "passed": 41,
+   "valid": true,
+   "median": 6.2,
+   "p90": 8.5,
+   "per_answer": 0.0013
+  },
+  {
+   "label": "bench-deepseek-v4-1-flash-high-1",
+   "date": "2026-11-05",
+   "model": "deepseek/deepseek-v4.1-flash",
+   "setting": "high thinking",
+   "cases": 50,
+   "passed": 44,
+   "valid": true,
+   "median": 5.3,
+   "p90": 8.3,
+   "per_answer": 0.0016
+  },
+  {
+   "label": "bench-deepseek-v4-1-flash-high-2",
+   "date": "2026-11-05",
+   "model": "deepseek/deepseek-v4.1-flash",
+   "setting": "high thinking",
+   "cases": 50,
+   "passed": 45,
+   "valid": true,
+   "median": 5.0,
+   "p90": 8.9,
+   "per_answer": 0.0013
+  },
+  {
+   "label": "bench-deepseek-v4-1-flash-high-3",
+   "date": "2026-11-05",
+   "model": "deepseek/deepseek-v4.1-flash",
+   "setting": "high thinking",
+   "cases": 50,
+   "passed": 38,
+   "valid": true,
+   "median": 5.2,
+   "p90": 8.5,
+   "per_answer": 0.0011
+  },
+  {
+   "label": "bench-deepseek-v4-1-flash-high-4",
+   "date": "2026-11-05",
+   "model": "deepseek/deepseek-v4.1-flash",
+   "setting": "high thinking",
+   "cases": 50,
+   "passed": 40,
+   "valid": true,
+   "median": 4.9,
+   "p90": 7.0,
+   "per_answer": 0.0011
+  },
+  {
+   "label": "bench-deepseek-v4-1-flash-medium",
+   "date": "2026-11-05",
+   "model": "deepseek/deepseek-v4.1-flash",
+   "setting": "medium thinking",
+   "cases": 50,
+   "passed": 41,
+   "valid": true,
+   "median": 5.0,
+   "p90": 7.4,
+   "per_answer": 0.0016
+  },
+  {
+   "label": "bench-deepseek-v4-1-flash-off",
+   "date": "2026-11-05",
+   "model": "deepseek/deepseek-v4.1-flash",
+   "setting": "thinking off",
+   "cases": 50,
+   "passed": 39,
+   "valid": true,
+   "median": 5.5,
+   "p90": 9.5,
+   "per_answer": 0.0014
+  },
+  {
+   "label": "bench-deepseek-v4-pro-0813-medium",
+   "date": "2026-11-05",
+   "model": "deepseek/deepseek-v4-pro-0813",
+   "setting": "medium thinking",
+   "cases": 50,
+   "passed": 34,
+   "valid": true,
+   "median": 9.4,
+   "p90": 15.1,
+   "per_answer": 0.007
+  },
+  {
+   "label": "bench-deepseek-v4-pro-medium",
+   "date": "2026-11-05",
+   "model": "deepseek/deepseek-v4-pro",
+   "setting": "medium thinking",
+   "cases": 50,
+   "passed": 37,
+   "valid": true,
+   "median": 12.2,
+   "p90": 20.5,
+   "per_answer": 0.0107
+  },
+  {
+   "label": "bench-gemini-3-8-flash",
+   "date": "2026-11-05",
+   "model": "google/gemini-3.8-flash",
+   "setting": "default",
+   "cases": 50,
+   "passed": 39,
+   "valid": true,
+   "median": 10.1,
+   "p90": 20.7,
+   "per_answer": 0.0079
+  },
+  {
+   "label": "bench-glm-5-3-flash-low",
+   "date": "2026-11-05",
+   "model": "z-ai/glm-5.3-flash",
+   "setting": "low thinking",
+   "cases": 50,
+   "passed": 37,
+   "valid": true,
+   "median": 5.3,
+   "p90": 9.2,
+   "per_answer": 0.0011
+  },
+  {
+   "label": "bench-glm-5-3-flash-medium",
+   "date": "2026-11-05",
+   "model": "z-ai/glm-5.3-flash",
+   "setting": "medium thinking",
+   "cases": 50,
+   "passed": 39,
+   "valid": true,
+   "median": 9.5,
+   "p90": 17.1,
+   "per_answer": 0.0011
+  },
+  {
+   "label": "bench-glm-5-3-low",
+   "date": "2026-11-05",
+   "model": "z-ai/glm-5.3",
+   "setting": "low thinking",
+   "cases": 50,
+   "passed": 38,
+   "valid": true,
+   "median": 7.2,
+   "p90": 21.9,
+   "per_answer": 0.0091
+  },
+  {
+   "label": "bench-gpt-6-1-terra-medium",
+   "date": "2026-11-05",
+   "model": "openai/gpt-6.1-terra",
+   "setting": "medium thinking",
+   "cases": 50,
+   "passed": 29,
+   "valid": true,
+   "median": 5.5,
+   "p90": 8.3,
+   "per_answer": 0.0076
+  },
+  {
+   "label": "bench-gpt-6-1-terra-off",
+   "date": "2026-11-05",
+   "model": "openai/gpt-6.1-terra",
+   "setting": "thinking off",
+   "cases": 50,
+   "passed": 28,
+   "valid": true,
+   "median": 4.4,
+   "p90": 5.9,
+   "per_answer": 0.0071
+  },
+  {
+   "label": "bench-kimi-k2-6-medium",
+   "date": "2026-11-05",
+   "model": "moonshotai/kimi-k2.6",
+   "setting": "medium thinking",
+   "cases": 50,
+   "passed": 41,
+   "valid": true,
+   "median": 9.4,
+   "p90": 21.6,
+   "per_answer": 0.0083
+  },
+  {
+   "label": "bench-mimo-v2-6-pro-medium",
+   "date": "2026-11-05",
+   "model": "xiaomi/mimo-v2.6-pro",
+   "setting": "medium thinking",
+   "cases": 50,
+   "passed": 41,
+   "valid": true,
+   "median": 17.5,
+   "p90": 36.0,
+   "per_answer": 0.0097
+  },
+  {
+   "label": "bench-minimax-m3-off",
+   "date": "2026-11-05",
+   "model": "minimax/minimax-m3",
+   "setting": "thinking off",
+   "cases": 50,
+   "passed": 34,
+   "valid": true,
+   "median": 4.4,
+   "p90": 6.3,
+   "per_answer": 0.0012
+  },
+  {
+   "label": "bench-nemotron-3-5-super-off",
+   "date": "2026-11-05",
+   "model": "nvidia/nemotron-3.5-super-vl",
+   "setting": "thinking off",
+   "cases": 50,
+   "passed": 34,
+   "valid": true,
+   "median": 4.9,
+   "p90": 6.8,
+   "per_answer": 0.0011
+  },
+  {
+   "label": "bench-nemotron-3-ultra-off",
+   "date": "2026-11-05",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "setting": "thinking off",
+   "cases": 50,
+   "passed": 34,
+   "valid": true,
+   "median": 6.8,
+   "p90": 13.0,
+   "per_answer": 0.0044
+  },
+  {
+   "label": "bench-qwen3-8-27b-medium",
+   "date": "2026-11-05",
+   "model": "qwen/qwen3.8-27b",
+   "setting": "medium thinking",
+   "cases": 50,
+   "passed": 36,
+   "valid": true,
+   "median": 5.7,
+   "p90": 11.1,
+   "per_answer": 0.0056
+  },
+  {
+   "label": "bench-qwen3-8-27b-off",
+   "date": "2026-11-05",
+   "model": "qwen/qwen3.8-27b",
+   "setting": "thinking off",
+   "cases": 50,
+   "passed": 36,
+   "valid": true,
+   "median": 6.0,
+   "p90": 11.6,
+   "per_answer": 0.0037
+  },
+  {
+   "label": "router-1",
+   "date": "2026-11-06",
+   "model": "router",
+   "setting": "routed",
+   "cases": 50,
+   "passed": 45,
+   "valid": true,
+   "median": 8.7,
+   "p90": 12.2,
+   "per_answer": 0.0156
+  },
+  {
+   "label": "router-2",
+   "date": "2026-11-06",
+   "model": "router",
+   "setting": "routed",
+   "cases": 50,
+   "passed": 43,
+   "valid": true,
+   "median": 8.4,
+   "p90": 12.0,
+   "per_answer": 0.0149
+  },
+  {
+   "label": "router-3",
+   "date": "2026-11-06",
+   "model": "router",
+   "setting": "routed",
+   "cases": 50,
+   "passed": 45,
+   "valid": true,
+   "median": 8.4,
+   "p90": 12.4,
+   "per_answer": 0.0148
+  }
+ ],
+ "screens": [
+  {
+   "date": "2026-10-31",
+   "model": "openai/gpt-5",
+   "setting": "default",
+   "answers": 8,
+   "median": 20.4,
+   "slowest": 23.6,
+   "per_answer": null
+  },
+  {
+   "date": "2026-10-31",
+   "model": "openai/gpt-5.6-terra",
+   "setting": "default",
+   "answers": 8,
+   "median": 9.1,
+   "slowest": 11.4,
+   "per_answer": null
+  },
+  {
+   "date": "2026-10-31",
+   "model": "openai/gpt-5.6-luna",
+   "setting": "default",
+   "answers": 8,
+   "median": 9.8,
+   "slowest": 12.2,
+   "per_answer": null
+  },
+  {
+   "date": "2026-10-31",
+   "model": "anthropic/claude-haiku-5.5",
+   "setting": "default",
+   "answers": 8,
+   "median": 10.7,
+   "slowest": 14.0,
+   "per_answer": null
+  },
+  {
+   "date": "2026-10-31",
+   "model": "google/gemini-3.8-flash",
+   "setting": "default",
+   "answers": 8,
+   "median": 11.6,
+   "slowest": 14.0,
+   "per_answer": null
+  },
+  {
+   "date": "2026-10-31",
+   "model": "anthropic/claude-sonnet-5.5",
+   "setting": "default",
+   "answers": 8,
+   "median": 13.2,
+   "slowest": 17.7,
+   "per_answer": null
+  },
+  {
+   "date": "2026-11-05",
+   "model": "anthropic/claude-sonnet-5.5",
+   "answers": 8,
+   "setting": "default",
+   "median": 10.4,
+   "slowest": 20.1,
+   "per_answer": 0.0266
+  },
+  {
+   "date": "2026-11-05",
+   "model": "qwen/qwen3.8-27b",
+   "answers": 8,
+   "setting": "thinking off",
+   "median": 5.0,
+   "slowest": 7.5,
+   "per_answer": 0.0024
+  },
+  {
+   "date": "2026-11-05",
+   "model": "deepseek/deepseek-v4.1-flash",
+   "answers": 8,
+   "setting": "thinking off",
+   "median": 4.4,
+   "slowest": 10.6,
+   "per_answer": 0.0017
+  },
+  {
+   "date": "2026-11-05",
+   "model": "minimax/minimax-m3",
+   "answers": 8,
+   "setting": "thinking off",
+   "median": 4.8,
+   "slowest": 6.2,
+   "per_answer": 0.0012
+  },
+  {
+   "date": "2026-11-05",
+   "model": "nvidia/nemotron-3.5-super-vl",
+   "answers": 8,
+   "setting": "thinking off",
+   "median": 6.0,
+   "slowest": 6.5,
+   "per_answer": 0.0011
+  },
+  {
+   "date": "2026-11-05",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "answers": 8,
+   "setting": "thinking off",
+   "median": 6.8,
+   "slowest": 14.6,
+   "per_answer": 0.0049
+  },
+  {
+   "date": "2026-11-05",
+   "model": "mistralai/mistral-large-4-0",
+   "answers": 8,
+   "setting": "default",
+   "median": 11.2,
+   "slowest": 35.8,
+   "per_answer": 0.0064
+  },
+  {
+   "date": "2026-11-05",
+   "model": "z-ai/glm-5.3",
+   "answers": 8,
+   "setting": "low thinking",
+   "median": 7.5,
+   "slowest": 29.1,
+   "per_answer": 0.0122
+  },
+  {
+   "date": "2026-11-05",
+   "model": "z-ai/glm-5.3-flash",
+   "answers": 8,
+   "setting": "low thinking",
+   "median": 4.8,
+   "slowest": 17.7,
+   "per_answer": 0.001
+  },
+  {
+   "date": "2026-11-05",
+   "model": "minimax/minimax-m3.1-flash",
+   "answers": 8,
+   "setting": "low thinking",
+   "median": 11.4,
+   "slowest": 15.5,
+   "per_answer": 0.0009
+  },
+  {
+   "date": "2026-11-05",
+   "model": "openai/gpt-6.1-terra",
+   "answers": 8,
+   "setting": "thinking off",
+   "median": 4.1,
+   "slowest": 9.9,
+   "per_answer": 0.008
+  }
+ ],
+ "red_team": [
+  {
+   "date": "2026-10-31",
+   "model": "anthropic/claude-sonnet-5.5",
+   "answers": 38,
+   "held": 31,
+   "attacks": 31,
+   "controls_passed": 5,
+   "controls": 5
+  },
+  {
+   "date": "2026-11-05",
+   "model": "anthropic/claude-sonnet-5.5",
+   "answers": 38,
+   "held": 31,
+   "attacks": 31,
+   "controls_passed": 5,
+   "controls": 5
+  },
+  {
+   "date": "2026-11-05",
+   "model": "deepseek/deepseek-v4.1-flash",
+   "answers": 38,
+   "held": 30,
+   "attacks": 31,
+   "controls_passed": 5,
+   "controls": 5
+  },
+  {
+   "date": "2026-11-06",
+   "model": "router",
+   "answers": 38,
+   "held": 31,
+   "attacks": 31,
+   "controls_passed": 5,
+   "controls": 5
   }
  ]
 }

@@ -366,11 +366,11 @@ def test_questions_that_lean_on_the_conversation(question, leans):
 @pytest.fixture
 def model(monkeypatch, on):
     """A counting fake chat model and made-up embeddings (equal for equal text); retrieval returns nothing."""
-    seen = SimpleNamespace(drafts=0, text=ANSWER, answers_as=config.CHAT_MODEL)
+    seen = SimpleNamespace(drafts=0, text=ANSWER, answers_as=None)  # None: the model asked for (the router's pick)
 
     def chat_with_tools(messages, tools, model=None):
         seen.drafts += 1
-        return SimpleNamespace(content=seen.text, tool_calls=None), seen.answers_as
+        return SimpleNamespace(content=seen.text, tool_calls=None), seen.answers_as or model or config.CHAT_MODEL
 
     def embed(text):
         import hashlib
@@ -403,7 +403,7 @@ def test_the_same_question_from_the_same_user_is_answered_from_the_cache(model, 
     # the hit still carries the user's live figures (from the tool cache), its sources and its guardrail decision
     assert [(c.tool, c.ok, c.cached) for c in second.tool_calls] == [("get_score_history", True, True),
                                                                       ("get_account_summary", True, True)]
-    assert second.sources == first.sources and second.guardrail.action == "passed" and second.model == config.CHAT_MODEL
+    assert second.sources == first.sources and second.guardrail.action == "passed" and second.model == first.model
 
 
 def test_another_user_never_gets_the_stored_answer(model):
