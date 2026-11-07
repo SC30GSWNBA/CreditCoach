@@ -14,7 +14,7 @@ Example:
     >>> from creditcoach.user_data import load_user_data
     >>> data = load_user_data("USR-001")
     >>> data["get_score_history"]["points"][-1]
-    {'date': '2026-09-01', 'score': 650, 'factor_change': 'Hard inquiry + utilization spike'}
+    {'date': '2026-10-01', 'score': 651, 'factor_change': 'Stable (no major change)'}
 """
 
 from functools import lru_cache

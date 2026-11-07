@@ -164,10 +164,16 @@ body:not(.dark) .gradio-container {--body-text-color-subdued: #475569; --block-i
 /* Phones: three tabs that fit, and room for the words beside Log out */
 @media (max-width: 600px) {
   .tab-container {gap: 4px !important; padding: 4px !important; align-items: stretch !important;}
-  button[role="tab"] {flex: 1 1 auto; min-width: 0; padding: 8px 6px !important; font-size: .82rem !important;
+  button[role="tab"] {flex: 1 1 0; min-width: min-content; padding: 8px 6px !important; font-size: .82rem !important;
            line-height: 1.2; white-space: normal !important;}
   .cc-logout {min-width: 0 !important; flex: 0 0 auto !important;}
   .cc-ask {flex: 1 1 100% !important;}
+}
+
+/* iPad mini (744px) and similar: the full-size tabs cut "Ask CreditCoach" short, so they size to their words */
+@media (min-width: 601px) and (max-width: 800px) {
+  button[role="tab"] {flex: 1 1 auto; min-width: 0; padding-left: 10px !important; padding-right: 10px !important;
+           font-size: 1.05rem !important;}
 }
 
 /* A chat box that fits the screen, so the message box is never a long way below it */

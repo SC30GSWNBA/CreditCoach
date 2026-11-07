@@ -93,6 +93,7 @@ _TARGET = re.compile(r"(?:target|goal|aim(?:ing)? for|aiming at)\D{0,25}?\b([3-8
 
 _cache: dict = {}
 _cache_lock = threading.Lock()
+_reading: dict[int, threading.Lock] = {}  # one per period, held while that period's traces are read (``load``)
 
 
 # ---------------------------------------------------------------- loading
@@ -162,9 +163,19 @@ def load(days: int, now: datetime | None = None) -> tuple[list[dict], str]:
     now = now or datetime.now(UTC)
     since = now - timedelta(days=days)
     with _cache_lock:
-        hit = _cache.get(days)
-        if hit and time.monotonic() - hit[0] < CACHE_SECONDS:
-            return hit[1], hit[2]
+        reading = _reading.setdefault(days, threading.Lock())
+    # one read per period at a time: people opening the tab together each read Langfuse, which answered 429 Too Many
+    # Requests (2026-11-07), so the rest wait for the first read and share it
+    with reading:
+        with _cache_lock:
+            hit = _cache.get(days)
+            if hit and time.monotonic() - hit[0] < CACHE_SECONDS:
+                return hit[1], hit[2]
+        return _read(days, since)
+
+
+def _read(days: int, since: datetime) -> tuple[list[dict], str]:
+    """Read the spans since ``since`` (``load`` without the cache), and keep them for ``CACHE_SECONDS``."""
     if config.LANGFUSE_PUBLIC_KEY and config.LANGFUSE_SECRET_KEY:
         try:
             spans, source = from_langfuse(since), f"Langfuse ({config.LANGFUSE_HOST}): every machine that sends it traces"
@@ -931,6 +942,12 @@ def cost_view(days: int, traffic: str) -> dict:
 
 
 CSS = """
+.cc-dash-controls fieldset { display: grid !important; grid-template-columns: 9rem minmax(0, 1fr); align-items: center;
+  column-gap: 12px; }
+.cc-dash-controls fieldset > span[data-testid="block-info"] { justify-self: start; margin: 0; }
+@media (max-width: 600px) {
+  .cc-dash-controls fieldset { grid-template-columns: minmax(0, 1fr); row-gap: 6px; }
+}
 .cc-dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr)); gap: 16px; }
 .cc-dash-grid > div { min-width: 0; overflow-x: auto; }
 .cc-dash-table { width: 100%; border-collapse: collapse; font-size: .86rem; font-variant-numeric: tabular-nums; }
