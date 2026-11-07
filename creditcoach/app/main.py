@@ -580,6 +580,14 @@ def load_dashboard(days: int, traffic: str, request: gr.Request) -> tuple:
     return tab, dashboard_view(days, traffic, request) if tab.visible else page
 
 
+def open_dashboard(days: int, traffic: str, filled: bool, request: gr.Request) -> tuple:
+    """Opening the Dashboard tab: fill it in the first time only, so people who never open it don't wait for the
+    traces at page load (2026-11-07). Later visits keep what's shown; the Refresh button reads the traces afresh."""
+    if filled:
+        return gr.skip(), True
+    return dashboard_view(days, traffic, request), True
+
+
 def dashboard_switch(view: str) -> tuple:
     """Show the picked view of the dashboard: "Quality" (Task 31's measures) or "Cost and speed"."""
     return gr.update(visible=view == "quality"), gr.update(visible=view == "cost")
@@ -613,14 +621,20 @@ OPEN_AT_TOP_JS = """() => { setTimeout(() => { window.scrollTo(0, 0);
   const box = document.querySelector('.bubble-wrap');
   if (box && box.querySelector('.placeholder-content')) { box.scrollTop = 0; } }, 300); }"""
 
+# Gradio runs each event (a page-load step, a tab's chart) for one person at a time unless told otherwise, so people
+# opening the app together queued behind each other (2026-11-07, users saw screens appear slowly). Page steps are
+# short reads, so 16 run at once. Each answer also starts an MCP tool server process, so answers are held to 8.
+PAGE_CONCURRENCY = 16
+ANSWER_CONCURRENCY = 8
+
 
 def build() -> gr.Blocks:
     """Create the page: a "Signed in as" line with a Log out button, the memory panel, then the tabs: the chat
     interface, "My credit" (the signed-in user's charts) and "Dashboard" (Task 31, counts across all users).
 
     Returns:
-        A configured ``gr.Blocks`` (not yet launched). Analytics are off, flagging is disabled, and at most 2
-        questions are answered at the same time.
+        A configured ``gr.Blocks`` (not yet launched). Analytics are off, flagging is disabled, and at most
+        ``ANSWER_CONCURRENCY`` questions are answered at the same time.
     """
     with gr.Blocks(title=TITLE, analytics_enabled=False) as demo:  # don't send usage telemetry from a finance app
         with gr.Row():
@@ -641,7 +655,7 @@ def build() -> gr.Blocks:
                     examples=EXAMPLES,
                     cache_examples=False,
                     flagging_mode="never",
-                    concurrency_limit=2,
+                    concurrency_limit=ANSWER_CONCURRENCY,
                     autofocus=True,
                     analytics_enabled=False,
                 )
@@ -755,9 +769,11 @@ def build() -> gr.Blocks:
                          show_progress="hidden")
         dash_view.change(dashboard_switch, inputs=dash_view, outputs=[quality_col, cost_col],
                          show_progress="hidden").then(cost_dashboard, inputs=cost_inputs, outputs=cost_parts)
-        demo.load(show_dashboard_tab, outputs=[dash_tab, dash], show_progress="hidden").then(
-            dashboard_view, inputs=[dash_days, dash_traffic], outputs=dash)
+        demo.load(show_dashboard_tab, outputs=[dash_tab, dash], show_progress="hidden")
+        dash_filled = gr.State(False)
+        dash_tab.select(open_dashboard, inputs=[dash_days, dash_traffic, dash_filled], outputs=[dash, dash_filled])
         demo.unload(closed)
+    demo.queue(default_concurrency_limit=PAGE_CONCURRENCY)
     return demo
 
 

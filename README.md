@@ -336,7 +336,7 @@ All settings are read from `.env` (git-ignored). See [.env.example](.env.example
 | `CREDITCOACH_ENV` | No | `local` | Tags every trace with where it ran (for example `railway`) |
 | `EMBEDDING_MODEL` | No | `sentence-transformers/all-MiniLM-L6-v2` | Local embedding model for the vector store. Rebuild the store after changing it. |
 | `RERANKER_MODEL` | No | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Local cross-encoder that reorders retrieved chunks |
-| `CREDITCOACH_SIGNUP_MAX` | No | `50` | How many people may sign up in total; sign-up closes when it is reached |
+| `CREDITCOACH_SIGNUP_MAX` | No | `100` | How many people may sign up in total; sign-up closes when it is reached |
 | `CREDITCOACH_INVITE_CODE` | No | (none) | When set, the sign-up form asks for this code and refuses anyone without it |
 | `CREDITCOACH_WEEKLY_QUESTIONS` | No | `5` | Questions a signed-up user may ask per week |
 | `CREDITCOACH_SESSION_SECRET` | No | random each start | Signs the sign-in cookie. Set it to keep people signed in across restarts. |
@@ -361,7 +361,7 @@ Someone without a login creates one on the **Sign up** tab. It needs Neon (`DATA
 5. **Log in.** After confirming they saved the details, the person lands on the Log in tab with the User ID filled in.
 
 - **5 questions a week.** A signed-up user may ask 5 questions per week (`CREDITCOACH_WEEKLY_QUESTIONS`). The week starts with their first question and resets 7 days later; each answer ends with how many are left, and a sixth question gets the date the next ones unlock. A failed answer isn't counted; an answer from the cache is. Counts are in Neon's `app_usage`.
-- **Keeping cost bounded.** Anyone with the link can sign up, so sign-up closes after `CREDITCOACH_SIGNUP_MAX` people (default 50), and `CREDITCOACH_INVITE_CODE` restricts it to people you gave the code to.
+- **Keeping cost bounded.** Anyone with the link can sign up, so sign-up closes after `CREDITCOACH_SIGNUP_MAX` people (default 100), and `CREDITCOACH_INVITE_CODE` restricts it to people you gave the code to.
 - **The CSVs are untouched.** Sign-up users exist only in Neon. `scripts/data_import.py` keeps them when it reloads the CSVs, and the "Neon matches data/*.csv" check ignores them.
 - **Remove a sign-up user** in the Neon SQL editor: delete their rows from `app_usage`, `app_logins`, `dataset_score_history`, `dataset_accounts` and `dataset_users`, in that order. Remove the newest user first, since User IDs are numbered by how many users exist.
 
