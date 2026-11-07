@@ -53,6 +53,29 @@ Checked on each: no sideways scrolling; no element off-screen outside a scroll b
 |---|---|
 | ![Before](img/tabs-320-safari-before.png) | ![After](img/tabs-320-safari-after.png) |
 
+## Larger Cost and speed charts (2026-11-07, after #78)
+
+On the Cost and speed view the charts were small next to what surrounds them: the 25 model tick boxes took 5 rows above "Cost vs response time", and "Spend by day" shared its row with "Response time by day", so its 25-model key left its bars about 100 px. Changed in [dashboard.py](../../../creditcoach/app/dashboard.py) and [main.py](../../../creditcoach/app/main.py):
+
+| Chart | Change |
+|---|---|
+| Cost vs response time, per answer | Tick boxes in smaller type (0.82rem) with less padding: 4 rows, not 5. Chart 400 → 560 px tall; its color key in smaller type |
+| Cost against speed and quality | Chart 340 → 500 px tall |
+| Spend by day, Response time by day | One above the other, each full width; Spend by day 300 → 460 px tall, its key in 5 columns, not a scrolling list. On phones the key still scrolls: there is no width for columns |
+| Refresh | Indigo outline and words with a ↻, both themes; not filled, so it isn't taken for a chosen option |
+
+Same view as the testers' screenshots (Last 30 days, Eval and test runs), MacBook Pro 14" (1512px), before above after:
+
+![Cost vs response time, before and after](img/chart-cost-vs-time-before-after.png)
+
+![Cost against speed and quality, before and after](img/chart-cost-vs-quality-before-after.png)
+
+![Spend by day and Response time by day, before and after](img/chart-spend-and-time-before-after.png)
+
+![Refresh, before and after](img/dashboard-refresh-before-after.png)
+
+Screen sizes re-checked as above (24 sizes × light and dark × 4 states, Chromium and WebKit): **384 captures, 0 faults**. 1 new pytest test.
+
 ## Not checked
 
 - **Real devices.** All results are emulated browsers.

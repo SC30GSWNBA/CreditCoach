@@ -705,7 +705,7 @@ def build() -> gr.Blocks:
                     dash_traffic = gr.Radio(dashboard.TRAFFIC, value="real", label="Type of runs")
                     dash_view = gr.Radio(dashboard.VIEWS, value="quality", label="Performance")
                 with gr.Row():
-                    dash_refresh = gr.Button("Refresh", size="sm", scale=0, min_width=120)
+                    dash_refresh = gr.Button("↻ Refresh", size="sm", scale=0, min_width=140, elem_classes="cc-refresh")
                 with gr.Column() as quality_col:
                     dash = gr.HTML()
                 with gr.Column(visible=False) as cost_col:
@@ -725,14 +725,12 @@ def build() -> gr.Blocks:
                                 "choice of model.")
                     cost_quality = gr.Plot(show_label=False)
                     cost_quality_table = gr.HTML()
-                    with gr.Row(equal_height=False):
-                        with gr.Column(min_width=320):
-                            gr.Markdown("### Spend by day\nUS dollars, by answer model, with the output check apart.")
-                            cost_spend = gr.Plot(show_label=False)
-                        with gr.Column(min_width=320):
-                            gr.Markdown("### Response time by day\nSeconds from question to answer. p50 is the "
-                                        "typical answer, p95 the slowest one in twenty.")
-                            cost_latency = gr.Plot(show_label=False)
+                    # one above the other, full width: Spend by day's key has a line per model (2026-11-07)
+                    gr.Markdown("### Spend by day\nUS dollars, by answer model, with the output check apart.")
+                    cost_spend = gr.Plot(show_label=False)
+                    gr.Markdown("### Response time by day\nSeconds from question to answer. p50 is the typical "
+                                "answer, p95 the slowest one in twenty.")
+                    cost_latency = gr.Plot(show_label=False)
                     cost_split = gr.HTML()
                     with gr.Row(equal_height=False):
                         with gr.Column(min_width=320):
