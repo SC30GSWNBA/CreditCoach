@@ -52,7 +52,7 @@ Observability (Task 26; environment variable -> default):
     CREDITCOACH_ENV         "local"    Tags every trace (for example "railway" for the deployed build).
 
 Sign-up and the weekly allowance (environment variable -> default):
-    CREDITCOACH_SIGNUP_MAX         50  How many people may sign up in total. Sign-up closes when it is reached.
+    CREDITCOACH_SIGNUP_MAX        100  How many people may sign up in total. Sign-up closes when it is reached.
     CREDITCOACH_INVITE_CODE        ""  When set, the sign-up form asks for this code and refuses anyone without it.
     CREDITCOACH_WEEKLY_QUESTIONS   5   Questions a signed-up user may ask per week. The 15 team logins have no limit.
     CREDITCOACH_SESSION_SECRET     ""  Signs the sign-in cookie. Blank means a new random secret each start, which
@@ -132,7 +132,7 @@ OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 ENVIRONMENT = os.getenv("CREDITCOACH_ENV", "local")
 
 # Sign-up (creditcoach.signup) and the weekly allowance (creditcoach.app.limits)
-SIGNUP_MAX = int(os.getenv("CREDITCOACH_SIGNUP_MAX", "50"))
+SIGNUP_MAX = int(os.getenv("CREDITCOACH_SIGNUP_MAX", "100"))
 INVITE_CODE = os.getenv("CREDITCOACH_INVITE_CODE", "")
 WEEKLY_QUESTIONS = int(os.getenv("CREDITCOACH_WEEKLY_QUESTIONS", "5"))
 SESSION_SECRET = os.getenv("CREDITCOACH_SESSION_SECRET", "")

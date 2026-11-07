@@ -26,6 +26,7 @@ Example:
 import hashlib
 import re
 import sys
+import threading
 from dataclasses import asdict, dataclass
 from functools import lru_cache
 
@@ -53,6 +54,11 @@ class Result:
     category: str
     text: str
     metadata: dict
+
+
+# One model call at a time: two answers searching at once crashed the app on a Mac, where the models run on the GPU
+# (2026-11-07 load test). Each call takes a fraction of a second, so answers barely wait for each other.
+_inference = threading.Lock()
 
 
 @lru_cache(maxsize=1)
@@ -119,7 +125,8 @@ def embed(query: str) -> list[float]:
     key = cache.key("embedding", config.EMBEDDING_MODEL, query)
     vector = cache.get("embedding", key)
     if vector is None:
-        vector = _model().encode([query], normalize_embeddings=True)[0].tolist()
+        with _inference:
+            vector = _model().encode([query], normalize_embeddings=True)[0].tolist()
         cache.put("embedding", key, vector)
     return vector
 
@@ -178,7 +185,8 @@ def retrieve(query: str, k: int = 3, where: dict | None = None, *, rerank: bool 
         return [Result(**r) for r in cached]
     pool = _dense(query, max(candidates, k), where)
     if rerank and pool:
-        ce_scores = _reranker().predict([(query, r.text) for r in pool])
+        with _inference:
+            ce_scores = _reranker().predict([(query, r.text) for r in pool])
         ce_rank = {r.id: i for i, (_, r) in enumerate(sorted(zip(ce_scores, pool), key=lambda x: -x[0]))}
         if fusion:
             key = lambda r: -(1 / (60 + r.rank) + 1 / (60 + ce_rank[r.id] + 1))  # RRF with the standard k=60

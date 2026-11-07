@@ -272,12 +272,29 @@ def test_the_handlers_check_the_session_too_not_only_the_hidden_tab(monkeypatch,
 
 
 def test_the_tab_shows_before_the_traces_are_read(monkeypatch, signed_up):
-    """Showing the tab must not wait on Langfuse (it took 4-6 s on a cold cache); the content follows in a .then."""
+    """Showing the tab must not wait on Langfuse (it took 4-6 s on a cold cache); the content follows when it's opened."""
     monkeypatch.setattr(D, "view", lambda days, traffic: pytest.fail("the tab waited on the traces"))
     tab, page = main.show_dashboard_tab(request("creditcoach_user19"))
     assert tab.visible is True and page == main.DASH_LOADING
     tab, page = main.show_dashboard_tab(request("nobody"))
     assert tab.visible is False and page == ""
+
+
+def test_the_traces_are_read_when_the_tab_is_first_opened_not_at_every_page_load(monkeypatch, signed_up):
+    """Since 2026-11-07: 20 people opening the app together waited 12.6 s for a tab most never looked at."""
+    reads = []
+    monkeypatch.setattr(D, "view", lambda days, traffic: reads.append(days) or f"dashboard {days} {traffic}")
+    assert main.open_dashboard(7, "real", False, request("creditcoach_user19")) == ("dashboard 7 real", True)
+    page, filled = main.open_dashboard(7, "real", True, request("creditcoach_user19"))  # opened again
+    assert filled is True and reads == [7]
+    assert main.open_dashboard(7, "real", False, request("nobody")) == (main.SIGNED_OUT, True)
+
+
+def test_page_steps_and_answers_run_for_several_people_at_once():
+    """Gradio's default is one person at a time per step, which queued people opening the app together."""
+    demo = main.build()
+    assert demo._queue.default_concurrency_limit == main.PAGE_CONCURRENCY > 1
+    assert main.ANSWER_CONCURRENCY > 2
 
 
 # ---- Cost and speed (2026-11-01) ----
