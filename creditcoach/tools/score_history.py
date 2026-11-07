@@ -20,7 +20,7 @@ Example:
     >>> from creditcoach.tools.score_history import get_score_history
     >>> r = get_score_history("USR-001", "latest")
     >>> r["points"]
-    [{'date': '2026-09-01', 'score': 650, 'change': -20, 'factor_change': 'Hard inquiry + utilization spike'}]
+    [{'date': '2026-10-01', 'score': 651, 'change': 1, 'factor_change': 'Stable (no major change)'}]
     >>> get_score_history("USR-001", "2025-01")["error"]["code"]
     'PERIOD_OUT_OF_RANGE'
 """

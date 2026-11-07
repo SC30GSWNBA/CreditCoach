@@ -211,6 +211,25 @@ def test_load_falls_back_to_the_local_files_when_langfuse_fails(tmp_path, monkey
     assert len(spans) == 1 and "Langfuse unreachable" in source
 
 
+def test_people_opening_the_tab_together_share_one_read_of_langfuse(monkeypatch):
+    """Since 2026-11-07: each of them read Langfuse at once, and it answered 429 Too Many Requests."""
+    import threading
+    import time
+
+    monkeypatch.setattr(config, "LANGFUSE_PUBLIC_KEY", "pk")
+    monkeypatch.setattr(config, "LANGFUSE_SECRET_KEY", "sk")
+    reads = []
+    monkeypatch.setattr(D, "from_langfuse", lambda since: reads.append(since) or time.sleep(0.2) or [])
+    D.forget()
+    threads = [threading.Thread(target=D.load, args=(7,)) for _ in range(6)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    D.forget()
+    assert len(reads) == 1
+
+
 def test_load_keeps_what_it_read_until_refresh(monkeypatch):
     reads = []
     monkeypatch.setattr(D, "from_files", lambda since: reads.append(since) or [])
@@ -295,6 +314,17 @@ def test_page_steps_and_answers_run_for_several_people_at_once():
     demo = main.build()
     assert demo._queue.default_concurrency_limit == main.PAGE_CONCURRENCY > 1
     assert main.ANSWER_CONCURRENCY > 2
+
+
+def test_the_dashboard_choices_are_grouped_by_timeline_type_of_runs_and_performance():
+    """2026-11-07: the three groups of choices are named, in this order, with their options."""
+    demo = main.build()
+    radios = [b for b in demo.blocks.values() if isinstance(b, main.gr.Radio) and b.label in
+              ("Timeline", "Type of runs", "Performance")]
+    assert [(r.label, [c[0] for c in r.choices]) for r in radios] == [
+        ("Timeline", ["Last 24 hours", "Last 7 days", "Last 30 days"]),
+        ("Type of runs", ["Real use", "Eval and test runs", "Both"]),
+        ("Performance", ["Quality", "Cost and speed"])]
 
 
 # ---- Cost and speed (2026-11-01) ----

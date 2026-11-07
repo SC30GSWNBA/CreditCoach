@@ -16,7 +16,7 @@ step 2's validation rules to one new user; ``store`` refuses to save data that f
 Example:
     >>> u = user_row("USR-016", answers)
     >>> accounts = build_accounts(u, lambda: "ACC-29")
-    >>> scenario, scores = build_scores(u, accounts, months_ending("2026-09-01"))
+    >>> scenario, scores = build_scores(u, accounts, months_ending("2026-10-01"))
     >>> problems(u, accounts, scores)
     []
 """

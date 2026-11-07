@@ -699,12 +699,13 @@ def build() -> gr.Blocks:
                 gr.Markdown("### How CreditCoach is doing\nQuality (tool-call failures, guardrail triggers, goal "
                             "recall) and cost and speed, counted from the traces every answer leaves. Counts only: "
                             "no question, answer or user.")
-                with gr.Row(equal_height=False):
-                    dash_days = gr.Radio(dashboard.PERIODS, value=7, show_label=False, container=False, scale=3)
-                    dash_traffic = gr.Radio(dashboard.TRAFFIC, value="real", show_label=False, container=False,
-                                            scale=3)
-                    dash_refresh = gr.Button("Refresh", size="sm", scale=0, min_width=100)
-                dash_view = gr.Radio(dashboard.VIEWS, value="quality", show_label=False, container=False)
+                # the choices in three named groups, one per line, the name beside them (above, on phones; 2026-11-07)
+                with gr.Column(elem_classes="cc-dash-controls"):
+                    dash_days = gr.Radio(dashboard.PERIODS, value=7, label="Timeline")
+                    dash_traffic = gr.Radio(dashboard.TRAFFIC, value="real", label="Type of runs")
+                    dash_view = gr.Radio(dashboard.VIEWS, value="quality", label="Performance")
+                with gr.Row():
+                    dash_refresh = gr.Button("Refresh", size="sm", scale=0, min_width=120)
                 with gr.Column() as quality_col:
                     dash = gr.HTML()
                 with gr.Column(visible=False) as cost_col:
