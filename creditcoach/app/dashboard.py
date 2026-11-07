@@ -621,9 +621,10 @@ def scatter_figure(c: dict, shown: list[str] | None = None):
                                                   else "")) if sel["models"] else "<b>Tick a model to see its answers</b>",
                        xref="paper", yref="paper", x=0, y=1, showarrow=False, xanchor="left", yanchor="bottom",
                        font=dict(size=13))  # just above the plot, clear of the axis labels
-    fig = _figure(fig, 400, xaxis_title="Response time (seconds)", yaxis_title="Cost per answer (US$)",
+    fig = _figure(fig, 560, xaxis_title="Response time (seconds)", yaxis_title="Cost per answer (US$)",
                   yaxis_tickprefix="$")
-    fig.update_layout(margin_t=34, legend_title_text="", legend_itemclick=False, legend_itemdoubleclick=False)
+    fig.update_layout(margin_t=34, legend_title_text="", legend_itemclick=False, legend_itemdoubleclick=False,
+                      legend_font_size=11, legend_y=-0.18)  # a small color key: the tick boxes do the choosing
     if not sel["models"]:
         fig.update_xaxes(visible=False).update_yaxes(visible=False)
     return fig
@@ -657,7 +658,8 @@ def spend_figure(c: dict):
         if any(ys):
             fig.add_trace(go.Bar(x=days, y=ys, name=model_name(model), marker_color=COLORS.get(model, GREY),
                                  hovertemplate=f"%{{x}} · {escape(model_name(model))}<br>$%{{y:.3f}}<extra></extra>"))
-    return _figure(fig, barmode="stack", bargap=.35, yaxis_tickprefix="$", **_day_axis(days))
+    return _figure(fig, 460, barmode="stack", bargap=.35, yaxis_tickprefix="$", legend_font_size=12,
+                   **_day_axis(days))
 
 
 def latency_figure(c: dict):
@@ -740,7 +742,7 @@ def quality_figure(cmp: dict):
                            f"run(s) ({escape(when)})<br>median {r['median']} s · 90% within {r['p90']} s<br>"
                            f"{_usd(r['per_answer'])} per answer<extra></extra>")))
     ys = [r["passed"] for r in cmp["rows"]]
-    return _figure(fig, 340, xaxis_title="90% of answers within (seconds)", xaxis_ticksuffix=" s",
+    return _figure(fig, 500, xaxis_title="90% of answers within (seconds)", xaxis_ticksuffix=" s",
                    yaxis_title=f"Eval cases passed (of {cmp['rows'][0]['cases']})",
                    yaxis_range=[min(ys) - 2, max(ys) + 3], yaxis_rangemode="normal",  # room for the top label
                    xaxis_range=[0, rightmost * 1.12])
@@ -948,6 +950,14 @@ CSS = """
 @media (max-width: 600px) {
   .cc-dash-controls fieldset { grid-template-columns: minmax(0, 1fr); row-gap: 6px; }
 }
+.gradio-container .cc-shown label { padding: 4px 10px !important; border-radius: 8px !important; }
+.gradio-container .cc-shown label, .gradio-container .cc-shown label span { font-size: .82rem !important; }
+.gradio-container .cc-shown input[type=checkbox] { width: 15px !important; height: 15px !important; min-width: 15px; }
+.gradio-container .cc-shown .wrap { gap: 6px !important; }
+.gradio-container .cc-refresh { border: 1.5px solid #4f46e5 !important; color: #4338ca !important; background: #eef2ff !important;
+  font-weight: 700 !important; font-size: .95rem !important; padding: 7px 18px !important; }
+.gradio-container .cc-refresh:hover { background: #e0e7ff !important; }
+.dark .cc-refresh { border-color: #818cf8 !important; color: #c7d2fe !important; background: rgba(129, 140, 248, .14) !important; }
 .cc-dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr)); gap: 16px; }
 .cc-dash-grid > div { min-width: 0; overflow-x: auto; }
 .cc-dash-table { width: 100%; border-collapse: collapse; font-size: .86rem; font-variant-numeric: tabular-nums; }

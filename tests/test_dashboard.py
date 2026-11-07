@@ -539,6 +539,22 @@ def test_the_page_builds_with_the_tick_boxes_wired_to_the_chart():
     assert any(getattr(b, "label", None) == "Models shown" for b in demo.blocks.values())
 
 
+def test_the_cost_charts_are_large_with_spend_and_response_time_one_above_the_other():
+    """2026-11-07: the charts get the space, not the tick boxes; Spend by day's key has a line per model, so it and
+    Response time by day are full width, one above the other; Refresh stands out."""
+    c, _ = real_costs()
+    assert D.scatter_figure(c).layout.height == 560 and D.spend_figure(c).layout.height == 460
+    assert D.quality_figure(D.comparison()).layout.height == 500
+    assert ".cc-shown label" in D.CSS and ".cc-refresh" in D.CSS
+    demo = main.build()
+    heads = {str(b.value).split("\n")[0]: b for b in demo.blocks.values() if isinstance(b, main.gr.Markdown)}
+    spend, latency, scatter = (heads[f"### {t}"] for t in ("Spend by day", "Response time by day",
+                                                            "Cost vs response time, per answer"))
+    assert spend.parent is latency.parent is scatter.parent  # full width, like the scatter chart: not in a Row
+    refresh = next(b for b in demo.blocks.values() if isinstance(b, main.gr.Button) and "Refresh" in str(b.value))
+    assert "cc-refresh" in refresh.elem_classes
+
+
 @pytest.mark.parametrize("days, step", [(["2026-10-28", "2026-11-01"], 1), (["2026-10-28"], 1),
                                         ([f"2026-10-{d:02}" for d in range(2, 32)], 3), ([f"2026-10-{d:02}" for d in range(22, 32)], 1)])
 def test_the_by_day_charts_show_dates_and_never_a_time_of_day(days, step):
