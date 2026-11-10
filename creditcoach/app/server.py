@@ -7,6 +7,13 @@
                  (``sessions.current_user``); Gradio puts the username in ``request.username``, as its own login
                  page used to.
     /logout      Clears the cookie and returns to the welcome page (the chat UI's "Log out" button goes here).
+    /admin/      The admin sign-in (``creditcoach.app.admin_page``), linked from the welcome page. An admin already
+                 signed in goes straight to the Dashboard, unless the address carries a reset link.
+    /admin/enter Swaps a one-time admin ticket for the admin cookie (sent only to ``/admin`` paths), then opens the
+                 admin Dashboard.
+    /admin/dashboard/  The Dashboard for every user. Every request needs the admin cookie
+                 (``sessions.current_admin``); a user's cookie doesn't open it.
+    /admin/logout  Clears the admin cookie and returns to the welcome page.
 
 Both pages are Gradio apps mounted on one FastAPI app, because Gradio's built-in login page has no room for a
 "Sign up" tab. ``run`` serves it on 127.0.0.1 and, with ``share=True``, opens the same public gradio.live tunnel
@@ -25,11 +32,12 @@ from fastapi.responses import RedirectResponse
 from gradio import networking
 
 from creditcoach import auth
-from creditcoach.app import counters, sessions, welcome
+from creditcoach.app import admin_page, counters, sessions, welcome
 
 log = logging.getLogger("creditcoach.app")
 
 APP_PATH, WELCOME_PATH = "/app", "/welcome"
+ADMIN_PATH, ADMIN_DASH_PATH = "/admin", "/admin/dashboard"
 
 
 def secure(request: Request) -> bool:
@@ -44,8 +52,13 @@ def create(demo: gr.Blocks, css: str = "") -> FastAPI:
     @app.middleware("http")
     async def welcome_instead_of_401(request: Request, call_next):
         """Opening the chat UI without being signed in shows the welcome page, not Gradio's "not authenticated"."""
-        if request.url.path.rstrip("/") == APP_PATH and sessions.current_user(request) is None:
+        path = request.url.path.rstrip("/")
+        if path == APP_PATH and sessions.current_user(request) is None:
             return RedirectResponse(WELCOME_PATH + "/")
+        if path == ADMIN_DASH_PATH and sessions.current_admin(request) is None:
+            return RedirectResponse(ADMIN_PATH + "/")
+        if path == ADMIN_PATH and "reset" not in request.query_params and sessions.current_admin(request):
+            return RedirectResponse(ADMIN_DASH_PATH + "/")
         return await call_next(request)
 
     @app.get("/")
@@ -68,8 +81,28 @@ def create(demo: gr.Blocks, css: str = "") -> FastAPI:
         response.delete_cookie(sessions.COOKIE)
         return response
 
+    @app.get(ADMIN_PATH + "/enter")
+    def admin_enter(request: Request, t: str = "", note: str = ""):
+        if sessions.redeem_ticket(t, kind="admin") is None:
+            return RedirectResponse(ADMIN_PATH + "/")
+        response = RedirectResponse(ADMIN_DASH_PATH + "/" + (f"?note={note}" if note in admin_page.NOTES else ""))
+        response.set_cookie(sessions.ADMIN_COOKIE, sessions.admin_cookie(), max_age=sessions.ADMIN_SECONDS,
+                            path=ADMIN_PATH, httponly=True, samesite="lax", secure=secure(request))
+        return response
+
+    @app.get(ADMIN_PATH + "/logout")
+    def admin_logout():
+        response = RedirectResponse(WELCOME_PATH + "/")
+        response.delete_cookie(sessions.ADMIN_COOKIE, path=ADMIN_PATH)
+        return response
+
     gr.mount_gradio_app(app, welcome.build(), path=WELCOME_PATH, theme=gr.themes.Soft(),
                         css=welcome.CSS + counters.CSS)
+    # the Dashboard before the sign-in page: a mount at /admin would otherwise take /admin/dashboard too
+    gr.mount_gradio_app(app, admin_page.dashboard(), path=ADMIN_DASH_PATH, auth_dependency=sessions.current_admin,
+                        theme=gr.themes.Soft(), css=css + welcome.POPUP_CSS + admin_page.CSS)
+    gr.mount_gradio_app(app, admin_page.signin(), path=ADMIN_PATH, theme=gr.themes.Soft(),
+                        css=welcome.CSS + admin_page.CSS)
     gr.mount_gradio_app(app, demo, path=APP_PATH, auth_dependency=sessions.current_user, theme=gr.themes.Soft(),
                         css=css)
     return app

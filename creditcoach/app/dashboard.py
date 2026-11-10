@@ -1,7 +1,14 @@
 """The dashboard (Task 31): tool-call failure rate, guardrail triggers and goal-recall accuracy, from real traces.
 
-A "Dashboard" tab in the chat UI, shown to every signed-in user: the team's logins, people who signed up, and anyone
-invited later (since 2026-10-29; until then only the team's logins saw it).
+Two places show it (``creditcoach.app.dashboard_ui`` builds both):
+
+    The Dashboard tab   Every signed-in user, for their own questions only (since 2026-11-10; before that every
+                        user saw everyone's). Real use only, so no Type of runs choice, and none of the eval detail:
+                        no model comparison, no test runs, no note on where the figures come from (``detail=False``).
+    The admin page      ``/admin`` (``creditcoach.admin``): every user's answers or any one user's, real use, eval
+                        and test runs, with all of the detail.
+
+Both have a Models choice that filters every figure, and both follow new answers by themselves (``dashboard_ui``).
 It reads the traces every answer already leaves (Task 26) and computes three measures over a chosen period:
 
     Measure                  From                                    Counted as
@@ -29,10 +36,12 @@ tag. Until 2026-10-29 only ``eval``-tagged traces counted as test runs, so the s
 use. Under real use, a note says how many answers in the period are eval and test runs instead (2026-10-30), so a
 short count isn't read as lost data. The period and the traffic (real use, eval and test runs, or both) are picked
 above the dashboard. Only counts are shown: no question, answer or user id leaves this module.
-Loaded traces are kept for ``CACHE_SECONDS``, so switching filters doesn't ask Langfuse again.
+Loaded traces are kept for ``CACHE_SECONDS``, per period and per user, so switching filters doesn't ask Langfuse
+again. One user's traces are asked of Langfuse by user id (``userId``), so their Dashboard reads only their own
+answers: 7 days of everyone's took 8 s and 30 days 36 s on 2026-11-10, which is what made the tab slow.
 
 Example:
-    >>> spans, source = load(7)
+    >>> spans, source = load(7, user="USR-001")
     >>> summary = summarize(requests(spans), traffic="real")
     >>> summary["tools"]["failed"], summary["goal"]["recalled"]
 """
@@ -45,9 +54,11 @@ import re
 import statistics
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, timedelta
 from html import escape
 from pathlib import Path
@@ -72,6 +83,11 @@ SPANS = ("creditcoach.answer", "memory.recall", "guardrail.input", "guardrail.ou
          "llm.chat", "agent", "retrieval")  # for cost and speed: model calls, and the steps they sit under
 CACHE_SECONDS = 60
 MAX_PAGES = 20  # 1,000 observations a page: a bound on one load, far above a month of team use
+READERS = 4  # Langfuse queries run at once in one load: the queries were one after another, 8 s for a week
+RETRIES, RETRY_SECONDS = 3, 5  # after 429 Too Many Requests (``_langfuse_get``)
+UNREACHABLE = "Langfuse unreachable"  # in the source of a read from the local files after Langfuse failed
+PARTIAL = ('<p class="cc-note"><b>Some of your figures may be missing right now.</b> Press Refresh in a minute to '
+           "try again.</p>")  # a user's own Dashboard says this instead of naming Langfuse
 
 RULES = {  # docs/guardrails.md
     "G1": "Never guarantee a score outcome or timeline",
@@ -93,18 +109,26 @@ _TARGET = re.compile(r"(?:target|goal|aim(?:ing)? for|aiming at)\D{0,25}?\b([3-8
 
 _cache: dict = {}
 _cache_lock = threading.Lock()
-_reading: dict[int, threading.Lock] = {}  # one per period, held while that period's traces are read (``load``)
+_reading: dict[tuple, threading.Lock] = {}  # one per period and user, held while those traces are read (``load``)
 
 
 # ---------------------------------------------------------------- loading
 
 def _langfuse_get(path: str, **query) -> dict:
-    """One GET to the Langfuse public API with the project's keys."""
+    """One GET to the Langfuse public API with the project's keys. Answered 429 Too Many Requests, it waits as long
+    as Langfuse asks (at most ``RETRY_SECONDS``) and tries again, up to ``RETRIES`` times."""
     auth = base64.b64encode(f"{config.LANGFUSE_PUBLIC_KEY}:{config.LANGFUSE_SECRET_KEY}".encode()).decode()
     url = config.LANGFUSE_HOST.rstrip("/") + path + "?" + urllib.parse.urlencode({k: v for k, v in query.items() if v})
     request = urllib.request.Request(url, headers={"Authorization": f"Basic {auth}"})
-    with urllib.request.urlopen(request, timeout=30) as response:
-        return json.load(response)
+    for attempt in range(RETRIES + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as exc:
+            if exc.code != 429 or attempt == RETRIES:
+                raise
+            wait = _number(exc.headers.get("Retry-After")) or 1.0 + attempt
+            time.sleep(min(wait, RETRY_SECONDS))
 
 
 def _from_observation(o: dict) -> dict:
@@ -122,21 +146,37 @@ def _from_observation(o: dict) -> dict:
             "attributes": attrs}
 
 
-def from_langfuse(since: datetime) -> list[dict]:
-    """Every span the dashboard needs since ``since``, from Langfuse. Raises if Langfuse can't be read."""
-    spans = []
-    queries = [{"name": n, "fields": "core,basic,metadata" + (",io" if n == "creditcoach.answer" else "")}
-               for n in SPANS] + [{"type": "TOOL", "fields": "core,basic,metadata"}]
-    for q in queries:
-        cursor = None
+def _wanted(o: dict) -> bool:
+    return o.get("name") in SPANS or o.get("name", "").startswith("tool.") or o.get("type") == "TOOL"
+
+
+def from_langfuse(since: datetime, user: str | None = None) -> list[dict]:
+    """Every span the dashboard needs since ``since``, from Langfuse: one user's (``user``) or everyone's. Raises if
+    Langfuse can't be read.
+
+    Everyone's is one query per span name (``SPANS``, and tool calls), so only those spans are sent. One user's is
+    two: the answers with their text, then every other span of theirs without it, kept if wanted. Each user reads
+    their own traces now, so fewer requests per read keep the project under Langfuse's rate limit."""
+    if user is None:
+        queries = [{"name": n, "fields": "core,basic,metadata" + (",io" if n == "creditcoach.answer" else "")}
+                   for n in SPANS] + [{"type": "TOOL", "fields": "core,basic,metadata"}]
+    else:
+        queries = [{"name": "creditcoach.answer", "fields": "core,basic,metadata,io"}, {"fields": "core,basic,metadata"}]
+
+    def read(q: dict) -> list[dict]:
+        spans, cursor = [], None
         for _ in range(MAX_PAGES):
-            page = _langfuse_get("/api/public/v2/observations", limit=1000, cursor=cursor,
+            page = _langfuse_get("/api/public/v2/observations", limit=1000, cursor=cursor, userId=user,
                                  fromStartTime=since.strftime("%Y-%m-%dT%H:%M:%SZ"), **q)
-            spans += [_from_observation(o) for o in page.get("data", [])]
+            spans += [_from_observation(o) for o in page.get("data", [])
+                      if _wanted(o) and ("name" in q or o.get("name") != "creditcoach.answer")]
             cursor = (page.get("meta") or {}).get("cursor")
             if not cursor or not page.get("data"):
                 break
-    return spans
+        return spans
+
+    with ThreadPoolExecutor(READERS) as pool:
+        return [s for part in pool.map(read, queries) for s in part]
 
 
 def from_files(since: datetime, folder: Path | None = None) -> list[dict]:
@@ -157,42 +197,55 @@ def from_files(since: datetime, folder: Path | None = None) -> list[dict]:
     return spans
 
 
-def load(days: int, now: datetime | None = None) -> tuple[list[dict], str]:
-    """The spans of the last ``days`` days and where they came from: Langfuse when its keys are set, else (or if
-    Langfuse fails) the local files. Kept for ``CACHE_SECONDS``."""
+def load(days: int, user: str | None = None, now: datetime | None = None) -> tuple[list[dict], str]:
+    """The spans of the last ``days`` days, one user's (``user``) or everyone's, and where they came from: Langfuse
+    when its keys are set, else (or if Langfuse fails) the local files, which hold every user's (``answers`` keeps
+    the user's own). Kept for ``CACHE_SECONDS``."""
     now = now or datetime.now(UTC)
     since = now - timedelta(days=days)
+    key = (days, user)
     with _cache_lock:
-        reading = _reading.setdefault(days, threading.Lock())
-    # one read per period at a time: people opening the tab together each read Langfuse, which answered 429 Too Many
-    # Requests (2026-11-07), so the rest wait for the first read and share it
+        reading = _reading.setdefault(key, threading.Lock())
+    # one read per period and user at a time: people opening the tab together each read Langfuse, which answered 429
+    # Too Many Requests (2026-11-07), so the rest wait for the first read and share it
     with reading:
         with _cache_lock:
-            hit = _cache.get(days)
+            hit = _cache.get(key)
             if hit and time.monotonic() - hit[0] < CACHE_SECONDS:
                 return hit[1], hit[2]
-        return _read(days, since)
+        return _read(key, since)
 
 
-def _read(days: int, since: datetime) -> tuple[list[dict], str]:
-    """Read the spans since ``since`` (``load`` without the cache), and keep them for ``CACHE_SECONDS``."""
+def _read(key: tuple, since: datetime) -> tuple[list[dict], str]:
+    """Read the spans since ``since`` for ``key`` (period, user; ``load`` without the cache), and keep them for
+    ``CACHE_SECONDS``."""
     if config.LANGFUSE_PUBLIC_KEY and config.LANGFUSE_SECRET_KEY:
         try:
-            spans, source = from_langfuse(since), f"Langfuse ({config.LANGFUSE_HOST}): every machine that sends it traces"
+            spans = from_langfuse(since, key[1])
+            source = f"Langfuse ({config.LANGFUSE_HOST}): every machine that sends it traces"
         except Exception as exc:
+            with _cache_lock:
+                last = _cache.get(key)
+            if last and UNREACHABLE not in last[2]:  # the last good read beats this machine's files alone
+                log.warning("Dashboard couldn't read Langfuse (%s); showing the last read", exc)
+                return last[1], last[2]
             log.warning("Dashboard couldn't read Langfuse (%s); using local trace files", exc)
-            spans, source = from_files(since), f"local trace files (Langfuse unreachable: {type(exc).__name__})"
+            spans, source = from_files(since), f"local trace files ({UNREACHABLE}: {type(exc).__name__})"
     else:
         spans, source = from_files(since), "local trace files on this machine (no Langfuse keys)"
     with _cache_lock:
-        _cache[days] = (time.monotonic(), spans, source)
+        _cache[key] = (time.monotonic(), spans, source)
     return spans, source
 
 
-def forget() -> None:
-    """Drop the loaded traces, so the next ``load`` reads them afresh (the Refresh button)."""
+def forget(days: int | None = None, user: str | None = None) -> None:
+    """Drop loaded traces, so the next ``load`` reads them afresh: one period's for one user (or everyone, ``user``
+    None), or with no ``days`` every period's (the Refresh button and new answers, ``dashboard_ui``)."""
     with _cache_lock:
-        _cache.clear()
+        if days is None:
+            _cache.clear()
+        else:
+            _cache.pop((days, user), None)
 
 
 # ---------------------------------------------------------------- measuring
@@ -213,8 +266,8 @@ def _goal(value) -> dict | None:
 
 
 def requests(spans: list[dict]) -> list[dict]:
-    """One record per answer: when, where, which run it came from (None for real use; ``eval`` is True for any run),
-    its tool calls, guardrail rules and outcome,
+    """One record per answer: when, where, whose (``user``), which run it came from (None for real use; ``eval`` is
+    True for any run), its tool calls, guardrail rules and outcome,
     and whether it recalled the stored goal. Traces without a ``creditcoach.answer`` span are left out."""
     by_trace = defaultdict(list)
     for s in spans:
@@ -237,7 +290,7 @@ def requests(spans: list[dict]) -> list[dict]:
             earlier = bool(goal and goal.get("target_score") and goal.get("session") != attrs.get("session.id"))
             target = str(goal["target_score"]) if earlier else None
             records.append({
-                "trace_id": trace_id, "day": a["start"][:10], "env": a.get("env", ""),
+                "trace_id": trace_id, "day": a["start"][:10], "env": a.get("env", ""), "user": attrs.get("user.id"),
                 "run": run_of(tags, a.get("env", "")), "eval": run_of(tags, a.get("env", "")) is not None,
                 "tools": tools, "rules": rules, "outcome": attrs.get("answer.guardrail") or "passed",
                 "goal": earlier, "recalled": bool(target and re.search(rf"\b{target}\b", text)),
@@ -398,8 +451,9 @@ def _table(head: list[str], rows: list[list], empty: str) -> str:
     return f'<table class="cc-dash-table"><thead><tr>{th}</tr></thead><tbody>{body}</tbody></table>'
 
 
-def html(summary: dict, source: str, period: str, traffic: str) -> str:
-    """The dashboard: three tiles, then a table per measure and one per day."""
+def html(summary: dict, source: str, period: str, traffic: str, detail: bool = True) -> str:
+    """The dashboard: three tiles, then a table per measure and one per day. Without ``detail`` (a user's own
+    Dashboard) the note on where the figures come from and on the other runs is left out."""
     t, g, m = summary["tools"], summary["guardrails"], summary["goal"]
     outcomes = g["outcomes"]
     where = ", ".join(f"{escape(k)} {v}" for k, v in summary["where"].most_common()) or "none"
@@ -432,8 +486,10 @@ def html(summary: dict, source: str, period: str, traffic: str) -> str:
     days = _table(["Day (UTC)", "Answers", "Tool-call failure rate", "Guardrail triggers", "Goal recalled"],
                   [[d["day"], d["answers"], _pct(d["tool_rate"]), d["triggers"], d["goal"]] for d in summary["days"]],
                   "No answers in this period.")
+    note = (f'<p class="cc-note">From {escape(source)}. Answers by where they ran: {where}.{runs}</p>' if detail
+            else PARTIAL if UNREACHABLE in source else "")
     return f"""{tiles}
-<p class="cc-note">From {escape(source)}. Answers by where they ran: {where}.{runs}</p>
+{note}
 <div class="cc-dash-grid">
   <div><h3>Tool calls</h3>{tools}</div>
   <div><h3>Guardrail triggers</h3>{rules}
@@ -463,11 +519,13 @@ def shipped(days: int, now: datetime | None = None) -> list[dict]:
     return [r for r in records if r["day"] >= since]
 
 
-def answers(days: int) -> tuple[list[dict], str]:
-    """Every answer of the last ``days`` days and where they came from: the traces (``load``), and the benchmark's
-    shipped answers that aren't among them."""
-    spans, source = load(days)
+def answers(days: int, user: str | None = None) -> tuple[list[dict], str]:
+    """Every answer of the last ``days`` days, one user's (``user``) or everyone's, and where they came from: the
+    traces (``load``), and for everyone the benchmark's shipped answers that aren't among them (they have no user)."""
+    spans, source = load(days, user)
     records = requests(spans)
+    if user is not None:
+        return [r for r in records if r["user"] == user], source
     seen = {r["trace_id"] for r in records}
     extra = [r for r in shipped(days) if r["trace_id"] not in seen]
     if extra:
@@ -476,17 +534,54 @@ def answers(days: int) -> tuple[list[dict], str]:
     return records + extra, source
 
 
-def view(days: int, traffic: str) -> str:
-    """The dashboard HTML for a period (in days) and a traffic kind, or a short note if the traces can't be read."""
+NO_ANSWERS = ('<div class="cc-empty"><b>No questions yet in this period.</b><p class="cc-note">Ask CreditCoach '
+              "something and it will show here.</p></div>")
+NONE_TICKED = '<div class="cc-empty"><b>Tick a model to see its answers.</b></div>'
+YOURS = "Your questions"  # in place of "Real use" on a user's own Dashboard
+
+
+def _labels(days: int, traffic: str, detail: bool) -> tuple[str, str]:
     period = next((label for label, d in PERIODS if d == days), f"Last {days} days")
-    kind = next((label for label, k in TRAFFIC if k == traffic), traffic)
+    kind = next((label for label, k in TRAFFIC if k == traffic), traffic) if detail else YOURS
+    return period, kind
+
+
+def only(records: list[dict], shown: list[str] | None) -> list[dict]:
+    """The answers of the models in ``shown`` (keys from ``model_options``; None: every model)."""
+    keys = None if shown is None else set(shown)
+    return [r for r in records if keys is None or (r.get("model") or NO_MODEL) in keys]
+
+
+def model_counts(days: int, traffic: str = "real", user: str | None = None) -> list[tuple[str, int]]:
+    """Each answer model of the period and traffic, one user's (``user``) or everyone's, with its answers, most
+    first, as (key, answers). Answers with no model call are counted under ``NO_MODEL``."""
+    records, _ = answers(days, user)
+    counts = Counter(r.get("model") or NO_MODEL for r in records
+                     if traffic == "all" or r["eval"] == (traffic == "eval"))
+    return counts.most_common()
+
+
+def model_options(counts: list[tuple[str, int]]) -> list[tuple[str, str]]:
+    """The Models choice from ``model_counts``: (name with its answers, key)."""
+    return [(f"{model_name('' if m == NO_MODEL else m)} ({n:,})", m) for m, n in counts]
+
+
+def view(days: int, traffic: str = "real", user: str | None = None, shown: list[str] | None = None,
+         detail: bool = True) -> str:
+    """The Quality view's HTML for a period (in days), a traffic kind, one user (or everyone) and a choice of models,
+    or a short note if the traces can't be read. ``detail`` False is a user's own Dashboard (``html``)."""
+    period, kind = _labels(days, traffic, detail)
     try:
-        records, source = answers(days)
-        return html(summarize(records, traffic), source, period, kind)
+        records, source = answers(days, user)
+        records = only(records, shown)
+        summary = summarize(records, traffic)
     except Exception:
         log.exception("Dashboard unavailable")
         return ('<div class="cc-empty"><b>The dashboard is unavailable right now.</b>'
                 '<p class="cc-note">Press Refresh to try again. The chat still works.</p></div>')
+    if not detail and not summary["answers"]:
+        return NONE_TICKED if shown == [] else NO_ANSWERS
+    return html(summary, source, period, kind, detail)
 
 
 # ---------------------------------------------------------------- cost and speed
@@ -567,14 +662,9 @@ def _figure(fig, height: int = 300, **layout):
 NO_MODEL = "none"  # the choice for answers with no model call, whose model id is ""
 
 
-def model_choices(c: dict) -> list[tuple[str, str]]:
-    """The models to tick on the cost vs response time chart, most answers first: (label with its answers, key)."""
-    return [(f"{model_name(m)} ({s['answers']:,})", m or NO_MODEL) for m, s in c["models"].items()]
-
-
 def pick(c: dict, shown: list[str] | None = None) -> dict:
     """The answers, spend, average cost per answer and median response time of the models in ``shown`` (keys from
-    ``model_choices``; None means every model). Worked out as ``_speed`` does: answers and spend add up, the average
+    ``model_options``; None means every model). Worked out as ``_speed`` does: answers and spend add up, the average
     is spend over answers, and the median is taken over every answer's time. So one model gives its row in the
     Models compared table, and every model gives the tiles above."""
     keys = None if shown is None else set(shown)
@@ -905,8 +995,8 @@ def cache_html(c: dict) -> str:
                else ""))
 
 
-def top_html(c: dict, source: str, period: str, traffic: str) -> str:
-    """The tiles, and where the figures come from."""
+def top_html(c: dict, source: str, period: str, traffic: str, detail: bool = True) -> str:
+    """The tiles, and where the figures come from (only the period, without ``detail``)."""
     tokens = c["prompt"] + c["completion"]
     tiles = [("Spend", _usd(c["spend"], 2), f"{c['answers']:,} answers · model calls only"),
              ("Cost per answer", _usd(c["per_answer"]),
@@ -919,26 +1009,32 @@ def top_html(c: dict, source: str, period: str, traffic: str) -> str:
     return ('<div class="cc-tiles">' + "".join(
         f'<div class="cc-tile"><span class="cc-k">{k}</span><span class="cc-v">{v}</span><span class="cc-n">{n}</span>'
         "</div>" for k, v, n in tiles) + "</div>"
-        + f'<p class="cc-note">{escape(traffic)} · {escape(period.lower())}. From {escape(source)}. Cost is what '
-        "OpenRouter reported for each model call; eval judges' calls are left out.</p>")
+        + f'<p class="cc-note">{escape(traffic)} · {escape(period.lower())}.'
+        + (f" From {escape(source)}. Cost is what OpenRouter reported for each model call; eval judges' calls are "
+           "left out." if detail else "") + "</p>" + (PARTIAL if not detail and UNREACHABLE in source else ""))
 
 
-def cost_view(days: int, traffic: str) -> dict:
-    """Every part of the "Cost and speed" view (``COST_PARTS``) for a period and a traffic kind: HTML or a Plotly
-    figure each, plus "costs", the figures they were made from (for redrawing the chart with other models). If the
-    traces can't be read, the first part says so and the rest are empty."""
-    period = next((label for label, d in PERIODS if d == days), f"Last {days} days")
-    kind = next((label for label, k in TRAFFIC if k == traffic), traffic)
-    cmp = comparison()
+def cost_view(days: int, traffic: str = "real", user: str | None = None, shown: list[str] | None = None,
+              detail: bool = True) -> dict:
+    """Every part of the "Cost and speed" view (``COST_PARTS``) for a period, a traffic kind, one user (or everyone)
+    and a choice of models (``only``): HTML or a Plotly figure each, plus "costs", the figures they were made from.
+    If the traces can't be read, the first part says so and the rest are empty. Without ``detail`` (a user's own
+    Dashboard) the model comparison and its test runs ("quality", "quality_table") are left out, and the tiles don't
+    say where the figures come from."""
+    period, kind = _labels(days, traffic, detail)
     try:
-        records, source = answers(days)
-        c = summarize(records, traffic)["cost"]
+        records, source = answers(days, user)
+        c = summarize(only(records, shown), traffic)["cost"]
     except Exception:
         log.exception("Cost and speed unavailable")
         return {**dict.fromkeys(COST_PARTS), "costs": None, "top": ('<div class="cc-empty"><b>Cost and speed are unavailable right '
                                                      'now.</b><p class="cc-note">Press Refresh to try again.</p></div>')}
-    return {"costs": c, "top": top_html(c, source, period, kind), "scatter": scatter_figure(c), "models": models_html(c),
-            "quality": quality_figure(cmp) if cmp else None, "quality_table": quality_html(cmp),
+    if not detail and not c["answers"]:
+        return {**dict.fromkeys(COST_PARTS), "costs": c, "top": NONE_TICKED if shown == [] else NO_ANSWERS}
+    cmp = comparison() if detail else None
+    return {"costs": c, "top": top_html(c, source, period, kind, detail), "scatter": scatter_figure(c),
+            "models": models_html(c), "quality": quality_figure(cmp) if cmp else None,
+            "quality_table": quality_html(cmp) if detail else None,
             "spend": spend_figure(c), "latency": latency_figure(c), "split": split_html(c),
             "tokens": tokens_figure(c), "cache": cache_html(c)}
 

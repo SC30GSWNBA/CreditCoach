@@ -95,12 +95,14 @@ CreditCoach/
                       #   charts.py: the "My credit" tab: score story, card utilization what-if, what you owe
                       #   confidence.py: the confidence percentage under each answer (fixed checks, no model call)
                       #   badges.py: the guardrail and cache badges above each answer (Task 25)
-                      #   dashboard.py: the Dashboard tab for every signed-in user: tool-call failures, guardrail triggers, goal recall (Task 31),
-                      #   and the Cost and speed view: spend, response time, tokens, models compared, cost against speed and quality
+                      #   dashboard.py: the Dashboard's figures: tool-call failures, guardrail triggers, goal recall (Task 31),
+                      #   and the Cost and speed view: spend, response time, tokens, models compared, cost against speed and quality;
+                      #   dashboard_ui.py: its choices and live updates, for the users' tab (their own questions) and the admin page
+                      #   admin_page.py: the admin's sign-in at /admin and the Dashboard for every user (admin.py: the admin login)
                       #   counters.py: questions answered and people signed up (welcome page), and the user's own count
                       #   welcome.py: the first page, with Log in and Sign up; sessions.py: the sign-in cookie;
                       #   theme.py: the look of the signed-in pages, matching the welcome page, readable in light and dark mode, and fitted to phones
-                      #   server.py: serves the welcome page and the chat UI together; limits.py: 5 questions a week
+                      #   server.py: serves the welcome page, the chat UI and the admin pages together; limits.py: 5 questions a week
     evals/            #   golden.py + golden_queries.json: the 50 requirements.md queries with their checks;
                       #   live.py: runs them through the agent and saves every answer (Tasks 5, 10, 15; Week 4);
                       #   harness.py (+ __main__.py): the eval harness, `python -m creditcoach.evals` (Task 27);
@@ -132,7 +134,8 @@ CreditCoach/
                       #   test_eval_harness.py (Task 27): every scorer, the judge, Langfuse scores, one trace per case,
                       #   test_feedback.py (Task 29): testers' 👍/👎 and reasons attached to the answer's trace,
                       #   test_personal_retrieval.py (Task 30): data-aware retrieval,
-                      #   test_dashboard.py (Task 31): the three measures, Langfuse and local traces alike, any signed-in user,
+                      #   test_admin.py: the admin login, a changed or reset password and its email, the admin cookie and routes,
+                      #   test_dashboard.py (Task 31): the three measures, Langfuse and local traces alike, each user's own answers, live updates,
                       #   the tab showing before the traces load,
                       #   real use vs eval and test runs, and the Cost and speed view (each model call costed by its step, and the cost vs response time figures following the ticked models, and every model-choice run listed),
                       #   test_counters.py: questions answered (chat app only), people signed up, the user's own count,
@@ -272,7 +275,7 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 
 Any other OpenTelemetry collector works through `OTEL_EXPORTER_OTLP_ENDPOINT`. Recording never breaks an answer, and tests never export.
 
-The **Dashboard** tab reads the traces back (Langfuse, else `.traces/`) the first time it is opened, one read per period shared by everyone opening it then. Its choices are grouped: **Timeline** (24 hours, 7 or 30 days), **Type of runs** (real use, eval and test runs, both) and **Performance** (the two views below). **Quality** shows the tool-call failure rate, guardrail triggers and goal-recall accuracy (Task 31). **Cost and speed** (2026-11-01) shows spend, cost per answer, response time (p50, p95), tokens and cost per 1M tokens; cost against response time for every answer, with tick boxes to pick the models shown (the chart's answer count, median and average then follow the pick, matching each model's row in the models table); each answer model compared; where the time and the money go, by pipeline step; and the 50-case eval runs as cost against speed and quality, one row per model and setting averaged over its runs, followed by every test run behind the choice of model (37 eval runs, 17 speed screens, 4 red-team runs, since 2026-11-06). Each model call's cost is OpenRouter's, from its `llm.chat` span, and the span it sits under says what it was: the answer model, the output check or a rewrite. Eval judges' calls are left out. After a new run (`scripts/model_benchmark.py`), run `scripts/model_comparison.py` so the comparison (which ships with the app) includes it.
+The **Dashboard** tab reads the traces back (Langfuse, else `.traces/`) the first time it is opened. Since 2026-11-10 it shows each signed-in user **their own questions only**, read from Langfuse by user id, and only real use: its choices are **Timeline** (24 hours, 7 or 30 days), **Performance** (the two views below) and **Models** (the models that answered them; it filters every figure). It leaves out the model comparison, the test runs and the note on where the figures come from, and follows new answers by itself (it checks Neon's answer count every 15 s and reads the traces again when it moves). Everyone's figures, with **User** (all users or one) and **Type of runs** (real use, eval and test runs, both) as well, are on the **admin page**: the "Admin sign-in" link under Log in, `/admin`. The admin signs in with `CREDITCOACH_ADMIN_EMAIL` and a password whose hash is kept in Neon; the admin can change it on the Dashboard or reset it from a link, and the new password is emailed to the admin address. **Quality** shows the tool-call failure rate, guardrail triggers and goal-recall accuracy (Task 31). **Cost and speed** (2026-11-01) shows spend, cost per answer, response time (p50, p95), tokens and cost per 1M tokens; cost against response time for every answer, with tick boxes to pick the models shown (the chart's answer count, median and average then follow the pick, matching each model's row in the models table); each answer model compared; where the time and the money go, by pipeline step; and the 50-case eval runs as cost against speed and quality, one row per model and setting averaged over its runs, followed by every test run behind the choice of model (37 eval runs, 17 speed screens, 4 red-team runs, since 2026-11-06). Each model call's cost is OpenRouter's, from its `llm.chat` span, and the span it sits under says what it was: the answer model, the output check or a rewrite. Eval judges' calls are left out. After a new run (`scripts/model_benchmark.py`), run `scripts/model_comparison.py` so the comparison (which ships with the app) includes it.
 
 ## Evaluation queries
 
@@ -382,7 +385,8 @@ The app runs on [Railway](https://railway.com) from the `Dockerfile`, so testers
 | `LANGFUSE_HOST` | With Langfuse keys | Your Langfuse project's region; the team's is `https://jp.cloud.langfuse.com`. Keys only work in their own region: without it the default EU host refuses them and every trace is dropped. The deploy logs show "Traces are NOT reaching Langfuse" when that happens. |
 | `REDIS_URL` | Recommended | Add Railway's Redis to the project and reference its URL. Without it the cache lives in memory and is lost on every redeploy. |
 | `CREDITCOACH_INVITE_CODE`, `CREDITCOACH_SIGNUP_MAX`, `CREDITCOACH_WEEKLY_QUESTIONS` | Optional | Who may sign up and how much they may ask (see [.env.example](.env.example)). |
-| `SMTP_*` | Optional | The "email me my login" option at sign-up. |
+| `SMTP_*` | Optional | The "email me my login" option at sign-up, and the admin's password and reset emails. |
+| `CREDITCOACH_ADMIN_PASSWORD` | For the admin page | The first admin password. Its hash is stored in Neon on first use, and a password changed in the app wins after that. Share it privately, never in the repository. `CREDITCOACH_ADMIN_EMAIL` changes the admin's address. |
 
 Then open **Settings → Networking → Generate Domain** for a public `*.up.railway.app` address.
 

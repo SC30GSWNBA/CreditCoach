@@ -61,6 +61,15 @@ Sign-up and the weekly allowance (environment variable -> default):
                                        Mail account for the optional "email me my login" backup at sign-up. Without
                                        it the option isn't offered. Never commit the password.
 
+The admin login (``creditcoach.admin``; environment variable -> default):
+    CREDITCOACH_ADMIN_EMAIL     creditcoachurcreditmentor@gmail.com  The admin's sign-in, and where the admin's
+                                       password and reset emails go.
+    CREDITCOACH_ADMIN_PASSWORD  ""     The first admin password. Its hash is stored in Neon on first use; after
+                                       that a password changed in the app wins. Blank (and nothing stored) turns the
+                                       admin sign-in off. Never commit it.
+    CREDITCOACH_PUBLIC_URL      ""     The app's address for links in the admin's emails. Blank: Railway's
+                                       RAILWAY_PUBLIC_DOMAIN over https, else http://127.0.0.1:7860.
+
 Example:
     >>> from creditcoach import config
     >>> config.CHAT_MODEL
@@ -141,3 +150,11 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")  # never commit it
 SMTP_FROM = os.getenv("SMTP_FROM", "")
+
+# The admin login (creditcoach.admin)
+ADMIN_EMAIL = os.getenv("CREDITCOACH_ADMIN_EMAIL", "creditcoachurcreditmentor@gmail.com")
+ADMIN_PASSWORD = os.getenv("CREDITCOACH_ADMIN_PASSWORD", "")  # never commit it
+# The address in the admin's emails. Never taken from a request's Host header, which a reset request could forge to
+# send the admin a link to someone else's site. Railway sets RAILWAY_PUBLIC_DOMAIN.
+PUBLIC_URL = (os.getenv("CREDITCOACH_PUBLIC_URL") or (f"https://{os.environ['RAILWAY_PUBLIC_DOMAIN']}"
+              if os.getenv("RAILWAY_PUBLIC_DOMAIN") else "http://127.0.0.1:7860")).rstrip("/")

@@ -12,6 +12,7 @@ It is the first page of the app, served at ``/welcome`` by ``creditcoach.app.ser
     Pop-up    Shows the new User ID and the 16-character password once, with copy buttons, and can email them
               (``creditcoach.signup.mailer``, if a mail account is configured). The person confirms they saved
               them, and lands on Log in with a success note and the User ID filled in.
+    Admin     Under the Log in form, an "Admin sign-in" link to ``/admin`` (``creditcoach.app.admin_page``).
 
 Sign-up needs Neon. Without it the Sign up tab says so and Log in still works for the team logins. When
 ``config.INVITE_CODE`` is set the form asks for it, and sign-up closes at ``config.SIGNUP_MAX`` people.
@@ -40,21 +41,19 @@ NO_RESET = ("CreditCoach keeps only a scrambled copy of your password, so it <b>
 NO_DATABASE = ("Sign-up isn't available on this copy of CreditCoach, because it isn't connected to its database. "
                "If you already have a User ID, the Log in tab works as usual.")
 # After a correct login: open /auth/enter with the one-time ticket, which sets the session cookie
+# Under the Log in form, apart from it, so people signing in as users don't take it for their own button (2026-11-10)
+ADMIN_LINK = ('<div class="cc-admin-link"><span>Running CreditCoach?</span>'
+              '<a href="/admin/">Admin sign-in →</a></div>')
 ENTER_JS = "(t) => { if (t) { window.location.href = '/auth/enter?t=' + encodeURIComponent(t); } }"
 
-CSS = """
-.cc-welcome {max-width: 860px; margin: 0 auto;}
-body:not(.dark) .gradio-container {--body-text-color-subdued: #475569; --block-info-text-color: #475569;
-           --block-title-text-color: #3730a3; --block-label-text-color: #3730a3;}
+# The pop-up and the coloured notes (``box``), shared with the admin's Dashboard page (``app.admin_page``)
+POPUP_CSS = """
 .cc-modal {position: fixed !important; inset: 0; z-index: 1000; background: rgba(15, 23, 42, .62);
            display: flex; align-items: center; justify-content: flex-start; padding: 16px; overflow-y: auto;}
 .cc-modal > .cc-card {max-width: 560px; width: 100%; min-width: 0; box-sizing: border-box; margin: auto;
            background: var(--background-fill-primary); border-radius: 14px; padding: 20px 22px;
            box-shadow: 0 20px 60px rgba(0,0,0,.35); gap: 10px !important; flex-grow: 0 !important;}
 .cc-card > *, .cc-card .cc-email, .cc-card .cc-email > * {flex-grow: 0 !important;}
-/* A note with nothing in it takes no room */
-.cc-note {min-height: 0 !important; padding: 0 !important; margin: 0 !important;}
-.cc-note:not(:has(.cc-ok, .cc-warn, .cc-err)) {display: none !important;}
 /* Nothing in the pop-up may shrink or scroll on its own: on a short window the whole pop-up scrolls instead, so the
    User ID and password are always shown in full, one above the other. */
 .cc-card, .cc-card * {flex-shrink: 0 !important;}
@@ -66,6 +65,15 @@ body:not(.dark) .gradio-container {--body-text-color-subdued: #475569; --block-i
 .cc-warn {border-left: 4px solid #d97706; padding: 8px 12px; background: rgba(217,119,6,.10); border-radius: 6px;}
 .cc-ok {border-left: 4px solid #059669; padding: 8px 12px; background: rgba(5,150,105,.10); border-radius: 6px;}
 .cc-err {border-left: 4px solid #dc2626; padding: 8px 12px; background: rgba(220,38,38,.08); border-radius: 6px;}
+"""
+
+CSS = POPUP_CSS + """
+.cc-welcome {max-width: 860px; margin: 0 auto;}
+body:not(.dark) .gradio-container {--body-text-color-subdued: #475569; --block-info-text-color: #475569;
+           --block-title-text-color: #3730a3; --block-label-text-color: #3730a3;}
+/* A note with nothing in it takes no room */
+.cc-note {min-height: 0 !important; padding: 0 !important; margin: 0 !important;}
+.cc-note:not(:has(.cc-ok, .cc-warn, .cc-err)) {display: none !important;}
 .cc-welcome {--checkbox-border-color: #475569; --checkbox-border-width: 2px;
            --checkbox-border-color-hover: #4f46e5; --checkbox-border-color-focus: #4f46e5;
            --checkbox-background-color: #ffffff; --checkbox-background-color-selected: #4f46e5;
@@ -127,6 +135,13 @@ body:not(.dark) .gradio-container {--body-text-color-subdued: #475569; --block-i
 .dark .cc-star {color: #f87171;}
 .dark .cc-required fieldset > span::after, .dark .cc-required [data-testid="block-info"]::after {color: #f87171;}
 .cc-secret textarea, .cc-secret input {font-family: ui-monospace, Menlo, monospace; font-size: 1.05rem;}
+.cc-admin-link {display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between;
+           border-top: 1px solid #cbd5e1; padding-top: 12px; margin-top: 6px; font-size: .95rem; color: #475569;}
+.cc-admin-link a {font-weight: 700; color: #4f46e5; text-decoration: none; border: 1.5px solid #94a3b8;
+           border-radius: 10px; padding: 7px 14px;}
+.cc-admin-link a:hover, .cc-admin-link a:focus-visible {border-color: #4f46e5;}
+.dark .cc-admin-link {color: #cbd5e1; border-top-color: #475569;}
+.dark .cc-admin-link a {color: #a5b4fc; border-color: #64748b;}
 """
 
 
@@ -202,6 +217,7 @@ def build() -> gr.Blocks:
                     password = gr.Textbox(label="Password", type="password")
                     login_btn = gr.Button("Log in", variant="primary")
                     login_msg = gr.HTML()
+                    gr.HTML(ADMIN_LINK)
                     ticket = gr.Textbox(visible=False)
                 with gr.Tab("Sign up", id="signup"):
                     if not can_sign_up:
