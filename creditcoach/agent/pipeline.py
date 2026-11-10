@@ -430,7 +430,7 @@ def _answer(question, k, user_id, session, history, progress, guard, use_cache) 
             reuse, report = False, {"status": "skip", "reason": why_not}
     if reuse:
         with obs.span("cache.answer", **{"cache.layer": "answer"}):
-            embedding = rag.embed(rag.normalize_query(question))
+            embedding = rag.embed(rag.normalize_query(answer_cache.resolve(question)))  # "next year" as a year
             version, memory_print = answer_version(k), _memory_print(memory)
             found = answer_cache.lookup(user_id, question, embedding, version, memory_print)
             report = {"status": "miss"}

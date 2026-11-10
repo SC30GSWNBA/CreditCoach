@@ -17,6 +17,11 @@ Run (needs OPENROUTER_API_KEY; about 20 SMALL_MODEL calls):
 
 2026-10-29: 3 rewordings and 3 look-alikes added around "What is a good credit score?", after a tester's "What
 qualifies as a great credit score?" missed on Railway (0.871, refused by the model each time).
+
+2026-11-10: 4 rewordings and 5 look-alikes of a goal with a target score and date, after "Give me a roadmap to hit 840
+by December 2027" missed "How can I hit a score of 840 by December next year?" on Railway (0.628). Questions are
+compared with their years written out (``answers.resolve``), and those naming a score or year are put to the model
+from ``answers.ANCHORED_FROM``, whatever the band, as ``match`` does.
 """
 
 import importlib.util
@@ -37,6 +42,10 @@ REWORDINGS = [
     ("What is a good credit score?", "What qualifies as a great credit score?"),           # Railway, 2026-10-28
     ("What is a good credit score?", "What sounds like a great credit score?"),
     ("What is a good credit score?", "Which credit score is considered good?"),
+    ("How can I hit a score of 840 by December next year ?", "Give me a roadmap to hit 840 by December 2027"),  # Railway
+    ("How can I hit a score of 840 by December 2027?", "How do I reach 840 by December 2027?"),
+    ("How can I hit a score of 840 by December 2027?", "What steps should I take to reach 840 by December 2027?"),
+    ("How can I hit a score of 840 by December 2027?", "Give me a plan to get my score to 840 by December 2027"),
 ]
 LOOK_ALIKES = [
     ("What is the best way to improve a credit score, and what is the safe credit score to get a home loan",
@@ -52,6 +61,13 @@ LOOK_ALIKES = [
     ("What is a good credit score?", "What is my credit score?"),
     ("What is a good credit score?", "What credit score do I need for a home loan?"),
     ("What is a good credit score?", "How do I get a great credit score?"),
+    ("How can I hit a score of 840 by December 2027?", "Will I hit 840 by December 2027?"),
+    ("How can I hit a score of 840 by December 2027?", "Save my goal of 840 by December 2027"),
+    ("How can I hit a score of 840 by December 2027?", "Is 840 by December 2027 realistic?"),
+    ("How can I hit a score of 840 by December 2027?",
+     "What happens to my score if I miss a payment before December 2027 when I'm aiming for 840?"),
+    ("How can I hit a score of 840 by December 2027?", "How can I hit a score of 840 by December 2027 to get a home loan?"),
+    ("How can I hit a score of 840 by December 2027?", "How can I hit a score of 780 by December 2027?"),
 ]
 
 
@@ -66,20 +82,22 @@ def task23_pairs() -> tuple[list, list]:
 
 
 def measure(stored: str, asked: str) -> dict:
+    stored, asked = answers.resolve(stored), answers.resolve(asked)
     sim = answers.cosine(embed(stored), embed(asked))
     vetoed = answers.veto(asked, stored)
     exact = answers.plain(asked) == answers.plain(stored)
     same_words = sim >= answers.THRESHOLD and answers.words(asked) == answers.words(stored)
     ask = not (exact or vetoed or same_words) and sim >= LOWEST
     return {"stored": stored, "asked": asked, "sim": sim, "veto": vetoed, "exact": exact, "same_words": same_words,
-            "confirmed": answers.confirm(asked, stored) if ask else None}
+            "anchored": answers.anchored(asked), "confirmed": answers.confirm(asked, stored) if ask else None}
 
 
 def hit(m: dict, band: float) -> bool:
-    """What ``match`` decides when the model check starts at ``band``."""
+    """What ``match`` decides when the model check starts at ``band`` (``ANCHORED_FROM`` for anchored questions)."""
     if m["exact"] or (not m["veto"] and m["same_words"]):
         return True
-    return not m["veto"] and m["sim"] >= band and bool(m["confirmed"])
+    lowest = min(band, answers.ANCHORED_FROM) if m["anchored"] else band
+    return not m["veto"] and m["sim"] >= lowest and bool(m["confirmed"])
 
 
 def main() -> None:

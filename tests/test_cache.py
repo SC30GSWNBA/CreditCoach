@@ -293,6 +293,67 @@ def test_rewordings_below_the_same_words_threshold_still_go_to_the_model(monkeyp
     assert found is None and f"below {answers.CONFIRM_FROM}" in reason and not asked  # too far: no model call
 
 
+GOAL_ASKED = "How can I hit a score of 840 by December next year ?"
+
+
+def test_next_year_and_this_year_are_written_as_the_year_they_mean():
+    assert answers.resolve(GOAL_ASKED, 2026) == "How can I hit a score of 840 by December 2027 ?"
+    assert answers.resolve("What changed this year?", 2026) == "What changed 2026?"
+    assert answers.resolve("Why did my score fall over the last year?", 2026) == \
+        "Why did my score fall over the last year?"  # often the last twelve months: left as it is
+    assert answers.resolve("No year here.", 2026) == "No year here."
+
+
+def test_a_goal_asked_with_next_year_matches_the_same_goal_asked_with_the_year(monkeypatch):
+    """Railway, 2026-11-10: "...840 by December next year" then "Give me a roadmap to hit 840 by December 2027"
+    missed at 0.628: the numbers and time words differed, and goal rewordings score under CONFIRM_FROM. With the
+    year written, the pair scores 0.724, and naming the same score and date, the model is asked."""
+    asked = []
+    monkeypatch.setattr(answers, "confirm", lambda a, b: (asked.append((a, b)), True)[1])
+    monkeypatch.setattr(answers.time, "gmtime", lambda: time.struct_time((2026, 11, 10, 0, 0, 0, 1, 314, 0)))
+    stored = [{**entry(GOAL_ASKED), "resolved": answers.resolve(GOAL_ASKED),
+               "plain": answers.plain(answers.resolve(GOAL_ASKED))}]
+    roadmap = "Give me a roadmap to hit 840 by December 2027"
+    found, how, _ = answers.match(answers.resolve(roadmap), [0.724, 0.69], stored)
+    assert found is not None and how == "model-confirmed"
+    assert asked == [(roadmap, "How can I hit a score of 840 by December 2027 ?")]  # the model sees the year
+    assert answers.veto(GOAL_ASKED, roadmap) == "numbers differ"  # without resolving, as before the fix
+
+
+def test_the_lower_band_is_only_for_questions_naming_a_score_or_year(monkeypatch):
+    asked = []
+    monkeypatch.setattr(answers, "confirm", lambda a, b: (asked.append(a), True)[1])
+    assert answers.anchored("Give me a roadmap to hit 840 by December 2027")
+    assert answers.anchored("What will my score be in 2028?") and not answers.anchored("Why did it drop 20 points?")
+    found, reason, _ = answers.match("What hurts my credit score?", [0.75, 0.66],
+                                     [entry("How do I improve my credit score?")])
+    assert found is None and f"below {answers.CONFIRM_FROM}" in reason and not asked
+    found, reason, _ = answers.match("Is 840 by December 2027 realistic?", [0.585, 0.81],
+                                     [entry("How can I hit 840 by December 2027?")])
+    assert found is None and f"below {answers.ANCHORED_FROM}" in reason and not asked
+
+
+def test_next_year_asked_in_two_different_years_is_not_the_same_question(monkeypatch):
+    """Before resolving, the plain text matched exactly, whatever year each was asked in."""
+    stored = [{**entry(GOAL_ASKED), "resolved": answers.resolve(GOAL_ASKED, 2026),
+               "plain": answers.plain(answers.resolve(GOAL_ASKED, 2026))}]
+    monkeypatch.setattr(answers, "confirm", lambda a, b: pytest.fail("the numbers veto decides"))
+    found, reason, _ = answers.match(answers.resolve(GOAL_ASKED, 2027), [0.99, 0.0], stored)
+    assert found is None and "numbers differ" in reason
+
+
+def test_a_stored_answer_keeps_its_question_with_the_year_written(monkeypatch):
+    saved = {}
+    monkeypatch.setattr(answers, "_entries", lambda user_id: [])
+    monkeypatch.setattr(answers, "_save_entries", lambda user_id, entries: saved.update(entries=entries))
+    monkeypatch.setattr(answers.cache, "_try", lambda *a, **k: None)
+    monkeypatch.setattr(answers.time, "gmtime", lambda: time.struct_time((2026, 11, 10, 0, 0, 0, 1, 314, 0)))
+    answers.store("USR-031", GOAL_ASKED, [1.0, 0.0], "v", "m", "f", {})
+    (e,) = saved["entries"]
+    assert e["question"] == GOAL_ASKED and e["resolved"].endswith("December 2027 ?")
+    assert e["plain"] == answers.plain("How can I hit a score of 840 by December 2027 ?")
+
+
 def test_match_refuses_low_similarity_vetoes_and_unconfirmed_questions(monkeypatch):
     asked = []
     monkeypatch.setattr(answers, "confirm", lambda a, b: (asked.append(a), False)[1])
@@ -341,6 +402,7 @@ def test_a_miss_records_why_on_the_span_langfuse_keeps(on, monkeypatch, spans):
         assert answers.lookup("USR-001", "What qualifies as a great credit score?", [0.871, 0.491], "v", "m") is None
     span = next(s for s in spans.get_finished_spans() if s.name == "cache.answer")
     assert "not confirmed" in span.attributes["cache.reason"] and span.attributes["cache.similarity"] == 0.871
+    assert span.attributes["cache.closest"] == "What is a good credit score?"  # a pair to judge (cache_misses.py)
     monkeypatch.setattr(answers, "confirm", lambda a, b: True)
     found = answers.lookup("USR-001", "What qualifies as a great credit score?", [0.871, 0.491], "v", "m")
     assert found["how"] == "model-confirmed" and found["payload"]["text"] == "750 or above."
