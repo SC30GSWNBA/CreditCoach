@@ -1,6 +1,6 @@
 # CreditCoach: Caching
 
-*Week 3 · Task #22 · Last updated: 2026-11-06 (a stored answer is tied to the router's settings and the model it chose; S5 questions not reused) · Status: Draft for team review · Code: `creditcoach/cache/`*
+*Week 3 · Task #22 · Last updated: 2026-11-10 ("next year" written as the year; goals naming a score or date put to the model from 0.70) · Status: Draft for team review · Code: `creditcoach/cache/`*
 
 An answer takes about 10 seconds and one chat-model call. Almost all of that is the model. This document defines what CreditCoach caches so repeated work isn't done twice, and the rules that keep a cached answer from being a wrong answer. Task #23 measures the hit rate and the latency improvement, and since Task #25 the chat UI shows a cache badge above each answer ([screenshots](evidence/week-3/task-25-badges.md)).
 
@@ -55,7 +55,7 @@ A cached answer can do harm in two ways: it can answer a different question, or 
 
 1. **Exact:** equal after lower-casing and removing punctuation.
 2. **Same words:** embedding similarity of at least 0.90, and the same set of meaning-bearing words. Contractions, word order, tense, filler words and British spellings don't count: "My credit score dropped 20 points this month. Why?" matches "Why did my credit score drop 20 points this month?".
-3. **Model-confirmed:** similarity of at least 0.80 (0.90 until 2026-10-27; see below) with different words, and `SMALL_MODEL` agrees the two questions ask for the same thing, words of degree such as "good" and "great" included (about 3 s at `low` reasoning; any doubt or error is a no). `CREDITCOACH_CACHE_CONFIRM=off` removes this step.
+3. **Model-confirmed:** similarity of at least 0.80 (0.90 until 2026-10-27; 0.70 since 2026-11-10 for questions naming a score or year; see below) with different words, and `SMALL_MODEL` agrees the two questions ask for the same thing, words of degree such as "good" and "great" included (about 3 s at `low` reasoning; any doubt or error is a no). `CREDITCOACH_CACHE_CONFIRM=off` removes this step.
 
 **Embedding similarity alone is not safe.** Measured with the project's embedding model against "Why did my credit score drop 20 points this month?":
 
@@ -90,6 +90,8 @@ The model check now starts at 0.80; matching on the same words alone still needs
 | **Prompt names degree words as the same, `low` (now)** | **14 of 17** | **0 of 9** | **yes** |
 
 Showing the model the stored answer was dropped: an answer often touches the neighbouring topic, so the answer to "How do I improve my credit score?" was served for "How do I improve my credit utilization?". The prompt now says that different phrasing, synonyms and words of degree that ask about the same thing ("good", "great", "strong" or "excellent" credit score; "raise" or "boost") are the same question, and the model reasons at `low` (`CONFIRM_EFFORT`), which takes about 3.3 s instead of 1.4–2 s, on a miss in the 0.80–0.90 band only. The full benchmark with the new pairs (`scripts/task22_confirm_band.py`): **16 of 18 rewordings hit, 0 of 16 look-alikes**, with both of the tester's phrasings matched. A miss now also records its reason and similarity on the `cache.answer` span, so Langfuse shows why (cache events don't reach it).
+
+**Goals asked two ways, and "next year" (2026-11-10).** On Railway, a new user asked "How can I hit a score of 840 by December next year?" and then "Give me a roadmap to hit 840 by December 2027", and the second missed: "closest stored question is 0.628 similar, below 0.8" on its `cache.answer` span. Two things kept them apart. "next year" isn't "2027" to the numbers and time-words vetoes, and rewordings of a question that names a target score and date score 0.72 to 0.78, under the 0.80 the model check needed. Now the cache writes "next year" and "this year" as the year they mean on the day they're asked (`answers.resolve`; "last year" is left alone, since it often means the last twelve months), for its embedding and every comparison. Questions that name a credit score or a year (`answers.anchored`) are put to the model from **0.70** (`ANCHORED_FROM`): the numbers veto already makes both name the same score and year, so only what they ask can differ, and that's what the model judges. Asked 3 times each, the model matched 4 goal rewordings every time and refused 5 look-alikes with the same score and date every time ("Will I hit 840 by December 2027?", "Save my goal of 840 by December 2027", "Is 840 by December 2027 realistic?", "…to get a home loan?", "What happens to my score if I miss a payment…"). The full benchmark (`scripts/task22_confirm_band.py`, 22 rewordings and 22 look-alikes): **20 of 22 rewordings hit (17 before), 0 of 22 look-alikes**. Writing the year also stops "next year" asked in two different years from matching exactly, as it did before.
 
 **What is never stored or served from the answer cache:**
 

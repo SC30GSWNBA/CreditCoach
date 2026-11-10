@@ -12,13 +12,23 @@ So a stored answer is used only if all of these hold:
                      (``fingerprint``) before serving it. ``agent.pipeline`` does this.
     Fresh            Stored less than ``TTL["answer"]`` ago.
 
-How two questions are judged the same (``match``), in order:
+How two questions are judged the same (``match``), in order, after "this year" and "next year" are written as the
+year they mean on the day each was asked (``resolve``):
 
     1. exact            Equal after lower-casing and removing punctuation and extra spaces.
     2. same words       Embedding similarity of at least ``THRESHOLD`` and the same set of meaning-bearing words
                         (contractions, word order, tense, filler words and British spellings don't count).
-    3. model-confirmed  Similarity of at least ``CONFIRM_FROM`` otherwise, none of the vetoes below, and
-                        ``SMALL_MODEL`` agrees the two questions ask for the same thing.
+    3. model-confirmed  Similarity of at least ``CONFIRM_FROM`` otherwise (``ANCHORED_FROM`` when both name the same
+                        score or year, ``anchored``), none of the vetoes below, and ``SMALL_MODEL`` agrees the two
+                        questions ask for the same thing.
+
+Since 2026-11-10, for a goal asked two ways on Railway: "How can I hit a score of 840 by December next year?" then
+"Give me a roadmap to hit 840 by December 2027" missed at 0.628. "next year" isn't "2027" to the numbers and
+time-words vetoes, and rewordings of a question naming a target score and date score 0.72 to 0.78, under
+``CONFIRM_FROM``. With the year resolved the pair scores 0.724, and from ``ANCHORED_FROM`` the model is asked: it
+matched 4 rewordings 3 times out of 3 and refused 5 look-alikes with the same score and date ("Will I hit 840 by
+December 2027?", "Save my goal of 840 by December 2027", "...to get a home loan?") 3 times out of 3. Writing the year
+also stops "next year" asked in two different years from matching.
 
 Since 2026-10-29 the prompt says that words of degree asking about the same thing ("good", "great", "strong" score)
 are the same question, and the model reasons at ``CONFIRM_EFFORT`` "low": on Railway, "What qualifies as a great
@@ -58,6 +68,7 @@ log = logging.getLogger("creditcoach.cache")
 
 THRESHOLD = 0.90     # minimum cosine similarity for a "same words" match, with no model call
 CONFIRM_FROM = 0.80  # minimum cosine similarity before SMALL_MODEL is asked whether the questions are the same
+ANCHORED_FROM = 0.70  # the same, for two questions naming the same score or year (``anchored``)
 CONFIRM_EFFORT = "low"  # "minimal" missed "great" for "good" (2026-10-29); "low" matched it with no wrong hit
 MAX_PER_USER = 20  # stored answers per user; the oldest goes first
 
@@ -89,6 +100,26 @@ what is asked (a current figure, a target, a reason, a prediction, advice), or i
 as the same: different phrasing, synonyms, and words of degree that ask about the same thing ("good", "great", \
 "strong" or "excellent" credit score; "raise" or "boost") are the same question. Otherwise, answer "no" if you are \
 unsure. Reply with one word: yes or no."""
+
+
+RELATIVE_YEARS = [(re.compile(r"\bnext year'?s?\b", re.I), 1), (re.compile(r"\bthis year'?s?\b", re.I), 0)]
+ANCHOR = re.compile(r"^(?:[3-8]\d\d|900|20\d\d)$")  # a credit score (300 to 900) or a year
+
+
+def resolve(question: str, year: int | None = None) -> str:
+    """The question with "next year" and "this year" written as the year they mean (``year`` is the year it was
+    asked, this one by default): "840 by December next year" is "840 by December 2027" in 2026. "Last year" is left
+    as it is, since it often means the last twelve months."""
+    year = year or time.gmtime().tm_year
+    for pattern, ahead in RELATIVE_YEARS:
+        question = pattern.sub(str(year + ahead), question)
+    return question
+
+
+def anchored(question: str) -> bool:
+    """Whether a question names a credit score or a year: two questions naming the same ones (the numbers veto sees to
+    that) can only differ in what they ask, which ``SMALL_MODEL`` is asked to judge from ``ANCHORED_FROM``."""
+    return any(ANCHOR.match(n) for n in numbers(question))
 
 
 def plain(question: str) -> str:
@@ -162,6 +193,9 @@ def confirm(asked: str, stored: str) -> bool:
 def match(question: str, embedding: list[float], entries: list[dict]) -> tuple[dict, str, float] | tuple[None, str, float]:
     """Find a stored question that is the same as ``question``.
 
+    ``question`` and ``embedding`` are of the question with its years resolved (``resolve``), and each entry's
+    ``resolved`` is its question resolved on the day it was asked (entries from before 2026-11-10 have none).
+
     Returns:
         ``(entry, how, similarity)`` with ``how`` one of ``"exact"``, ``"same words"``, ``"model-confirmed"``; or
         ``(None, reason, best_similarity)`` when nothing matches.
@@ -173,13 +207,15 @@ def match(question: str, embedding: list[float], entries: list[dict]) -> tuple[d
         if e["plain"] == text:
             return e, "exact", 1.0
     similarity, best = max(((cosine(embedding, e["embedding"]), e) for e in entries), key=lambda pair: pair[0])
-    if similarity < CONFIRM_FROM:
-        return None, f"closest stored question is {similarity:.3f} similar, below {CONFIRM_FROM}", similarity
-    if reason := veto(question, best["question"]):
+    stored = best.get("resolved", best["question"])
+    lowest = ANCHORED_FROM if anchored(question) else CONFIRM_FROM
+    if similarity < lowest:
+        return None, f"closest stored question is {similarity:.3f} similar, below {lowest}", similarity
+    if reason := veto(question, stored):
         return None, f"{reason} from the closest stored question ({similarity:.3f} similar)", similarity
-    if similarity >= THRESHOLD and words(question) == words(best["question"]):
+    if similarity >= THRESHOLD and words(question) == words(stored):
         return best, "same words", similarity
-    if config.CACHE_CONFIRM and confirm(question, best["question"]):
+    if config.CACHE_CONFIRM and confirm(question, stored):
         return best, "model-confirmed", similarity
     return None, f"closest stored question ({similarity:.3f} similar) was not confirmed as the same", similarity
 
@@ -201,13 +237,13 @@ def _save_entries(user_id: str, entries: list[dict]) -> None:
 
 def lookup(user_id: str, question: str, embedding: list[float], version: str, memory: str) -> dict | None:
     """Find a stored answer to this question for this user and setup. Logs a miss; the caller logs the hit, once it
-    has checked the figures.
+    has checked the figures. ``embedding`` is of the question with its years resolved (``resolve``).
 
     Returns:
         The stored record (``payload``, ``fingerprint``, ``question``, ``how``, ``similarity``, ``age``), or None.
     """
     usable = [e for e in _entries(user_id) if e["version"] == version and e["memory"] == memory]
-    entry, how, similarity = match(question, embedding, usable)
+    entry, how, similarity = match(resolve(question), embedding, usable)
     if entry is None:
         cache._note("answer", "miss", _index_key(user_id), user_id=user_id, reason=how)
         obs.annotate(**{"cache.reason": how, "cache.similarity": round(similarity, 3)})  # kept by Langfuse, unlike events
@@ -222,13 +258,16 @@ def lookup(user_id: str, question: str, embedding: list[float], version: str, me
 
 def store(user_id: str, question: str, embedding: list[float], version: str, memory: str, fingerprint: str,
           payload: dict) -> None:
-    """Keep one finished answer for this user, replacing an earlier answer to the same question."""
+    """Keep one finished answer for this user, replacing an earlier answer to the same question. ``embedding`` is of
+    the question with its years resolved, as for ``lookup``."""
     entry_key = f"cc:{cache.SCHEMA}:answer:{user_id}:{uuid.uuid4().hex[:16]}"
-    text = plain(question)
+    resolved = resolve(question)
+    text = plain(resolved)
     entries = _entries(user_id)
     replaced = [e for e in entries if e["plain"] == text and e["version"] == version and e["memory"] == memory]
     kept = [e for e in entries if e not in replaced]
-    kept.append({"key": entry_key, "question": question, "plain": text, "embedding": [round(x, 5) for x in embedding],
+    kept.append({"key": entry_key, "question": question, "resolved": resolved, "plain": text,
+                 "embedding": [round(x, 5) for x in embedding],
                  "version": version, "memory": memory, "fingerprint": fingerprint, "created": time.time()})
     dropped, kept = kept[:-MAX_PER_USER], kept[-MAX_PER_USER:]
     cache._try(lambda: cache.backend().set(entry_key, json.dumps(payload, ensure_ascii=False), cache.TTL["answer"]),
