@@ -246,7 +246,10 @@ def lookup(user_id: str, question: str, embedding: list[float], version: str, me
     entry, how, similarity = match(resolve(question), embedding, usable)
     if entry is None:
         cache._note("answer", "miss", _index_key(user_id), user_id=user_id, reason=how)
-        obs.annotate(**{"cache.reason": how, "cache.similarity": round(similarity, 3)})  # kept by Langfuse, unlike events
+        # kept by Langfuse, unlike events; the closest stored question makes a miss a pair to judge
+        # (scripts/cache_misses.py), and is the user's own earlier question, already in their trace
+        closest = max(usable, key=lambda e: cosine(embedding, e["embedding"]))["question"] if usable else None
+        obs.annotate(**{"cache.reason": how, "cache.similarity": round(similarity, 3), "cache.closest": closest})
         return None
     raw = cache._try(lambda: cache.backend().get(entry["key"]), "answer", entry["key"])
     if raw is None:

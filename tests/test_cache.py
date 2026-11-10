@@ -402,6 +402,7 @@ def test_a_miss_records_why_on_the_span_langfuse_keeps(on, monkeypatch, spans):
         assert answers.lookup("USR-001", "What qualifies as a great credit score?", [0.871, 0.491], "v", "m") is None
     span = next(s for s in spans.get_finished_spans() if s.name == "cache.answer")
     assert "not confirmed" in span.attributes["cache.reason"] and span.attributes["cache.similarity"] == 0.871
+    assert span.attributes["cache.closest"] == "What is a good credit score?"  # a pair to judge (cache_misses.py)
     monkeypatch.setattr(answers, "confirm", lambda a, b: True)
     found = answers.lookup("USR-001", "What qualifies as a great credit score?", [0.871, 0.491], "v", "m")
     assert found["how"] == "model-confirmed" and found["payload"]["text"] == "750 or above."
