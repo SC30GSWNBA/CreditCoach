@@ -218,11 +218,13 @@ This tab shows your latest score, how it changed, your card utilization, what yo
 
 **If you told CreditCoach you have no cards and no loans**, you have no credit file yet. My credit will say so instead of showing charts, and the chat can explain how people start building credit.
 
-### Dashboard (how CreditCoach is doing)
+### Dashboard (your CreditCoach activity)
 
-This tab shows how CreditCoach is performing for everyone who uses it: how often its data lookups fail, how often its safety checks step in (by rule), and how often it remembers a saved goal. Its choices come in three groups: **Timeline** (the last 24 hours, 7 days or 30 days), **Type of runs** (real use, the team's eval and test runs, or both) and **Performance** (Quality, or Cost and speed). It shows **counts only**: never anyone's questions, answers or name. Using it never uses up a question. The first time you open the tab it may say "Loading the dashboard…" for a few seconds while it gathers the latest figures. **Real use** counts only answers people got in the app; the note under the figures says how many more are under **Eval and test runs**.
+This tab shows how CreditCoach handled **the questions you asked**, and only yours: how often its data lookups failed, how often its safety checks stepped in (by rule), and how often it remembered your saved goal. Its choices come in three groups: **Timeline** (the last 24 hours, 7 days or 30 days), **Performance** (Quality, or Cost and speed) and **Models** (the models that answered you; untick one to leave its answers out of every figure). It shows **counts only**, never the words of your questions or answers. Using it never uses up a question. The first time you open the tab it may say "Loading the dashboard…" for a few seconds. After that it **updates by itself**: a new question shows up within about a minute, without pressing Refresh. If you haven't asked anything in the period, it says so.
 
-Pick **Cost and speed** under Performance to see what answers cost and how long they take: spend, cost per answer, response time, a chart of every answer's cost against its wait (untick models to compare just some; the number of answers, the median and the average on the chart change to match), each model compared, and where the time and money go. It also shows the team's comparison of models on the same 50 test questions, and every test run behind the choice of the models CreditCoach uses. Like the rest of the tab, it shows counts only.
+Pick **Cost and speed** under Performance to see what your answers cost and how long they took: spend, cost per answer, response time, a chart of each answer's cost against its wait, each model compared, and where the time and money go.
+
+The **Admin sign-in** link under the Log in form is for the person who runs CreditCoach. You don't need it.
 
 ---
 

@@ -38,12 +38,12 @@ same two tools the chat uses, directly and only for the signed-in user, with no 
 pressing "Ask in chat" fills the chat box with a question about that month and switches to the chat tab; it
 doesn't send until the user presses Enter.
 
-Dashboard tab (Task 31): for every signed-in user (the team's logins, people who signed up, and anyone invited
-later), the tool-call failure rate, guardrail trigger count and goal-recall accuracy over the last day, week or
-month, from the traces every answer leaves (Langfuse, else the local trace files), with real use (this app, which tags its
-traces ``app``) kept apart from eval and test runs (``creditcoach.app.dashboard``). It shows counts only, never a question, answer or user. Its handlers check
-that the session belongs to a known user before reading anything. The tab shows at sign-in with a loading note and fills in
-after, since a cold read of Langfuse takes several seconds.
+Dashboard tab (Task 31): for every signed-in user, their own questions only (since 2026-11-10): the tool-call
+failure rate, guardrail trigger count and goal-recall accuracy, and cost and speed, over the last day, week or month,
+for the models they pick, from the traces their answers left (``creditcoach.app.dashboard_ui``). It shows counts
+only, never a question or answer, and follows new answers by itself. Every user's figures, eval and test runs, and
+the model comparison are on the admin page (``/admin``, ``creditcoach.app.admin_page``). Its handlers take the user
+from the session, never from the page. The tab shows at sign-in and fills in when it is first opened.
 
 Per-user logins: every visitor signs in as one dataset user (``creditcoach.auth``). Usernames
 ``creditcoach_user1`` to ``creditcoach_user15`` are the team's logins for USR-001 to USR-015; people who sign up get
@@ -92,7 +92,8 @@ import gradio as gr  # noqa: E402
 from creditcoach import auth, config, guardrails  # noqa: E402
 from creditcoach import observability as obs  # noqa: E402
 from creditcoach.agent.pipeline import answer  # noqa: E402
-from creditcoach.app import badges, charts, confidence, counters, dashboard, limits, server, theme  # noqa: E402
+from creditcoach.app import (badges, charts, confidence, counters, dashboard, dashboard_ui, limits, server,  # noqa: E402
+                             theme)
 from creditcoach.app.trace import Trace  # noqa: E402
 from creditcoach.memory import dream, store  # noqa: E402
 from creditcoach.rag.retrieve import retrieve  # noqa: E402
@@ -546,73 +547,17 @@ def ask_about_month(day: str | None) -> tuple:
     return ask_in_chat(charts.month_question(day)) if day else (gr.skip(), gr.skip())
 
 
-SIGNED_OUT = '<div class="cc-empty"><b>Please sign in again to see the dashboard.</b></div>'
-
-
-def dashboard_view(days: int, traffic: str, request: gr.Request, refresh: bool = False) -> str:
-    """The dashboard for any signed-in user, else a note: the check is made here too, not only by hiding the tab."""
-    if auth.user_id_for(getattr(request, "username", None)) is None:
-        return SIGNED_OUT
-    if refresh:
-        dashboard.forget()
-    return dashboard.view(int(days), traffic)
-
-
-def refresh_dashboard(days: int, traffic: str, request: gr.Request) -> str:
-    """The Refresh button: read the traces afresh, then show the dashboard."""
-    return dashboard_view(days, traffic, request, refresh=True)
-
-
-DASH_LOADING = '<div class="cc-empty">Loading the dashboard…</div>'
-
-
 def show_dashboard_tab(request: gr.Request) -> tuple:
     """On page load: show the Dashboard tab to every signed-in user at once, with a loading note in it. Filling it
-    in reads the traces (several seconds from Langfuse on a cold cache), so that's a separate step after this one."""
+    in reads the traces, so that's a separate step, when the tab is first opened (``open_dashboard``)."""
     if auth.user_id_for(getattr(request, "username", None)) is None:
         return gr.Tab(visible=False), ""
-    return gr.Tab(visible=True), DASH_LOADING
+    return gr.Tab(visible=True), dashboard_ui.LOADING
 
 
-def load_dashboard(days: int, traffic: str, request: gr.Request) -> tuple:
-    """Show the Dashboard tab, filled in, to every signed-in user (``show_dashboard_tab`` then ``dashboard_view``)."""
-    tab, page = show_dashboard_tab(request)
-    return tab, dashboard_view(days, traffic, request) if tab.visible else page
-
-
-def open_dashboard(days: int, traffic: str, filled: bool, request: gr.Request) -> tuple:
-    """Opening the Dashboard tab: fill it in the first time only, so people who never open it don't wait for the
-    traces at page load (2026-11-07). Later visits keep what's shown; the Refresh button reads the traces afresh."""
-    if filled:
-        return gr.skip(), True
-    return dashboard_view(days, traffic, request), True
-
-
-def dashboard_switch(view: str) -> tuple:
-    """Show the picked view of the dashboard: "Quality" (Task 31's measures) or "Cost and speed"."""
-    return gr.update(visible=view == "quality"), gr.update(visible=view == "cost")
-
-
-def cost_dashboard(days: int, traffic: str, view: str, request: gr.Request) -> tuple:
-    """The parts of the "Cost and speed" view (``dashboard.COST_PARTS``), built only while that view is picked; the
-    same session check as ``dashboard_view``. Then the chart's model tick boxes (every model ticked) and the figures
-    the parts were made from, kept for ``redraw_cost_scatter``."""
-    if view != "cost":
-        return tuple(gr.skip() for _ in range(len(dashboard.COST_PARTS) + 2))
-    if auth.user_id_for(getattr(request, "username", None)) is None:
-        return SIGNED_OUT, *[None] * (len(dashboard.COST_PARTS) - 1), gr.update(choices=[], value=[]), None
-    parts = dashboard.cost_view(int(days), traffic)
-    choices = dashboard.model_choices(parts["costs"]) if parts["costs"] else []
-    return (*(parts[k] for k in dashboard.COST_PARTS), gr.update(choices=choices, value=[k for _, k in choices]),
-            parts["costs"])
-
-
-def redraw_cost_scatter(shown: list[str], costs: dict | None, request: gr.Request):
-    """Redraw the cost vs response time chart for the ticked models, from the same figures as the rest of the view,
-    so its answer count, median and average match the Models compared table."""
-    if costs is None or auth.user_id_for(getattr(request, "username", None)) is None:
-        return gr.skip()
-    return dashboard.scatter_figure(costs, shown)
+def dashboard_user(request: gr.Request) -> str | None:
+    """Whose Dashboard this session sees: the signed-in user's own, never anyone the page names."""
+    return auth.user_id_for(getattr(request, "username", None))
 
 
 # After the page opens: back to the top, since focusing the message box scrolls down to it, and the example questions
@@ -630,7 +575,7 @@ ANSWER_CONCURRENCY = 8
 
 def build() -> gr.Blocks:
     """Create the page: a "Signed in as" line with a Log out button, the memory panel, then the tabs: the chat
-    interface, "My credit" (the signed-in user's charts) and "Dashboard" (Task 31, counts across all users).
+    interface, "My credit" (the signed-in user's charts) and "Dashboard" (Task 31, the user's own questions).
 
     Returns:
         A configured ``gr.Blocks`` (not yet launched). Analytics are off, flagging is disabled, and at most
@@ -645,7 +590,7 @@ def build() -> gr.Blocks:
             panel = gr.Markdown()
         logout.click(log_out).then(None, js="() => { window.location.href = '/logout'; }")
         with gr.Tabs(selected="chat") as tabs:
-            with gr.Tab("Ask CreditCoach", id="chat"):
+            with gr.Tab("Ask CreditCoach", id="chat") as chat_tab:
                 chat = gr.ChatInterface(
                     fn=respond,
                     chatbot=gr.Chatbot(height=680, show_label=False,  # room for the agent trace above each answer
@@ -659,7 +604,7 @@ def build() -> gr.Blocks:
                     autofocus=True,
                     analytics_enabled=False,
                 )
-            with gr.Tab("My credit", id="credit"):
+            with gr.Tab("My credit", id="credit") as credit_tab:
                 with gr.Column(visible=False) as empty_view:
                     empty = gr.HTML()
                     start_ask = gr.Button(f"Ask in chat: {charts.START_QUESTION}", size="sm", variant="primary")
@@ -696,53 +641,7 @@ def build() -> gr.Blocks:
                                         "utilization.")
                             debt = gr.HTML()
             with gr.Tab("Dashboard", id="dashboard", visible=False) as dash_tab:
-                gr.Markdown("### How CreditCoach is doing\nQuality (tool-call failures, guardrail triggers, goal "
-                            "recall) and cost and speed, counted from the traces every answer leaves. Counts only: "
-                            "no question, answer or user.")
-                # the choices in three named groups, one per line, the name beside them (above, on phones; 2026-11-07)
-                with gr.Column(elem_classes="cc-dash-controls"):
-                    dash_days = gr.Radio(dashboard.PERIODS, value=7, label="Timeline")
-                    dash_traffic = gr.Radio(dashboard.TRAFFIC, value="real", label="Type of runs")
-                    dash_view = gr.Radio(dashboard.VIEWS, value="quality", label="Performance")
-                with gr.Row():
-                    dash_refresh = gr.Button("↻ Refresh", size="sm", scale=0, min_width=140, elem_classes="cc-refresh")
-                with gr.Column() as quality_col:
-                    dash = gr.HTML()
-                with gr.Column(visible=False) as cost_col:
-                    cost_top = gr.HTML()
-                    gr.Markdown("### Cost vs response time, per answer\nEach dot is one answer: how long the user "
-                                "waited and what its model calls cost, the output check included. The large dots are "
-                                "each model's median. Lower left is better. Tick the models to compare: the answer "
-                                "count, the median line and the average line follow your choice, and match the "
-                                "Models compared table below.")
-                    cost_shown = gr.CheckboxGroup(label="Models shown", elem_classes="cc-shown")
-                    cost_scatter = gr.Plot(show_label=False)
-                    cost_models = gr.HTML()
-                    gr.Markdown("### Cost against speed and quality\nThe same 50 eval questions put to each model and "
-                                "setting, so this is a like-for-like comparison. Each dot is one model and setting, "
-                                "averaged over its runs; dot size is cost per answer; the shaded side of the dashed "
-                                "line meets the response-time target. Below the table: every test run behind the "
-                                "choice of model.")
-                    cost_quality = gr.Plot(show_label=False)
-                    cost_quality_table = gr.HTML()
-                    # one above the other, full width: Spend by day's key has a line per model (2026-11-07)
-                    gr.Markdown("### Spend by day\nUS dollars, by answer model, with the output check apart.")
-                    cost_spend = gr.Plot(show_label=False)
-                    gr.Markdown("### Response time by day\nSeconds from question to answer. p50 is the typical "
-                                "answer, p95 the slowest one in twenty.")
-                    cost_latency = gr.Plot(show_label=False)
-                    cost_split = gr.HTML()
-                    with gr.Row(equal_height=False):
-                        with gr.Column(min_width=320):
-                            gr.Markdown("### Tokens by day\nPrompt tokens (instructions, retrieved passages, the "
-                                        "user's data) and completion tokens (the answer and any reasoning).")
-                            cost_tokens = gr.Plot(show_label=False)
-                        with gr.Column(min_width=320):
-                            cost_cache = gr.HTML()
-                cost_figures = gr.State()  # what the view was made from, for redrawing the chart (redraw_cost_scatter)
-                cost_parts = [cost_top, cost_scatter, cost_models, cost_quality, cost_quality_table, cost_spend,
-                              cost_latency, cost_split, cost_tokens, cost_cache,  # dashboard.COST_PARTS, in order
-                              cost_shown, cost_figures]
+                dash = dashboard_ui.build(dashboard_user)
 
         story_outputs = [snapshot, story, reasons, month, table]
         period.change(credit_story, inputs=period, outputs=story_outputs)
@@ -758,19 +657,13 @@ def build() -> gr.Blocks:
         demo.load(load_credit, inputs=period,
                   outputs=[credit_view, empty_view, empty, start_ask, *story_outputs, cards, whatif, card, pay, note,
                            debt])
-        cost_inputs = [dash_days, dash_traffic, dash_view]
-        for control in (dash_days, dash_traffic):
-            control.change(dashboard_view, inputs=[dash_days, dash_traffic], outputs=dash).then(
-                cost_dashboard, inputs=cost_inputs, outputs=cost_parts)
-        dash_refresh.click(refresh_dashboard, inputs=[dash_days, dash_traffic], outputs=dash).then(
-            cost_dashboard, inputs=cost_inputs, outputs=cost_parts)
-        cost_shown.input(redraw_cost_scatter, inputs=[cost_shown, cost_figures], outputs=cost_scatter,
-                         show_progress="hidden")
-        dash_view.change(dashboard_switch, inputs=dash_view, outputs=[quality_col, cost_col],
-                         show_progress="hidden").then(cost_dashboard, inputs=cost_inputs, outputs=cost_parts)
-        demo.load(show_dashboard_tab, outputs=[dash_tab, dash], show_progress="hidden")
+        demo.load(show_dashboard_tab, outputs=[dash_tab, dash.quality], show_progress="hidden")
+        # opening the tab fills it the first time; leaving it stops the live updates until it is opened again
         dash_filled = gr.State(False)
-        dash_tab.select(open_dashboard, inputs=[dash_days, dash_traffic, dash_filled], outputs=[dash, dash_filled])
+        dash_tab.select(dash.open, [dash_filled, *dash.inputs], [dash_filled, dash.active, *dash.outputs],
+                        api_name=False)
+        for other in (chat_tab, credit_tab):
+            other.select(lambda: False, outputs=dash.active, show_progress="hidden", api_name=False)
         demo.unload(closed)
     demo.queue(default_concurrency_limit=PAGE_CONCURRENCY)
     return demo
@@ -824,7 +717,8 @@ def main() -> None:
     warm_up()
     threading.Thread(target=check_langfuse, name="langfuse-check", daemon=True).start()
     server.run(build(), port=args.port, share=args.share,
-               css=theme.CSS + charts.CSS + badges.CSS + dashboard.CSS + counters.CSS, host=args.host)
+               css=theme.CSS + charts.CSS + badges.CSS + dashboard.CSS + dashboard_ui.CSS + counters.CSS,
+               host=args.host)
 
 
 if __name__ == "__main__":

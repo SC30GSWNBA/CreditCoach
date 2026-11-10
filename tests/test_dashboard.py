@@ -15,7 +15,7 @@ import pytest
 
 from creditcoach import config
 from creditcoach.app import dashboard as D
-from creditcoach.app import main
+from creditcoach.app import dashboard_ui, main
 
 NOW = datetime(2026, 10, 28, 12, 0, tzinfo=UTC)
 GOAL = {"target_score": 720, "target_date": "2027", "purpose": "saving for a car", "session": "S1",
@@ -36,11 +36,12 @@ def span(trace, name, start="2026-10-27T10:00:00+00:00", status="OK", **attrs):
     return {"trace_id": trace, "name": name, "start": start, "status": status, "attributes": attrs}
 
 
-def answer(trace, text="An answer.", session="S2", guardrail="passed", tags=("app",), start="2026-10-27T10:00:00+00:00"):
+def answer(trace, text="An answer.", session="S2", guardrail="passed", tags=("app",), start="2026-10-27T10:00:00+00:00",
+           user="USR-001"):
     """An answer span; by default from the chat app (tagged ``app``), so real use."""
     return span(trace, "creditcoach.answer", start, **{"session.id": session, "answer.guardrail": guardrail,
                                                        "langfuse.trace.output": text, "question": "a question",
-                                                       "user.id": "USR-001",
+                                                       "user.id": user,
                                                        **({"langfuse.trace.tags": list(tags)} if tags else {})})
 
 
@@ -205,10 +206,31 @@ def test_load_falls_back_to_the_local_files_when_langfuse_fails(tmp_path, monkey
     monkeypatch.setattr(config, "LANGFUSE_PUBLIC_KEY", "pk")
     monkeypatch.setattr(config, "LANGFUSE_SECRET_KEY", "sk")
     monkeypatch.setattr(config, "TRACES_DIR", tmp_path)
-    monkeypatch.setattr(D, "from_langfuse", lambda since: 1 / 0)
+    monkeypatch.setattr(D, "from_langfuse", lambda since, user=None: 1 / 0)
     write_traces(tmp_path, "2026-10-27", [answer("t")])
     spans, source = D.load(7, now=NOW)
     assert len(spans) == 1 and "Langfuse unreachable" in source
+
+
+def test_when_langfuse_fails_the_last_good_read_is_shown(monkeypatch, tmp_path):
+    """Each user reads Langfuse now, so a 429 must not swap their figures for this machine's few trace files."""
+    monkeypatch.setattr(config, "LANGFUSE_PUBLIC_KEY", "pk")
+    monkeypatch.setattr(config, "LANGFUSE_SECRET_KEY", "sk")
+    monkeypatch.setattr(config, "TRACES_DIR", tmp_path)
+    monkeypatch.setattr(D, "from_langfuse", lambda since, user=None: [answer("good")])
+    D.load(7, "USR-001")
+    monkeypatch.setattr(D, "from_langfuse", lambda since, user=None: 1 / 0)
+    D._cache[(7, "USR-001")] = (0.0, *D._cache[(7, "USR-001")][1:])  # out of date: read again
+    spans, source = D.load(7, "USR-001")
+    assert [s_["trace_id"] for s_ in spans] == ["good"] and "Langfuse (" in source
+
+
+def test_a_user_is_told_when_figures_may_be_missing_without_naming_langfuse(monkeypatch, tmp_path):
+    monkeypatch.setattr(D, "load", lambda days, user=None: (two_users(), "local trace files (Langfuse unreachable: "
+                                                                         "HTTPError)"))
+    page = D.view(7, user="USR-001", detail=False)
+    assert "Some of your figures may be missing" in page and "Langfuse" not in page
+    assert "Some of your figures may be missing" in D.cost_view(7, user="USR-001", detail=False)["top"]
 
 
 def test_people_opening_the_tab_together_share_one_read_of_langfuse(monkeypatch):
@@ -219,7 +241,7 @@ def test_people_opening_the_tab_together_share_one_read_of_langfuse(monkeypatch)
     monkeypatch.setattr(config, "LANGFUSE_PUBLIC_KEY", "pk")
     monkeypatch.setattr(config, "LANGFUSE_SECRET_KEY", "sk")
     reads = []
-    monkeypatch.setattr(D, "from_langfuse", lambda since: reads.append(since) or time.sleep(0.2) or [])
+    monkeypatch.setattr(D, "from_langfuse", lambda since, user=None: reads.append(since) or time.sleep(0.2) or [])
     D.forget()
     threads = [threading.Thread(target=D.load, args=(7,)) for _ in range(6)]
     for t in threads:
@@ -254,8 +276,9 @@ def test_an_empty_period_shows_dashes_not_errors():
 
 
 def test_view_says_so_when_the_traces_cant_be_read(monkeypatch):
-    monkeypatch.setattr(D, "load", lambda days: 1 / 0)
+    monkeypatch.setattr(D, "load", lambda days, user=None: 1 / 0)
     assert "unavailable" in D.view(7, "real")
+    assert "unavailable" in D.view(7, user="USR-001", detail=False)
 
 
 def request(username):
@@ -271,30 +294,128 @@ def signed_up(monkeypatch):
     monkeypatch.setattr(auth, "signup_logins", lambda reload=False: {"creditcoach_user19": entry})
 
 
-def test_every_signed_in_user_sees_the_dashboard(monkeypatch, signed_up):
-    """Since 2026-10-29: the team's logins and people who signed up alike (user19 on Railway couldn't see it)."""
-    monkeypatch.setattr(D, "view", lambda days, traffic: f"dashboard {days} {traffic}")
-    for username in ("creditcoach_user1", "creditcoach_user19"):
-        tab, page = main.load_dashboard(7, "real", request(username))
-        assert tab.visible is True and page == "dashboard 7 real", username
-    tab, page = main.load_dashboard(7, "real", request("nobody"))  # a stale session for an unknown login
-    assert tab.visible is False and page == ""
+def dash(who=main.dashboard_user, admin=False):
+    """The Dashboard as ``dashboard_ui.build`` lays it out, in a page of its own, for calling its handlers."""
+    with main.gr.Blocks():
+        return dashboard_ui.build(who, admin=admin)
+
+
+def args(view="quality", user="", days=7, traffic="real", shown=None, known=None, seen=None):
+    """The handlers' inputs, in ``dashboard_ui``'s order: user, days, traffic, view, shown, known, seen."""
+    return user, days, traffic, view, shown, known, seen
+
+
+OUT = {"quality": 0, "cost_top": 1, "shown": 11, "known": 12, "seen": 13, "status": 14}  # positions in ``outputs``
+
+
+def two_users():
+    """USR-001 asked two questions, USR-002 (creditcoach_user19) one, with another model."""
+    return [*costed("u1a"), *costed("u1b", day="2026-10-28"),
+            *[{**s_, "attributes": {**s_["attributes"], "user.id": "USR-002"}} if s_["name"] == "creditcoach.answer"
+              else s_ for s_ in costed("u2", model="openai/gpt-5")]]
+
+
+def test_each_user_sees_only_their_own_questions(monkeypatch, signed_up):
+    """2026-11-10: every user saw everyone's answers; now the tab counts the signed-in user's own."""
+    monkeypatch.setattr(D, "load", lambda days, user=None: (two_users(), "local trace files"))
+    d = dash()
+    mine = d.fill(*args(), request("creditcoach_user19"))  # USR-002
+    assert 'cc-v">1</span>' in mine[OUT["quality"]]
+    assert mine[OUT["shown"]]["choices"] == [("GPT-5 (1)", GPT5)]
+    theirs = d.fill(*args(), request("creditcoach_user1"))  # USR-001
+    assert 'cc-v">2</span>' in theirs[OUT["quality"]] and theirs[OUT["shown"]]["choices"] == [("Claude Sonnet 5.5 (2)",
+                                                                                               SONNET)]
+
+
+def test_a_users_dashboard_reads_only_their_traces_from_langfuse(monkeypatch):
+    """Langfuse is asked by user id, so a user's tab doesn't download everyone's traces (8 s a week, 36 s a month)."""
+    asked = []
+    monkeypatch.setattr(D, "_langfuse_get", lambda path, **q: asked.append(q) or {"data": [], "meta": {}})
+    D.from_langfuse(NOW, "USR-002")
+    assert asked and all(q["userId"] == "USR-002" for q in asked)
+    asked.clear()
+    D.from_langfuse(NOW)
+    assert asked and all(q["userId"] is None for q in asked)  # everyone's: _langfuse_get leaves out empty values
+
+
+def test_a_users_read_is_two_requests_and_keeps_only_the_spans_the_dashboard_needs(monkeypatch):
+    """Each user reads their own traces, so each read must ask Langfuse little: 429 Too Many Requests on 2026-11-10."""
+    def get(path, **q):
+        if q.get("name") == "creditcoach.answer":
+            return {"data": [{"name": "creditcoach.answer", "traceId": "t", "id": "a"}], "meta": {}}
+        return {"data": [{"name": n, "traceId": "t", "id": n} for n in
+                         ("creditcoach.answer", "llm.chat", "tool.get_score_history", "context.build")], "meta": {}}
+    asked = []
+    monkeypatch.setattr(D, "_langfuse_get", lambda path, **q: asked.append(q) or get(path, **q))
+    spans = D.from_langfuse(NOW, "USR-002")
+    assert len(asked) == 2
+    assert sorted(s_["name"] for s_ in spans) == ["creditcoach.answer", "llm.chat", "tool.get_score_history"]
+
+
+def test_langfuse_is_asked_again_after_too_many_requests(monkeypatch):
+    import io
+    import urllib.error
+
+    calls = []
+
+    def urlopen(request, timeout):
+        calls.append(request.full_url)
+        if len(calls) < 3:
+            raise urllib.error.HTTPError(request.full_url, 429, "Too Many Requests", {"Retry-After": "0"}, None)
+        return io.BytesIO(b'{"data": []}')
+
+    monkeypatch.setattr(D.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(D.time, "sleep", lambda s_: None)
+    assert D._langfuse_get("/api/public/v2/observations") == {"data": []} and len(calls) == 3
+    calls.clear()
+    monkeypatch.setattr(D, "RETRIES", 1)
+    with pytest.raises(urllib.error.HTTPError):
+        D._langfuse_get("/api/public/v2/observations")
+
+
+def test_a_users_answers_leave_out_other_users_and_the_benchmark(monkeypatch, tmp_path):
+    import json
+    path = tmp_path / "benchmark.json"
+    path.write_text(json.dumps({"records": [{**D.requests(costed("b"))[0], "trace_id": "b0", "user": None}]}))
+    monkeypatch.setattr(D, "BENCHMARK", path)
+    monkeypatch.setattr(D, "shipped", lambda days: json.loads(path.read_text())["records"])
+    monkeypatch.setattr(D, "load", lambda days, user=None: (two_users(), "local trace files"))
+    assert [r["trace_id"] for r in D.answers(7, "USR-002")[0]] == ["u2"]
+    assert {r["trace_id"] for r in D.answers(7)[0]} == {"u1a", "u1b", "u2", "b0"}
+
+
+def test_traces_are_kept_per_period_and_user(monkeypatch):
+    reads = []
+    monkeypatch.setattr(D, "from_files", lambda since: reads.append(since) or [])
+    D.load(7, "USR-001"), D.load(7, "USR-001"), D.load(7, "USR-002"), D.load(7)
+    assert len(reads) == 3
+    D.forget(7, "USR-001")
+    D.load(7, "USR-001"), D.load(7, "USR-002")
+    assert len(reads) == 4
 
 
 def test_the_handlers_check_the_session_too_not_only_the_hidden_tab(monkeypatch, signed_up):
-    monkeypatch.setattr(D, "view", lambda days, traffic: "dashboard")
-    for handler in (main.dashboard_view, main.refresh_dashboard):
-        assert handler(7, "real", request(None)) == main.SIGNED_OUT
-        assert handler(7, "real", request("nobody")) == main.SIGNED_OUT
-        assert handler(30, "all", request("creditcoach_user19")) == "dashboard"
-        assert handler(30, "all", request("creditcoach_user2")) == "dashboard"
+    monkeypatch.setattr(D, "view", lambda *a, **k: pytest.fail("read the traces for a stale session"))
+    d = dash()
+    for who in (None, "nobody"):
+        drawn = d.fill(*args(), request(who))
+        assert drawn[OUT["quality"]] == drawn[OUT["cost_top"]] == dashboard_ui.SIGNED_OUT
+
+
+def test_a_user_cant_pick_another_users_dashboard(monkeypatch, signed_up):
+    """The user comes from the session: a user's tab ignores any user the page sends."""
+    whose = []
+    monkeypatch.setattr(D, "model_counts", lambda days, traffic, user: whose.append(user) or [])
+    monkeypatch.setattr(D, "view", lambda days, traffic, user, shown, detail: "page")
+    dash().fill(*args(user="USR-001"), request("creditcoach_user19"))
+    assert whose == ["USR-002"]
 
 
 def test_the_tab_shows_before_the_traces_are_read(monkeypatch, signed_up):
     """Showing the tab must not wait on Langfuse (it took 4-6 s on a cold cache); the content follows when it's opened."""
-    monkeypatch.setattr(D, "view", lambda days, traffic: pytest.fail("the tab waited on the traces"))
+    monkeypatch.setattr(D, "view", lambda *a, **k: pytest.fail("the tab waited on the traces"))
     tab, page = main.show_dashboard_tab(request("creditcoach_user19"))
-    assert tab.visible is True and page == main.DASH_LOADING
+    assert tab.visible is True and page == dashboard_ui.LOADING
     tab, page = main.show_dashboard_tab(request("nobody"))
     assert tab.visible is False and page == ""
 
@@ -302,11 +423,13 @@ def test_the_tab_shows_before_the_traces_are_read(monkeypatch, signed_up):
 def test_the_traces_are_read_when_the_tab_is_first_opened_not_at_every_page_load(monkeypatch, signed_up):
     """Since 2026-11-07: 20 people opening the app together waited 12.6 s for a tab most never looked at."""
     reads = []
-    monkeypatch.setattr(D, "view", lambda days, traffic: reads.append(days) or f"dashboard {days} {traffic}")
-    assert main.open_dashboard(7, "real", False, request("creditcoach_user19")) == ("dashboard 7 real", True)
-    page, filled = main.open_dashboard(7, "real", True, request("creditcoach_user19"))  # opened again
-    assert filled is True and reads == [7]
-    assert main.open_dashboard(7, "real", False, request("nobody")) == (main.SIGNED_OUT, True)
+    monkeypatch.setattr(D, "model_counts", lambda *a: [])
+    monkeypatch.setattr(D, "view", lambda days, *a, **k: reads.append(days) or "dashboard")
+    d = dash()
+    filled, active, page, *_ = d.open(False, *args(), request("creditcoach_user19"))
+    assert (filled, active, page, reads) == (True, True, "dashboard", [7])
+    filled, active, page, *_ = d.open(True, *args(), request("creditcoach_user19"))  # opened again
+    assert (filled, active, reads) == (True, True, [7]) and not isinstance(page, str)
 
 
 def test_page_steps_and_answers_run_for_several_people_at_once():
@@ -316,15 +439,25 @@ def test_page_steps_and_answers_run_for_several_people_at_once():
     assert main.ANSWER_CONCURRENCY > 2
 
 
-def test_the_dashboard_choices_are_grouped_by_timeline_type_of_runs_and_performance():
-    """2026-11-07: the three groups of choices are named, in this order, with their options."""
-    demo = main.build()
-    radios = [b for b in demo.blocks.values() if isinstance(b, main.gr.Radio) and b.label in
-              ("Timeline", "Type of runs", "Performance")]
-    assert [(r.label, [c[0] for c in r.choices]) for r in radios] == [
-        ("Timeline", ["Last 24 hours", "Last 7 days", "Last 30 days"]),
-        ("Type of runs", ["Real use", "Eval and test runs", "Both"]),
-        ("Performance", ["Quality", "Cost and speed"])]
+def choices(page):
+    return [(b.label, [c[0] for c in b.choices] if isinstance(b, main.gr.Radio) else None)
+            for b in page.blocks.values() if isinstance(b, (main.gr.Radio, main.gr.CheckboxGroup, main.gr.Dropdown))
+            and b.label in ("User", "Timeline", "Type of runs", "Performance", "Models")]
+
+
+def test_a_users_dashboard_offers_timeline_performance_and_models():
+    """2026-11-10: users only see real use, so there's no Type of runs choice; Models filters every figure."""
+    assert choices(main.build()) == [("Timeline", ["Last 24 hours", "Last 7 days", "Last 30 days"]),
+                                     ("Performance", ["Quality", "Cost and speed"]), ("Models", None)]
+
+
+def test_the_admin_dashboard_offers_user_timeline_type_of_runs_performance_and_models():
+    from creditcoach.app import admin_page
+
+    assert choices(admin_page.dashboard()) == [
+        ("User", None), ("Timeline", ["Last 24 hours", "Last 7 days", "Last 30 days"]),
+        ("Type of runs", ["Real use", "Eval and test runs", "Both"]), ("Performance", ["Quality", "Cost and speed"]),
+        ("Models", None)]
 
 
 # ---- Cost and speed (2026-11-01) ----
@@ -412,7 +545,7 @@ def test_model_ids_are_named_as_people_say_them():
 
 
 def test_the_cost_view_has_every_part_and_never_a_question_answer_or_user(monkeypatch):
-    monkeypatch.setattr(D, "load", lambda days: (cost_traces(), "local trace files"))
+    monkeypatch.setattr(D, "load", lambda days, user=None: (cost_traces(), "local trace files"))
     parts = D.cost_view(7, "real")
     assert set(parts) == {*D.COST_PARTS, "costs"} and all(parts[k] is not None for k in D.COST_PARTS)
     page = "".join(v for v in parts.values() if isinstance(v, str))
@@ -454,15 +587,49 @@ def test_the_test_runs_behind_the_choice_are_listed_with_their_totals():
     assert all(r["held"] <= r["attacks"] for r in cmp["red_team"])
 
 
-def test_the_cost_view_is_built_only_when_picked_and_only_for_a_signed_in_user(monkeypatch, signed_up):
-    monkeypatch.setattr(D, "cost_view", lambda days, traffic: {k: k for k in D.COST_PARTS} | {"costs": None})
-    shown = main.cost_dashboard(7, "real", "cost", request("creditcoach_user19"))
-    assert shown[:len(D.COST_PARTS)] == D.COST_PARTS and len(shown) == len(D.COST_PARTS) + 2
-    assert main.cost_dashboard(7, "real", "cost", request("nobody"))[0] == main.SIGNED_OUT
-    skipped = main.cost_dashboard(7, "real", "quality", request("creditcoach_user19"))
-    assert len(skipped) == len(D.COST_PARTS) + 2 and not any(isinstance(p, str) for p in skipped)
-    quality, cost = main.dashboard_switch("cost")
-    assert quality["visible"] is False and cost["visible"] is True
+def test_only_the_picked_view_is_built(monkeypatch, signed_up):
+    monkeypatch.setattr(D, "model_counts", lambda *a: [])
+    monkeypatch.setattr(D, "cost_view", lambda *a, **k: {k: k for k in D.COST_PARTS} | {"costs": None})
+    monkeypatch.setattr(D, "view", lambda *a, **k: "quality page")
+    d = dash()
+    cost = d.fill(*args(view="cost"), request("creditcoach_user19"))
+    assert cost[1:1 + len(D.COST_PARTS)] == D.COST_PARTS and not isinstance(cost[0], str)
+    quality = d.fill(*args(view="quality"), request("creditcoach_user19"))
+    assert quality[0] == "quality page" and not any(isinstance(p, str) for p in quality[1:1 + len(D.COST_PARTS)])
+
+
+def test_a_users_dashboard_leaves_out_the_eval_detail_and_where_the_figures_come_from(monkeypatch):
+    """2026-11-10 (B to E): no model comparison, its table or test runs, and no Langfuse or OpenRouter note."""
+    monkeypatch.setattr(D, "load", lambda days, user=None: (two_users(), "Langfuse (https://jp.cloud.langfuse.com)"))
+    parts = D.cost_view(7, user="USR-001", detail=False)
+    assert parts["quality"] is None and parts["quality_table"] is None
+    page = D.view(7, user="USR-001", detail=False) + "".join(v for v in parts.values() if isinstance(v, str))
+    assert "Your questions · last 7 days" in page and "Models compared" in page
+    assert not any(word in page for word in ("Langfuse", "OpenRouter", "where they ran", "Real use is only",
+                                              "Test runs behind the choice", "Every eval run", "Red-team"))
+    full = D.cost_view(7)
+    assert full["quality_table"] and "OpenRouter" in full["top"]  # the admin's keep all of it
+
+
+def test_a_user_with_no_questions_is_told_how_to_start(monkeypatch):
+    monkeypatch.setattr(D, "load", lambda days, user=None: (two_users(), "local trace files"))
+    assert D.view(7, user="USR-009", detail=False) == D.NO_ANSWERS
+    assert D.cost_view(7, user="USR-009", detail=False)["top"] == D.NO_ANSWERS
+    assert D.view(7, user="USR-001", shown=[], detail=False) == D.NONE_TICKED
+
+
+def test_the_models_choice_filters_both_views(monkeypatch):
+    monkeypatch.setattr(D, "load", lambda days, user=None: (cost_traces(), "local trace files"))
+    page = D.view(7, shown=[GPT5])
+    assert 'cc-v">1</span>' in page  # one GPT-5 answer of the three
+    c = D.cost_view(7, shown=[GPT5])["costs"]
+    assert c["answers"] == 1 and set(c["models"]) == {GPT5}
+
+
+def test_a_model_that_turns_up_later_is_ticked_and_an_unticked_one_stays_unticked():
+    assert dashboard_ui.ticked([SONNET, GPT5], None, None) == [SONNET, GPT5]  # the first time: every model
+    assert dashboard_ui.ticked([SONNET, GPT5], [GPT5], [SONNET, GPT5]) == [GPT5]
+    assert dashboard_ui.ticked([SONNET, GPT5, "x/new"], [GPT5], [SONNET, GPT5]) == [GPT5, "x/new"]
 
 
 # ---------------------------------------------------------------- the chart's figures follow the ticked models
@@ -517,26 +684,88 @@ def test_with_no_model_ticked_the_chart_says_to_tick_one():
     assert fig.layout.xaxis.visible is False and fig.layout.yaxis.visible is False
 
 
-def test_the_tick_boxes_name_each_model_with_its_answers_and_answers_with_no_model_call_too():
+def test_the_tick_boxes_name_each_model_with_its_answers_and_answers_with_no_model_call_too(monkeypatch):
+    monkeypatch.setattr(D, "load", lambda days, user=None: (cost_traces(), "local trace files"))
+    counts = D.model_counts(7)
+    assert counts == [(SONNET, 2), (GPT5, 1)]
+    assert D.model_options([*counts, (D.NO_MODEL, 4)]) == [("Claude Sonnet 5.5 (2)", SONNET), ("GPT-5 (1)", GPT5),
+                                                           ("No model call (4)", D.NO_MODEL)]
     c, _ = real_costs()
-    assert D.model_choices(c) == [("Claude Sonnet 5.5 (2)", SONNET), ("GPT-5 (1)", GPT5)]
     c["models"][""], c["times"][""] = {**c["models"][GPT5], "answers": 4, "spend": 0.0}, [1.0, 2.0, 3.0, 4.0]
-    assert D.model_choices(c)[-1] == ("No model call (4)", D.NO_MODEL)
     assert D.pick(c, [D.NO_MODEL]) == {"models": {"": c["models"][""]}, "answers": 4, "spend": 0.0,
                                        "per_answer": 0.0, "p50": 2.5}
 
 
-def test_the_chart_is_redrawn_from_the_view_s_own_figures_and_only_for_a_signed_in_user(signed_up):
-    c, _ = real_costs()
-    fig = main.redraw_cost_scatter([SONNET], c, request("creditcoach_user19"))
-    assert {t.legendgroup for t in fig.data} == {SONNET}
-    assert not hasattr(main.redraw_cost_scatter([SONNET], c, request("nobody")), "data")  # gr.skip(), no figure
-    assert not hasattr(main.redraw_cost_scatter([SONNET], None, request("creditcoach_user19")), "data")
-
-
-def test_the_page_builds_with_the_tick_boxes_wired_to_the_chart():
+def test_the_page_builds_with_the_models_choice():
     demo = main.build()  # fails if a handler's name is shadowed by a component's, as it once was
-    assert any(getattr(b, "label", None) == "Models shown" for b in demo.blocks.values())
+    assert any(getattr(b, "label", None) == "Models" for b in demo.blocks.values())
+
+
+# ---------------------------------------------------------------- live updates (2026-11-10)
+
+def live(monkeypatch, counts):
+    """A user's Dashboard whose Neon answer count goes through ``counts``, and a list of the draws it made."""
+    draws, counts = [], iter(counts)
+    monkeypatch.setattr(dashboard_ui, "answered", lambda user: next(counts))
+    monkeypatch.setattr(D, "model_counts", lambda days, traffic, user: [(SONNET, len(draws))])
+    monkeypatch.setattr(D, "view", lambda *a, **k: draws.append(a) or "page")
+    return dash(), draws
+
+
+def test_a_new_answer_is_drawn_without_pressing_refresh(monkeypatch, signed_up):
+    d, draws = live(monkeypatch, [5, 5, 6, 6, 6])
+    seen = d.fill(*args(), request("creditcoach_user19"))[OUT["seen"]]
+    out = d.tick(*args(seen=seen), True, request("creditcoach_user19"))  # the first tick learns the count
+    out = d.tick(*args(seen=out[OUT["seen"]]), True, request("creditcoach_user19"))
+    assert len(draws) == 1  # nothing new yet
+    out = d.tick(*args(seen=out[OUT["seen"]]), True, request("creditcoach_user19"))  # the count moves: draw again
+    assert len(draws) == 2 and out[OUT["quality"]] == "page"
+    out = d.tick(*args(seen=out[OUT["seen"]]), True, request("creditcoach_user19"))  # the new answer was in: stop
+    assert len(draws) == 2
+
+
+def test_a_new_answer_is_read_again_until_langfuse_has_it(monkeypatch, signed_up):
+    """Langfuse takes a few seconds to record a trace, so the first read after the count moves may not have it."""
+    d, draws = live(monkeypatch, [5, 6, 6, 6])
+    monkeypatch.setattr(D, "model_counts", lambda days, traffic, user: [(SONNET, 1 if len(draws) < 3 else 2)])
+    seen = d.fill(*args(), request("creditcoach_user19"))[OUT["seen"]]
+    out = d.tick(*args(seen=seen), True, request("creditcoach_user19"))
+    for _ in range(3):
+        out = d.tick(*args(seen=out[OUT["seen"]]), True, request("creditcoach_user19"))
+    assert len(draws) == 4  # the first page, then at the change and each tick until the answer was in
+
+
+def test_nothing_is_read_while_the_dashboard_is_off_screen(monkeypatch, signed_up):
+    d, draws = live(monkeypatch, [1, 2, 3])
+    seen = d.fill(*args(), request("creditcoach_user19"))[OUT["seen"]]
+    out = d.tick(*args(seen=seen), False, request("creditcoach_user19"))
+    assert len(draws) == 1 and not isinstance(out[OUT["quality"]], str)
+    out = d.tick(*args(seen=seen), True, request("nobody"))
+    assert len(draws) == 1
+
+
+def test_eval_and_test_runs_are_read_again_every_minute(monkeypatch):
+    d = dash(who=lambda request: "admin", admin=True)
+    draws = []
+    monkeypatch.setattr(dashboard_ui, "answered", lambda user: pytest.fail("eval runs aren't in the chat's count"))
+    monkeypatch.setattr(D, "model_counts", lambda *a: [])
+    monkeypatch.setattr(D, "view", lambda *a, **k: draws.append(a) or "page")
+    seen = d.fill(*args(traffic="eval"), request("admin"))[OUT["seen"]]
+    d.tick(*args(traffic="eval", seen=seen), True, request("admin"))
+    assert len(draws) == 1
+    d.tick(*args(traffic="eval", seen={**seen, "read": seen["read"] - dashboard_ui.EVAL_SECONDS}), True,
+           request("admin"))
+    assert len(draws) == 2
+
+
+def test_the_admin_sees_everyone_or_the_user_picked(monkeypatch):
+    whose = []
+    monkeypatch.setattr(D, "model_counts", lambda days, traffic, user: whose.append(user) or [])
+    monkeypatch.setattr(D, "view", lambda *a, **k: "page")
+    d = dash(who=lambda request: "admin", admin=True)
+    d.fill(*args(), request("admin"))
+    d.fill(*args(user="USR-002"), request("admin"))
+    assert whose == [None, "USR-002"]
 
 
 def test_the_cost_charts_are_large_with_spend_and_response_time_one_above_the_other():
@@ -588,7 +817,7 @@ def test_the_benchmark_answers_are_counted_by_period_once_each(monkeypatch, tmp_
     path = tmp_path / "benchmark.json"
     path.write_text(json.dumps({"records": bench}))
     monkeypatch.setattr(D, "BENCHMARK", path)
-    monkeypatch.setattr(D, "load", lambda days: (cost_traces(), "local trace files"))
+    monkeypatch.setattr(D, "load", lambda days, user=None: (cost_traces(), "local trace files"))
     assert [r["trace_id"] for r in D.shipped(7, NOW)] == ["b0"]  # the October 1 answer is outside the week
     monkeypatch.setattr(D, "shipped", lambda days: D.requests(costed("c4", tags=["eval", "eval:baseline"])) + bench[:1])
     records, source = D.answers(7)

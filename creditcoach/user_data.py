@@ -44,6 +44,12 @@ def user_ids() -> list[str]:
     return _tables()[0]["user_id"].tolist()
 
 
+def first_names() -> dict[str, str]:
+    """Every user id in the dataset with the name CreditCoach calls them, in file order (the admin's User choice)."""
+    users = _tables()[0]
+    return {u: (n if isinstance(n, str) and n else u) for u, n in zip(users["user_id"], users["first_name"])}
+
+
 def load_user_data(user_id: str) -> dict:
     """Return one user's profile, full score history and accounts, using the Week 2 tools' field names.
 
