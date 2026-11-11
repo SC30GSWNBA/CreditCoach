@@ -344,6 +344,7 @@ All settings are read from `.env` (git-ignored). See [.env.example](.env.example
 | `CREDITCOACH_WEEKLY_QUESTIONS` | No | `5` | Questions a signed-up user may ask per week |
 | `CREDITCOACH_SESSION_SECRET` | No | random each start | Signs the sign-in cookie. Set it to keep people signed in across restarts. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | No | (none); port `587` | Mail account for the "email me my login" backup at sign-up. Without it the option isn't shown. |
+| `BREVO_API_KEY` | No | (none) | Sends mail through Brevo's email API (HTTPS) instead of SMTP. Needed on Railway, whose Free, Trial and Hobby plans block outgoing SMTP. The sender is `SMTP_FROM` (else `SMTP_USER`), confirmed in Brevo. |
 
 ## Chat UI logins
 
@@ -360,7 +361,7 @@ Someone without a login creates one on the **Sign up** tab. It needs Neon (`DATA
 1. **Questions.** The form asks the interview questions ([docs/research/interview-questionnaire.md](docs/research/interview-questionnaire.md)), after a note on how the answers are used. Ten are required (age group, years working, cards, current score, how the card is paid, card usage, late payments, loans, payday-loan exposure, goal) and marked with a red asterisk; fourteen are optional. No name, phone number or email is needed. Nothing is created until every required question is answered and the consent box is ticked.
 2. **Practice profile.** From the answers, CreditCoach generates the cards and loans the person reported and 12 months of score history, under the same rules as the 15 original users ([data/README.md](data/README.md)), and appends them to Neon's `dataset_users`, `dataset_accounts` and `dataset_score_history` with `source = 'Sign-up'`. The data is synthetic, and the form says so.
 3. **Login.** The User ID is `creditcoach_userN`, where N is the number of users already in Neon plus one (the 16th user is `creditcoach_user16`, USR-016). The password is 16 random characters with at least one lowercase letter, uppercase letter, digit and special character. Only its salted hash is stored, in Neon's `app_logins`.
-4. **Pop-up.** The User ID and password are shown once, with copy buttons. If a mail account is configured (`SMTP_*`), the person can email them to themselves; the address is used for that one message and not stored. A lost password can't be recovered or reset: the person signs up again as a new user.
+4. **Pop-up.** The User ID and password are shown once, with copy buttons. If mail is configured (`BREVO_API_KEY` or `SMTP_*`), the person can email them to themselves; the address is used for that one message and not stored. A lost password can't be recovered or reset: the person signs up again as a new user.
 5. **Log in.** After confirming they saved the details, the person lands on the Log in tab with the User ID filled in.
 
 - **5 questions a week.** A signed-up user may ask 5 questions per week (`CREDITCOACH_WEEKLY_QUESTIONS`). The week starts with their first question and resets 7 days later; each answer ends with how many are left, and a sixth question gets the date the next ones unlock. A failed answer isn't counted; an answer from the cache is. Counts are in Neon's `app_usage`.
@@ -385,7 +386,7 @@ The app runs on [Railway](https://railway.com) from the `Dockerfile`, so testers
 | `LANGFUSE_HOST` | With Langfuse keys | Your Langfuse project's region; the team's is `https://jp.cloud.langfuse.com`. Keys only work in their own region: without it the default EU host refuses them and every trace is dropped. The deploy logs show "Traces are NOT reaching Langfuse" when that happens. |
 | `REDIS_URL` | Recommended | Add Railway's Redis to the project and reference its URL. Without it the cache lives in memory and is lost on every redeploy. |
 | `CREDITCOACH_INVITE_CODE`, `CREDITCOACH_SIGNUP_MAX`, `CREDITCOACH_WEEKLY_QUESTIONS` | Optional | Who may sign up and how much they may ask (see [.env.example](.env.example)). |
-| `SMTP_*` | Optional | The "email me my login" option at sign-up, and the admin's password and reset emails. |
+| `BREVO_API_KEY`, `SMTP_FROM` | Optional | The "email me my login" option at sign-up, and the admin's password and reset emails. Railway blocks outgoing SMTP on its Free, Trial and Hobby plans, so `SMTP_*` alone can't send from there; mail goes through Brevo's API instead. `SMTP_FROM` is the sender confirmed in Brevo. |
 | `CREDITCOACH_ADMIN_PASSWORD` | For the admin page | The first admin password. Its hash is stored in Neon on first use, and a password changed in the app wins after that. Share it privately, never in the repository. `CREDITCOACH_ADMIN_EMAIL` changes the admin's address. |
 
 Then open **Settings → Networking → Generate Domain** for a public `*.up.railway.app` address.

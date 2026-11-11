@@ -58,8 +58,11 @@ Sign-up and the weekly allowance (environment variable -> default):
     CREDITCOACH_SESSION_SECRET     ""  Signs the sign-in cookie. Blank means a new random secret each start, which
                                        signs everyone out on restart.
     SMTP_HOST, SMTP_PORT (587), SMTP_USER, SMTP_PASSWORD, SMTP_FROM
-                                       Mail account for the optional "email me my login" backup at sign-up. Without
-                                       it the option isn't offered. Never commit the password.
+                                       Mail account for the optional "email me my login" backup at sign-up and the
+                                       admin emails. Without it the option isn't offered. Never commit the password.
+    BREVO_API_KEY                  ""  Brevo's email API, used instead of SMTP when set. Needed on Railway, whose
+                                       Free, Trial and Hobby plans block outgoing SMTP. The sender is SMTP_FROM (else
+                                       SMTP_USER), confirmed in Brevo. Never commit it.
 
 The admin login (``creditcoach.admin``; environment variable -> default):
     CREDITCOACH_ADMIN_EMAIL     creditcoachurcreditmentor@gmail.com  The admin's sign-in, and where the admin's
@@ -150,6 +153,7 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")  # never commit it
 SMTP_FROM = os.getenv("SMTP_FROM", "")
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")  # sends mail over HTTPS, as Railway blocks SMTP; never commit it
 
 # The admin login (creditcoach.admin)
 ADMIN_EMAIL = os.getenv("CREDITCOACH_ADMIN_EMAIL", "creditcoachurcreditmentor@gmail.com")

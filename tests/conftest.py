@@ -39,7 +39,7 @@ def no_live_guardrail_review(monkeypatch):
 @pytest.fixture(autouse=True)
 def no_mail_account(monkeypatch):
     """No test can send a real email, whatever mail account the developer's ``.env`` holds."""
-    for name in ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD"):
+    for name in ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "BREVO_API_KEY"):
         monkeypatch.setattr(config, name, "")
 
 

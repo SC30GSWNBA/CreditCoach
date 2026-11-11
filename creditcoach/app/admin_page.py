@@ -31,10 +31,17 @@ ENTER_JS = ("(t, note) => { if (t) { window.location.href = '/admin/enter?t=' + 
             "(note ? '&note=' + note : ''); } }")
 NOT_SET_UP = ("The admin sign-in isn't set up on this server. Set CREDITCOACH_ADMIN_PASSWORD on the server and "
               "restart it.")
+SAVING = "Saving the new password and emailing it to you. This can take up to 20 seconds…"
 NOTES = {  # shown at the top of the Dashboard after a new password (``/admin/enter?note=``)
     "sent": ("ok", f"Password changed. We've emailed the new password to {admin.EMAIL}."),
     "unsent": ("warn", "Password changed, but the email couldn't be sent. Please note the new password now."),
 }
+
+
+def waiting(text: str):
+    """A handler that shows ``text`` as a "still working" note at once. The slow step runs after it with Gradio's own
+    progress hidden, which otherwise squeezes a timer into the empty note at the foot of the card."""
+    return lambda: box("wait", text)
 
 
 def when() -> str:
@@ -47,7 +54,7 @@ def email_password(password: str) -> str:
     try:
         mailer.send_admin_password(password, when())
     except Exception as exc:  # the password stays out of the log
-        log.error("Couldn't send the admin password email: %s", type(exc).__name__)
+        log.error("Couldn't send the admin password email: %s", mailer.why(exc))
         return "unsent"
     return "sent"
 
@@ -79,7 +86,7 @@ def forgot() -> str:
     try:
         mailer.send_admin_reset(f"{config.PUBLIC_URL}/admin/?reset={token}")
     except Exception as exc:
-        log.error("Couldn't send the admin reset email: %s", type(exc).__name__)
+        log.error("Couldn't send the admin reset email: %s", mailer.why(exc))
         return box("warn", "The reset email couldn't be sent. Please try again in a few minutes.")
     return box("ok", f"A reset link is on its way to {admin.EMAIL}. It works once, for 30 minutes.")
 
@@ -134,9 +141,11 @@ def signin() -> gr.Blocks:
         page.load(opened, outputs=[signin_col, reset_col, token, note], api_name=False)
         gr.on([go.click, password.submit], sign_in, [email, password], [note, ticket], api_name=False).then(
             None, [ticket, sent], None, js=ENTER_JS)
-        lost.click(forgot, outputs=note, api_name=False)
-        gr.on([save.click, confirm.submit], set_new, [token, new, confirm], [reset_note, ticket, sent],
-              api_name=False).then(None, [ticket, sent], None, js=ENTER_JS)
+        lost.click(waiting("Sending the reset link…"), outputs=note, show_progress="hidden", api_name=False).then(
+            forgot, outputs=note, show_progress="hidden", api_name=False)
+        gr.on([save.click, confirm.submit], waiting(SAVING), outputs=reset_note, show_progress="hidden",
+              api_name=False).then(set_new, [token, new, confirm], [reset_note, ticket, sent], show_progress="hidden",
+                                   api_name=False).then(None, [ticket, sent], None, js=ENTER_JS)
     return page
 
 
@@ -207,8 +216,9 @@ def dashboard() -> gr.Blocks:
                          api_name=False)
         cancel.click(lambda: (gr.update(visible=False), "", "", ""), outputs=[modal, current, new, confirm],
                      api_name=False)
-        gr.on([save.click, confirm.submit], change, [current, new, confirm], [note, ticket, sent],
-              api_name=False).then(None, [ticket, sent], None, js=ENTER_JS)
+        gr.on([save.click, confirm.submit], waiting(SAVING), outputs=note, show_progress="hidden",
+              api_name=False).then(change, [current, new, confirm], [note, ticket, sent], show_progress="hidden",
+                                   api_name=False).then(None, [ticket, sent], None, js=ENTER_JS)
     return page
 
 
