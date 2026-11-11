@@ -65,6 +65,7 @@ POPUP_CSS = """
 .cc-warn {border-left: 4px solid #d97706; padding: 8px 12px; background: rgba(217,119,6,.10); border-radius: 6px;}
 .cc-ok {border-left: 4px solid #059669; padding: 8px 12px; background: rgba(5,150,105,.10); border-radius: 6px;}
 .cc-err {border-left: 4px solid #dc2626; padding: 8px 12px; background: rgba(220,38,38,.08); border-radius: 6px;}
+.cc-wait {border-left: 4px solid #4f46e5; padding: 8px 12px; background: rgba(79,70,229,.10); border-radius: 6px;}
 """
 
 CSS = POPUP_CSS + """
@@ -73,7 +74,7 @@ body:not(.dark) .gradio-container {--body-text-color-subdued: #475569; --block-i
            --block-title-text-color: #3730a3; --block-label-text-color: #3730a3;}
 /* A note with nothing in it takes no room */
 .cc-note {min-height: 0 !important; padding: 0 !important; margin: 0 !important;}
-.cc-note:not(:has(.cc-ok, .cc-warn, .cc-err)) {display: none !important;}
+.cc-note:not(:has(.cc-ok, .cc-warn, .cc-err, .cc-wait)) {display: none !important;}
 .cc-welcome {--checkbox-border-color: #475569; --checkbox-border-width: 2px;
            --checkbox-border-color-hover: #4f46e5; --checkbox-border-color-focus: #4f46e5;
            --checkbox-background-color: #ffffff; --checkbox-background-color-selected: #4f46e5;
@@ -146,7 +147,7 @@ body:not(.dark) .gradio-container {--body-text-color-subdued: #475569; --block-i
 
 
 def box(kind: str, text: str) -> str:
-    """A coloured note: ``kind`` is "ok", "warn" or "err". Empty text gives an empty string (clears the note)."""
+    """A coloured note: ``kind`` is "ok", "warn", "err" or "wait" (still working). Empty text gives an empty string (clears the note)."""
     return f'<div class="cc-{kind}">{text}</div>' if text else ""
 
 
