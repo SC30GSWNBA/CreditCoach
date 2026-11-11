@@ -7,8 +7,11 @@ Run:
     uv run pytest tests/test_signup.py -v
 """
 
+import io
+import json
 import random
 import re
+import urllib.error
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
@@ -306,6 +309,51 @@ def test_sign_up_says_so_when_it_is_full_or_fails(monkeypatch):
     assert "full for now" in welcome.sign_up("", None, "", True, *form())[0]
     monkeypatch.setattr(store, "create_account", lambda answers: 1 / 0)
     assert "Nothing was saved" in welcome.sign_up("", None, "", True, *form())[0]
+
+
+def test_a_brevo_key_sends_over_https_not_smtp(monkeypatch):
+    """Railway blocks outgoing SMTP, so with a Brevo key the mail goes to Brevo's API and no mail server is dialled."""
+    monkeypatch.setattr(config, "BREVO_API_KEY", "key-1")
+    monkeypatch.setattr(config, "SMTP_FROM", "coach@example.com")
+    monkeypatch.setattr(mailer.smtplib, "SMTP", lambda *a, **k: pytest.fail("SMTP was dialled"))
+    calls = []
+
+    class Answer(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def urlopen(request, timeout):
+        calls.append(request)
+        return Answer(b'{"messageId": "m1"}')
+
+    monkeypatch.setattr(mailer.urllib.request, "urlopen", urlopen)
+    assert mailer.configured()
+    mailer.send_login("me@example.com", "creditcoach_user16", "pw-1")
+    request = calls[0]
+    assert request.full_url == mailer.BREVO_URL and request.get_method() == "POST"
+    assert request.get_header("Api-key") == "key-1"
+    body = json.loads(request.data)
+    assert body["sender"]["email"] == "coach@example.com" and body["to"] == [{"email": "me@example.com"}]
+    assert "pw-1" in body["textContent"]
+
+
+def test_a_refused_brevo_send_raises_and_logs_only_its_status(monkeypatch):
+    monkeypatch.setattr(config, "BREVO_API_KEY", "bad")
+    monkeypatch.setattr(config, "SMTP_FROM", "coach@example.com")
+
+    def refuse(request, timeout):
+        raise urllib.error.HTTPError(mailer.BREVO_URL, 401, "Unauthorized", {},
+                                     io.BytesIO(b'{"code": "unauthorized", "message": "Key not found"}'))
+
+    monkeypatch.setattr(mailer.urllib.request, "urlopen", refuse)
+    with pytest.raises(OSError) as raised:
+        mailer.send_login("me@example.com", "creditcoach_user16", "pw")
+    assert "Key not found" in str(raised.value)
+    assert mailer.why(raised.value) == "HTTPError 401"
+    assert mailer.why(TimeoutError("timed out")) == "TimeoutError"
 
 
 def test_the_email_backup_needs_a_mail_account_and_a_real_address(monkeypatch):

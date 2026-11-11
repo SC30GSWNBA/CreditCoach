@@ -47,7 +47,7 @@ def email_password(password: str) -> str:
     try:
         mailer.send_admin_password(password, when())
     except Exception as exc:  # the password stays out of the log
-        log.error("Couldn't send the admin password email: %s", type(exc).__name__)
+        log.error("Couldn't send the admin password email: %s", mailer.why(exc))
         return "unsent"
     return "sent"
 
@@ -79,7 +79,7 @@ def forgot() -> str:
     try:
         mailer.send_admin_reset(f"{config.PUBLIC_URL}/admin/?reset={token}")
     except Exception as exc:
-        log.error("Couldn't send the admin reset email: %s", type(exc).__name__)
+        log.error("Couldn't send the admin reset email: %s", mailer.why(exc))
         return box("warn", "The reset email couldn't be sent. Please try again in a few minutes.")
     return box("ok", f"A reset link is on its way to {admin.EMAIL}. It works once, for 30 minutes.")
 

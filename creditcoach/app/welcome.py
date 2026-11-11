@@ -197,7 +197,7 @@ def email_login(address: str, username: str, password: str) -> str:
     try:
         mailer.send_login(address, username, password)
     except Exception as exc:  # the address and password stay out of the log
-        log.error("Couldn't send a login email: %s", type(exc).__name__)
+        log.error("Couldn't send a login email: %s", mailer.why(exc))
         return box("warn", "The email couldn't be sent. Please copy your User ID and password instead.")
     return box("ok", "Sent. Check your inbox (and spam folder). We have not kept your email address.")
 
