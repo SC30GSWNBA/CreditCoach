@@ -306,8 +306,8 @@ def test_next_year_and_this_year_are_written_as_the_year_they_mean():
 
 def test_a_goal_asked_with_next_year_matches_the_same_goal_asked_with_the_year(monkeypatch):
     """Railway, 2026-11-10: "...840 by December next year" then "Give me a roadmap to hit 840 by December 2027"
-    missed at 0.628: the numbers and time words differed, and goal rewordings score under CONFIRM_FROM. With the
-    year written, the pair scores 0.724, and naming the same score and date, the model is asked."""
+    missed at 0.628: the numbers and time words differed, and goal rewordings scored under the 0.80 the model check
+    then needed. With the year written, the pair scores 0.724, and from 0.70 the model is asked."""
     asked = []
     monkeypatch.setattr(answers, "confirm", lambda a, b: (asked.append((a, b)), True)[1])
     monkeypatch.setattr(answers.time, "gmtime", lambda: time.struct_time((2026, 11, 10, 0, 0, 0, 1, 314, 0)))
@@ -320,17 +320,18 @@ def test_a_goal_asked_with_next_year_matches_the_same_goal_asked_with_the_year(m
     assert answers.veto(GOAL_ASKED, roadmap) == "numbers differ"  # without resolving, as before the fix
 
 
-def test_the_lower_band_is_only_for_questions_naming_a_score_or_year(monkeypatch):
+def test_the_model_is_asked_from_070_for_every_question(monkeypatch):
+    """Railway, 2026-11-12: "How do I get an instant loan in a day ?" after "What is the best way to secure a quick
+    loan in a day?" missed at 0.722, under the 0.80 the model check needed for a question naming no score or year."""
     asked = []
     monkeypatch.setattr(answers, "confirm", lambda a, b: (asked.append(a), True)[1])
-    assert answers.anchored("Give me a roadmap to hit 840 by December 2027")
-    assert answers.anchored("What will my score be in 2028?") and not answers.anchored("Why did it drop 20 points?")
-    found, reason, _ = answers.match("What hurts my credit score?", [0.75, 0.66],
-                                     [entry("How do I improve my credit score?")])
+    stored = [entry("What is the best way to secure a quick loan in a day?")]
+    found, how, _ = answers.match("How do I get an instant loan in a day ?", [0.722, 0.692], stored)
+    assert found is not None and how == "model-confirmed" and asked == ["How do I get an instant loan in a day ?"]
+    asked.clear()  # measured at 0.610: too far, so no model call
+    found, reason, _ = answers.match("Is it safe to take an instant loan?", [0.61, 0.792], stored)
     assert found is None and f"below {answers.CONFIRM_FROM}" in reason and not asked
-    found, reason, _ = answers.match("Is 840 by December 2027 realistic?", [0.585, 0.81],
-                                     [entry("How can I hit 840 by December 2027?")])
-    assert found is None and f"below {answers.ANCHORED_FROM}" in reason and not asked
+    assert answers.CONFIRM_FROM == 0.70
 
 
 def test_next_year_asked_in_two_different_years_is_not_the_same_question(monkeypatch):

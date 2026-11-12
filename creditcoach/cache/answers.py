@@ -18,9 +18,15 @@ year they mean on the day each was asked (``resolve``):
     1. exact            Equal after lower-casing and removing punctuation and extra spaces.
     2. same words       Embedding similarity of at least ``THRESHOLD`` and the same set of meaning-bearing words
                         (contractions, word order, tense, filler words and British spellings don't count).
-    3. model-confirmed  Similarity of at least ``CONFIRM_FROM`` otherwise (``ANCHORED_FROM`` when both name the same
-                        score or year, ``anchored``), none of the vetoes below, and ``SMALL_MODEL`` agrees the two
-                        questions ask for the same thing.
+    3. model-confirmed  Similarity of at least ``CONFIRM_FROM`` otherwise, none of the vetoes below, and
+                        ``SMALL_MODEL`` agrees the two questions ask for the same thing.
+
+Since 2026-11-12 the model is asked from 0.70 for every question, not 0.80 (0.70 had been only for questions naming
+a credit score or year). On Railway, "How do I get an instant loan in a day ?" after "What is the best way to secure
+a quick loan in a day?" missed at 0.722, though the model calls them the same 3 times out of 3. Measured on 50 pairs
+(24 rewordings, 26 look-alikes, ``scripts/task22_confirm_band.py``): 21 rewordings hit instead of 20, and still no
+look-alike; the model judges 14 look-alikes instead of 7, so a miss with a stored question at 0.70 to 0.80 waits
+about 3 s for it.
 
 Since 2026-11-12 the ``CANDIDATES`` closest stored questions are tried in turn, with at most ``MAX_CONFIRMS``
 model calls, and a rewording the model confirms is kept with its stored question (``phrasings``): asking it again is
@@ -32,8 +38,8 @@ model calls per question instead of 0.67.
 
 Since 2026-11-10, for a goal asked two ways on Railway: "How can I hit a score of 840 by December next year?" then
 "Give me a roadmap to hit 840 by December 2027" missed at 0.628. "next year" isn't "2027" to the numbers and
-time-words vetoes, and rewordings of a question naming a target score and date score 0.72 to 0.78, under
-``CONFIRM_FROM``. With the year resolved the pair scores 0.724, and from ``ANCHORED_FROM`` the model is asked: it
+time-words vetoes, and rewordings of a question naming a target score and date score 0.72 to 0.78, under the
+0.80 the model check then needed. With the year resolved the pair scores 0.724, and from 0.70 the model is asked: it
 matched 4 rewordings 3 times out of 3 and refused 5 look-alikes with the same score and date ("Will I hit 840 by
 December 2027?", "Save my goal of 840 by December 2027", "...to get a home loan?") 3 times out of 3. Writing the year
 also stops "next year" asked in two different years from matching.
@@ -77,8 +83,7 @@ log = logging.getLogger("creditcoach.cache")
 _index_lock = threading.Lock()  # a user's index is read and written whole, and the chat serves several people at once
 
 THRESHOLD = 0.90     # minimum cosine similarity for a "same words" match, with no model call
-CONFIRM_FROM = 0.80  # minimum cosine similarity before SMALL_MODEL is asked whether the questions are the same
-ANCHORED_FROM = 0.70  # the same, for two questions naming the same score or year (``anchored``)
+CONFIRM_FROM = 0.70  # minimum cosine similarity before SMALL_MODEL is asked whether the questions are the same
 CONFIRM_EFFORT = "low"  # "minimal" missed "great" for "good" (2026-10-29); "low" matched it with no wrong hit
 MAX_PER_USER = 20  # stored answers per user; the oldest goes first
 CANDIDATES = 3  # closest stored questions tried in turn, so a vetoed or refused closest one doesn't hide the match
@@ -116,7 +121,6 @@ unsure. Reply with one word: yes or no."""
 
 
 RELATIVE_YEARS = [(re.compile(r"\bnext year'?s?\b", re.I), 1), (re.compile(r"\bthis year'?s?\b", re.I), 0)]
-ANCHOR = re.compile(r"^(?:[3-8]\d\d|900|20\d\d)$")  # a credit score (300 to 900) or a year
 
 
 def resolve(question: str, year: int | None = None) -> str:
@@ -127,12 +131,6 @@ def resolve(question: str, year: int | None = None) -> str:
     for pattern, ahead in RELATIVE_YEARS:
         question = pattern.sub(str(year + ahead), question)
     return question
-
-
-def anchored(question: str) -> bool:
-    """Whether a question names a credit score or a year: two questions naming the same ones (the numbers veto sees to
-    that) can only differ in what they ask, which ``SMALL_MODEL`` is asked to judge from ``ANCHORED_FROM``."""
-    return any(ANCHOR.match(n) for n in numbers(question))
 
 
 def plain(question: str) -> str:
@@ -231,11 +229,10 @@ def match(question: str, embedding: list[float], entries: list[dict]) -> tuple[d
         if text in (e["plain"], *(plain(p["text"]) for p in e.get("phrasings", []))):
             return e, "exact", 1.0
     ranked = sorted(((closeness(embedding, e), e) for e in entries), key=lambda pair: -pair[0])[:CANDIDATES]
-    lowest = ANCHORED_FROM if anchored(question) else CONFIRM_FROM
     best_similarity, reason, confirms = ranked[0][0], None, 0
     for similarity, entry in ranked:
-        if similarity < lowest:
-            reason = reason or f"closest stored question is {similarity:.3f} similar, below {lowest}"
+        if similarity < CONFIRM_FROM:
+            reason = reason or f"closest stored question is {similarity:.3f} similar, below {CONFIRM_FROM}"
             break
         stored = entry.get("resolved", entry["question"])
         if why := veto(question, stored):
