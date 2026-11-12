@@ -1,6 +1,6 @@
 # CreditCoach: Caching
 
-*Week 3 · Task #22 · Last updated: 2026-11-12 (the 3 closest stored questions tried; confirmed rewordings remembered) · Status: Draft for team review · Code: `creditcoach/cache/`*
+*Week 3 · Task #22 · Last updated: 2026-11-12 (the model check from 0.70 for every question; the 3 closest stored questions tried; confirmed rewordings remembered) · Status: Draft for team review · Code: `creditcoach/cache/`*
 
 An answer takes about 10 seconds and one chat-model call. Almost all of that is the model. This document defines what CreditCoach caches so repeated work isn't done twice, and the rules that keep a cached answer from being a wrong answer. Task #23 measures the hit rate and the latency improvement, and since Task #25 the chat UI shows a cache badge above each answer ([screenshots](evidence/week-3/task-25-badges.md)).
 
@@ -55,7 +55,7 @@ A cached answer can do harm in two ways: it can answer a different question, or 
 
 1. **Exact:** equal after lower-casing and removing punctuation.
 2. **Same words:** embedding similarity of at least 0.90, and the same set of meaning-bearing words. Contractions, word order, tense, filler words and British spellings don't count: "My credit score dropped 20 points this month. Why?" matches "Why did my credit score drop 20 points this month?".
-3. **Model-confirmed:** similarity of at least 0.80 (0.90 until 2026-10-27; 0.70 since 2026-11-10 for questions naming a score or year; see below) with different words, and `SMALL_MODEL` agrees the two questions ask for the same thing, words of degree such as "good" and "great" included (about 3 s at `low` reasoning; any doubt or error is a no). `CREDITCOACH_CACHE_CONFIRM=off` removes this step.
+3. **Model-confirmed:** similarity of at least 0.70 (0.90 until 2026-10-27, then 0.80; since 2026-11-10 0.70 for questions naming a score or year, and since 2026-11-12 for every question; see below) with different words, and `SMALL_MODEL` agrees the two questions ask for the same thing, words of degree such as "good" and "great" included (about 3 s at `low` reasoning; any doubt or error is a no). `CREDITCOACH_CACHE_CONFIRM=off` removes this step.
 
 Since 2026-11-12 the 3 closest stored questions are tried in turn, with at most 2 model calls, and a rewording the model confirms is remembered with the stored question: asking it again is an exact or same-words match with no model call, and the next rewording only has to come close to either (see below).
 
@@ -77,10 +77,10 @@ No threshold separates the two groups. So two questions whose **numbers, negatio
 |---|---|---|
 | 0.90 (before) | 11 of 15 | 0 of 13 |
 | 0.85 | 13 of 15 | 0 of 13 |
-| **0.80 (now)** | **13–14 of 15** (two runs) | **0 of 13** |
+| **0.80 (chosen)** | **13–14 of 15** (two runs) | **0 of 13** |
 | 0.75 | 13–14 of 15 | 0 of 13 |
 
-The model check now starts at 0.80; matching on the same words alone still needs 0.90. The model said no to every look-alike in both runs, including "…for a home loan?" and "a personal loan" in place of "a payday loan". The cost is one `SMALL_MODEL` call (about 2 s) on a miss between 0.80 and 0.90. One rewording stays out of reach: "How much of my card limit am I using right now?" scores 0.562 against "What's my current credit utilization ratio?".
+The model check then started at 0.80 (0.70 since 2026-11-12, below); matching on the same words alone still needs 0.90. The model said no to every look-alike in both runs, including "…for a home loan?" and "a personal loan" in place of "a payday loan". The cost is one `SMALL_MODEL` call (about 2 s) on a miss between 0.80 and 0.90. One rewording stays out of reach: "How much of my card limit am I using right now?" scores 0.562 against "What's my current credit utilization ratio?".
 
 **Words of degree are the same question (2026-10-29).** On Railway a tester asked "What is a good credit score?", then "What qualifies as a great credit score?". The cache did its job up to the last step (similarity 0.871, no veto), but the model, shown the two questions, said no three times out of three: told to answer no when unsure, it read "great" as possibly a different band, although the stored answer ("many lenders see around 750 or above as strong") covers both. Three changes were measured on the pairs above, plus 3 rewordings and 3 look-alikes around "a good credit score" ("…a bad credit score?", "Is my credit score good?", "How do I get a great credit score?"), each pair asked three times:
 
@@ -105,6 +105,15 @@ Showing the model the stored answer was dropped: an answer often touches the nei
 | **Now** | **18–19 of 22** | 0.83–0.86 |
 
 Judged by hand, it adds no wrong hit: the one new match ("What accounts a good credit score ?" for "What counts towards a good credit score?") is the same question. The session also found a wrong hit that was there before: "What qualifies as a great credit score?" served the answer to "What counts towards a good credit score?", confirmed by the model in one run of two (§6, question 7). Remembered rewordings gave no further hit on these questions and saved a few model calls. Having `SMALL_MODEL` write 3 rewordings of each stored question was measured the same way and not adopted: no more hits, one more paid call per stored answer, and the one rewording out of reach ("How much of my card limit am I using right now?") rose only from 0.562 to 0.581, as the written rewordings kept the stored question's words.
+
+**The model check from 0.70 for every question (2026-11-12).** On Railway a user asked "What is the best way to secure a quick loan in a day?", then "How do I get an instant loan in a day ?". The second missed: "closest stored question is 0.722 similar, below 0.8" on its `cache.answer` span (found with `scripts/cache_misses.py`). No veto applied, and the model, when asked, called them the same question 3 times out of 3; it was never asked, as 0.70 was only for questions naming a score or year. Trying the 3 closest couldn't help, since even the closest was out of reach. Now the model is asked from 0.70 for every question (`CONFIRM_FROM`), and the separate band for a score or year is gone. `scripts/task22_confirm_band.py` gained the pair, another rewording of it ("How can I get a loan quickly, within a day?") and 4 loan look-alikes ("How do I get a personal loan from my bank?", "Is it safe to take an instant loan?", "Which instant loan apps are legitimate?", "How long does a bank take to approve a loan?"):
+
+| Model check from | Rewordings that hit | Look-alikes that hit (wrong) |
+|---|---|---|
+| 0.80, and 0.70 for a score or year (before) | 20 of 24 | 0 of 26 |
+| **0.70 for every question (now)** | **21 of 24** | **0 of 26** |
+
+The model refused all 12 look-alikes it was asked about between 0.70 and 0.90, and the 4 loan look-alikes score 0.44 to 0.61, so they never reach it. The cost: the model judges about twice as many near misses, so a miss with a stored question 0.70 to 0.80 similar waits about 3 s for it. 0.70 is set from one real miss at 0.722, so `scripts/cache_misses.py` stays the way to check it: if misses keep landing just under it, a better similarity measure, or matching on what a question asks rather than its words, is the next step rather than a lower number.
 
 **What is never stored or served from the answer cache:**
 

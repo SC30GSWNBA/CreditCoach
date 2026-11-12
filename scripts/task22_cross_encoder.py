@@ -1,7 +1,7 @@
 """Task 22 follow-up: would a cross-encoder decide better than cosine similarity which questions go to the model?
 
 The answer cache compares two questions by the cosine of their embeddings, each made without seeing the other, and
-puts them to ``SMALL_MODEL`` from ``CONFIRM_FROM`` (``ANCHORED_FROM`` for a score or year). A cross-encoder reads both
+puts them to ``SMALL_MODEL`` from ``CONFIRM_FROM`` (0.80, and 0.70 for a score or year, when this was measured). A cross-encoder reads both
 questions together, so each word can attend to the other question's words. This script scores the pairs of
 ``scripts/task22_confirm_band.py`` (rewordings and look-alikes, years written out as the cache does) both ways:
 
