@@ -509,11 +509,11 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
 <g class="bx l8"><rect x="891" y="2164.8" width="170" height="131.5" rx="7"/>
 <text class="t" x="904" y="2187.8">GPT-5 mini: same</text>
 <text class="t" x="904" y="2203.8">question?</text>
-<text class="b" x="904" y="2223.8">Asked only about a</text>
-<text class="b" x="904" y="2238.2">rewording that is at</text>
-<text class="b" x="904" y="2252.8">least 0.80 similar. Any</text>
-<text class="b" x="904" y="2267.2">doubt means no. About</text>
-<text class="b" x="904" y="2281.8">2 s.</text>
+<text class="b" x="904" y="2223.8">Asked about up to 3</text>
+<text class="b" x="904" y="2238.2">closest questions, 0.80</text>
+<text class="b" x="904" y="2252.8">similar (0.70 naming a</text>
+<text class="b" x="904" y="2267.2">score or year). Doubt</text>
+<text class="b" x="904" y="2281.8">means no. About 3 s.</text>
 </g>
 <g class="bx l8"><rect x="1107" y="2155.5" width="170" height="150.0" rx="7"/>
 <text class="t" x="1120" y="2178.5">Two small local</text>
@@ -670,7 +670,9 @@ footer { font-size: .84rem; color: var(--muted); border-top: 1px solid var(--rul
         <tr><td>Answer</td><td>A finished, safety-checked answer</td><td>1 hour</td><td>~10 s + one main-model call</td></tr>
       </table></div>
       <ul>
-        <li>"Same question" is decided in three steps: exact match; same meaningful words with similarity of at least 0.90; or a rewording at least 0.80 similar that GPT-5 mini confirms.</li>
+        <li>"Same question" is decided in three steps: exact match; same meaningful words with similarity of at least 0.90; or a rewording at least 0.80 similar (0.70 when it names a credit score or year) that GPT-5 mini confirms. The 3 closest stored questions are tried in turn, with at most 2 model checks.</li>
+        <li>A rewording GPT-5 mini confirms is remembered with the stored question: asking it again needs no model check, and the next rewording only has to come close to either.</li>
+        <li>Questions that differ in a number, a "not" or a time word are never matched, however similar they look.</li>
         <li>Before a stored answer is served, your figures are read again and compared. If they changed, the stored answer is deleted and a fresh one is written.</li>
         <li>Measured: 11.05 s uncached against 0.009 s cached (median), and $0.0122 of model cost against none.</li>
         <li>Keys include your user ID, so one user can never read another's entries.</li>

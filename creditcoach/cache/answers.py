@@ -22,6 +22,14 @@ year they mean on the day each was asked (``resolve``):
                         score or year, ``anchored``), none of the vetoes below, and ``SMALL_MODEL`` agrees the two
                         questions ask for the same thing.
 
+Since 2026-11-12 the ``CANDIDATES`` closest stored questions are tried in turn, with at most ``MAX_CONFIRMS``
+model calls, and a rewording the model confirms is kept with its stored question (``phrasings``): asking it again is
+an exact or same-words match with no model call, and the next rewording only has to come close to either
+(``closeness``). Only the closest went to the checks before, so a vetoed or refused look-alike standing closest hid a
+stored question that asked the same thing. Replayed as one user's session (``scripts/task22_cache_recall.py``, the 44
+pairs, 17 stored and 44 asked): 18 to 19 of 22 rewordings hit instead of 17, with no new wrong hit, at 0.83 to 0.86
+model calls per question instead of 0.67.
+
 Since 2026-11-10, for a goal asked two ways on Railway: "How can I hit a score of 840 by December next year?" then
 "Give me a roadmap to hit 840 by December 2027" missed at 0.628. "next year" isn't "2027" to the numbers and
 time-words vetoes, and rewordings of a question naming a target score and date score 0.72 to 0.78, under
@@ -58,6 +66,7 @@ Example:
 import json
 import logging
 import re
+import threading
 import time
 import uuid
 
@@ -65,12 +74,16 @@ from creditcoach import cache, config, llm
 from creditcoach import observability as obs
 
 log = logging.getLogger("creditcoach.cache")
+_index_lock = threading.Lock()  # a user's index is read and written whole, and the chat serves several people at once
 
 THRESHOLD = 0.90     # minimum cosine similarity for a "same words" match, with no model call
 CONFIRM_FROM = 0.80  # minimum cosine similarity before SMALL_MODEL is asked whether the questions are the same
 ANCHORED_FROM = 0.70  # the same, for two questions naming the same score or year (``anchored``)
 CONFIRM_EFFORT = "low"  # "minimal" missed "great" for "good" (2026-10-29); "low" matched it with no wrong hit
 MAX_PER_USER = 20  # stored answers per user; the oldest goes first
+CANDIDATES = 3  # closest stored questions tried in turn, so a vetoed or refused closest one doesn't hide the match
+MAX_CONFIRMS = 2  # SMALL_MODEL calls one lookup may make
+MAX_PHRASINGS = 8  # rewordings the model confirmed, kept with a stored question so the next one need only come close
 
 CONTRACTIONS = [(r"\bwhat'?s\b", "what is"), (r"\bhow'?s\b", "how is"), (r"\bwhere'?s\b", "where is"),
                 (r"\bcan'?t\b", "can not"), (r"\bwon'?t\b", "will not"), (r"n't\b", " not"), (r"'ll\b", " will"),
@@ -190,34 +203,53 @@ def confirm(asked: str, stored: str) -> bool:
         return False
 
 
+def closeness(embedding: list[float], entry: dict) -> float:
+    """Similarity to a stored question: to the closest of its phrasings (the question itself and the rewordings the
+    model confirmed for it, ``phrasings``)."""
+    return max(cosine(embedding, v) for v in [entry["embedding"], *(p["embedding"] for p in entry.get("phrasings", []))])
+
+
 def match(question: str, embedding: list[float], entries: list[dict]) -> tuple[dict, str, float] | tuple[None, str, float]:
     """Find a stored question that is the same as ``question``.
 
     ``question`` and ``embedding`` are of the question with its years resolved (``resolve``), and each entry's
     ``resolved`` is its question resolved on the day it was asked (entries from before 2026-11-10 have none).
 
+    The ``CANDIDATES`` closest stored questions (by ``closeness``) are tried in turn, with at most ``MAX_CONFIRMS``
+    model calls. The vetoes and the model always compare with the stored question itself, never with one of its
+    phrasings: the stored answer answers that question. "Exact" and "same words" also accept a rewording the model
+    confirmed earlier, so asking it again needs no model call.
+
     Returns:
         ``(entry, how, similarity)`` with ``how`` one of ``"exact"``, ``"same words"``, ``"model-confirmed"``; or
-        ``(None, reason, best_similarity)`` when nothing matches.
+        ``(None, reason, best_similarity)`` when nothing matches, the reason being about the closest one.
     """
     if not entries:
         return None, "nothing stored for this user", 0.0
     text = plain(question)
     for e in entries:
-        if e["plain"] == text:
+        if text in (e["plain"], *(plain(p["text"]) for p in e.get("phrasings", []))):
             return e, "exact", 1.0
-    similarity, best = max(((cosine(embedding, e["embedding"]), e) for e in entries), key=lambda pair: pair[0])
-    stored = best.get("resolved", best["question"])
+    ranked = sorted(((closeness(embedding, e), e) for e in entries), key=lambda pair: -pair[0])[:CANDIDATES]
     lowest = ANCHORED_FROM if anchored(question) else CONFIRM_FROM
-    if similarity < lowest:
-        return None, f"closest stored question is {similarity:.3f} similar, below {lowest}", similarity
-    if reason := veto(question, stored):
-        return None, f"{reason} from the closest stored question ({similarity:.3f} similar)", similarity
-    if similarity >= THRESHOLD and words(question) == words(stored):
-        return best, "same words", similarity
-    if config.CACHE_CONFIRM and confirm(question, stored):
-        return best, "model-confirmed", similarity
-    return None, f"closest stored question ({similarity:.3f} similar) was not confirmed as the same", similarity
+    best_similarity, reason, confirms = ranked[0][0], None, 0
+    for similarity, entry in ranked:
+        if similarity < lowest:
+            reason = reason or f"closest stored question is {similarity:.3f} similar, below {lowest}"
+            break
+        stored = entry.get("resolved", entry["question"])
+        if why := veto(question, stored):
+            reason = reason or f"{why} from the closest stored question ({similarity:.3f} similar)"
+            continue
+        if similarity >= THRESHOLD and words(question) in (words(stored), *(words(p["text"])
+                                                                            for p in entry.get("phrasings", []))):
+            return entry, "same words", similarity
+        if config.CACHE_CONFIRM and confirms < MAX_CONFIRMS:
+            confirms += 1
+            if confirm(question, stored):
+                return entry, "model-confirmed", similarity
+        reason = reason or f"closest stored question ({similarity:.3f} similar) was not confirmed as the same"
+    return None, reason or "no stored question was confirmed as the same", best_similarity
 
 
 def _index_key(user_id: str) -> str:
@@ -248,13 +280,15 @@ def lookup(user_id: str, question: str, embedding: list[float], version: str, me
         cache._note("answer", "miss", _index_key(user_id), user_id=user_id, reason=how)
         # kept by Langfuse, unlike events; the closest stored question makes a miss a pair to judge
         # (scripts/cache_misses.py), and is the user's own earlier question, already in their trace
-        closest = max(usable, key=lambda e: cosine(embedding, e["embedding"]))["question"] if usable else None
+        closest = max(usable, key=lambda e: closeness(embedding, e))["question"] if usable else None
         obs.annotate(**{"cache.reason": how, "cache.similarity": round(similarity, 3), "cache.closest": closest})
         return None
     raw = cache._try(lambda: cache.backend().get(entry["key"]), "answer", entry["key"])
     if raw is None:
         cache._note("answer", "miss", entry["key"], user_id=user_id, reason="the stored answer has expired")
         return None
+    if how == "model-confirmed":  # the next rewording only has to come close to this one
+        add_phrasings(user_id, entry["key"], [(resolve(question), embedding)])
     return {"payload": json.loads(raw), "fingerprint": entry["fingerprint"], "question": entry["question"], "how": how,
             "similarity": round(similarity, 3), "age": round(time.time() - entry["created"]), "key": entry["key"]}
 
@@ -266,22 +300,38 @@ def store(user_id: str, question: str, embedding: list[float], version: str, mem
     entry_key = f"cc:{cache.SCHEMA}:answer:{user_id}:{uuid.uuid4().hex[:16]}"
     resolved = resolve(question)
     text = plain(resolved)
-    entries = _entries(user_id)
-    replaced = [e for e in entries if e["plain"] == text and e["version"] == version and e["memory"] == memory]
-    kept = [e for e in entries if e not in replaced]
-    kept.append({"key": entry_key, "question": question, "resolved": resolved, "plain": text,
-                 "embedding": [round(x, 5) for x in embedding],
-                 "version": version, "memory": memory, "fingerprint": fingerprint, "created": time.time()})
-    dropped, kept = kept[:-MAX_PER_USER], kept[-MAX_PER_USER:]
-    cache._try(lambda: cache.backend().set(entry_key, json.dumps(payload, ensure_ascii=False), cache.TTL["answer"]),
-               "answer", entry_key)
-    _save_entries(user_id, kept)
+    with _index_lock:
+        entries = _entries(user_id)
+        replaced = [e for e in entries if e["plain"] == text and e["version"] == version and e["memory"] == memory]
+        kept = [e for e in entries if e not in replaced]
+        kept.append({"key": entry_key, "question": question, "resolved": resolved, "plain": text,
+                     "embedding": [round(x, 5) for x in embedding],
+                     "version": version, "memory": memory, "fingerprint": fingerprint, "created": time.time()})
+        dropped, kept = kept[:-MAX_PER_USER], kept[-MAX_PER_USER:]
+        cache._try(lambda: cache.backend().set(entry_key, json.dumps(payload, ensure_ascii=False),
+                                               cache.TTL["answer"]), "answer", entry_key)
+        _save_entries(user_id, kept)
     if replaced or dropped:
         cache.delete(*(e["key"] for e in replaced + dropped))
     cache._note("answer", "store", entry_key, user_id=user_id, ttl=cache.TTL["answer"], stored=len(kept))
 
 
+def add_phrasings(user_id: str, key: str, phrasings: list[tuple[str, list[float]]]) -> None:
+    """Add ``(text, embedding)`` rewordings the model confirmed to one stored question, the newest ``MAX_PHRASINGS``
+    kept. The index is read and written again under a lock, as the chat serves several people at once."""
+    with _index_lock:
+        entries = _entries(user_id)
+        entry = next((e for e in entries if e["key"] == key), None)
+        if entry is None or not phrasings:
+            return
+        known = {entry["plain"], *(plain(p["text"]) for p in entry.get("phrasings", []))}
+        new = [{"text": t, "embedding": [round(x, 5) for x in v]} for t, v in phrasings if plain(t) not in known]
+        entry["phrasings"] = (entry.get("phrasings", []) + new)[-MAX_PHRASINGS:]
+        _save_entries(user_id, entries)
+
+
 def forget(user_id: str, key: str) -> None:
     """Drop one stored answer (its figures went stale)."""
-    _save_entries(user_id, [e for e in _entries(user_id) if e["key"] != key])
+    with _index_lock:
+        _save_entries(user_id, [e for e in _entries(user_id) if e["key"] != key])
     cache.delete(key)
