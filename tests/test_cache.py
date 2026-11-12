@@ -408,6 +408,54 @@ def test_a_miss_records_why_on_the_span_langfuse_keeps(on, monkeypatch, spans):
     assert found["how"] == "model-confirmed" and found["payload"]["text"] == "750 or above."
 
 
+def test_a_vetoed_or_refused_closest_question_doesnt_hide_the_next_one(monkeypatch):
+    """The closest stored question can be a look-alike ("last month"); the one behind it may be the same question."""
+    asked = []
+    monkeypatch.setattr(answers, "confirm", lambda a, b: (asked.append(b), b == "What made my score fall this month?")[1])
+    stored = [{**entry("Why did my score fall last month?", (1.0, 0.0)), "key": "last"},
+              {**entry("Why did my score rise this month?", (0.95, 0.312)), "key": "rise"},
+              {**entry("What made my score fall this month?", (0.9, 0.436)), "key": "fall"}]
+    found, how, similarity = answers.match("Why did my score fall this month?", [0.99, 0.141], stored)
+    assert found["key"] == "fall" and how == "model-confirmed" and round(similarity, 2) == 0.95
+    assert asked == ["Why did my score rise this month?", "What made my score fall this month?"]  # "last" vetoed
+
+
+def test_one_lookup_asks_the_model_at_most_max_confirms_times(monkeypatch):
+    asked = []
+    monkeypatch.setattr(answers, "confirm", lambda a, b: (asked.append(b), False)[1])
+    stored = [{**entry(f"Question number {w}?", (0.9, 0.436)), "key": w} for w in ("one", "two", "three")]
+    found, reason, _ = answers.match("A different question?", [1.0, 0.0], stored)
+    assert found is None and "not confirmed" in reason and len(asked) == answers.MAX_CONFIRMS == 2
+
+
+def test_a_remembered_rewording_brings_the_next_in_reach_and_the_model_judges_the_original(monkeypatch):
+    """"How much of my card limit am I using right now?" scores 0.562 against the utilization question: too far.
+    A rewording confirmed earlier brings it in reach, and the model still compares with the question itself."""
+    asked = []
+    monkeypatch.setattr(answers, "confirm", lambda a, b: (asked.append(b), True)[1])
+    question = "What's my current credit utilization ratio?"
+    stored = [entry(question)]
+    rewording = "How much of my card limit am I using right now?"
+    assert answers.match(rewording, [0.562, 0.827], stored)[0] is None and not asked
+    stored[0]["phrasings"] = [{"text": "How much of my credit limit am I using?", "embedding": [0.6, 0.8]}]
+    found, how, similarity = answers.match(rewording, [0.562, 0.827], stored)
+    assert how == "model-confirmed" and similarity > 0.99 and asked == [question]
+
+
+def test_a_confirmed_rewording_is_remembered_and_needs_no_model_call_again(on, monkeypatch):
+    answers.store("USR-001", "How do I improve my credit score?", [1.0, 0.0], "v", "m", "fp", {"text": "Pay on time."})
+    monkeypatch.setattr(answers, "confirm", lambda a, b: True)
+    assert answers.lookup("USR-001", "What can I do to raise my credit score?", [0.852, 0.523], "v", "m")
+    phrasings = answers._entries("USR-001")[0]["phrasings"]
+    assert [p["text"] for p in phrasings] == ["What can I do to raise my credit score?"]
+    monkeypatch.setattr(answers, "confirm", lambda a, b: pytest.fail("the rewording was confirmed before"))
+    assert answers.lookup("USR-001", "What can I do to raise my credit score", [0.852, 0.523], "v", "m")["how"] == "exact"
+    found = answers.lookup("USR-001", "What could I do to raise my credit score?", [0.85, 0.527], "v", "m")
+    assert found["how"] == "same words"
+    answers.lookup("USR-001", "What can I do to raise my credit score?", [0.852, 0.523], "v", "m")
+    assert len(answers._entries("USR-001")[0]["phrasings"]) == 1  # remembered once
+
+
 def test_the_present_is_not_a_period_so_now_and_current_dont_veto():
     assert answers.veto("What is my utilization right now?", "What's my current utilization?") is None
     assert answers.veto("Should I take a payday loan?", "Should I take out this payday loan?") is None

@@ -119,7 +119,8 @@ CreditCoach/
                       #   test_score_history.py, test_account_summary.py (Tasks 13–14), test_mcp.py (Task 15),
                       #   test_memory.py (Task 16), test_recall.py (Task 17), test_trace.py (Task 18),
                       #   test_badges.py (Task 25): the badges and the guardrail and cache steps in the trace,
-                      #   test_cache.py (Task 22): both stores, every layer, when a stored answer may be served,
+                      #   test_cache.py (Task 22): both stores, every layer, when a stored answer may be served (the 3 closest
+                      #   stored questions tried, a confirmed rewording remembered),
                       #   test_guardrails.py (Tasks 20–21): every check, the Colang rails, reframe and block, fail closed,
                       #   and the red-team set against the input rails,
                       #   test_charts.py: the My credit tab (charts, what-if, data isolation),
@@ -161,6 +162,12 @@ CreditCoach/
     task21_guardrail_tests.py # the two required guardrail tests and the red-team set, live (Task 21; paid calls; --rescore: none)
     task22_cache_log.py      # the same question twice, live: cache miss, then hit (Task 22; paid calls)
     task22_confirm_band.py   # from what similarity the answer cache asks the model about a rewording (Task 22 follow-up; paid calls)
+    task22_cross_encoder.py  # cosine against a cross-encoder for picking which pairs go to the model (Task 22 follow-up;
+                             # no model calls; measured, not adopted)
+    task22_cache_recall.py   # one user's questions in sequence: the closest 3 stored questions tried, confirmed rewordings
+                             # remembered, against the closest one only (Task 22 follow-up; paid calls)
+    cache_misses.py          # the chat app's answer-cache misses from Langfuse, each with its closest stored question, as
+                             # pairs to judge and add to task22_confirm_band.py (no model calls)
     task23_cache_latency.py  # cache hit rate, latency and cost, cached vs. uncached (Task 23; paid calls; --report: none)
     task24_sample_queries.py # the 6 sample queries end to end through the chat UI functions, table filled in (Task 24; paid calls)
     task25_badges.py         # screenshots of the guardrail and cache badges in the real UI (Task 25; paid calls;
@@ -252,7 +259,7 @@ Repeated work is served from a cache instead of being done again (Task 22; desig
 | Tool | A user's score-history or account lookup | 5 minutes |
 | Answer | A finished answer, when the same user asks the same question again | 1 hour |
 
-The answer layer is the one you can see, and the chat marks it with a badge above the answer ("⚡ Cache hit · saved 12 s", "Cache miss · answered live" or "Cache not used" with the reason): a repeated question comes back in about 0.01 s instead of about 11 s, with no model call ([miss then hit](docs/evidence/week-3/task-22-cache-log.md); [measured](docs/evidence/week-3/task-23-cache-latency.md): median 11.05 s uncached against 0.009 s cached, and $0.012 of model cost against none). A stored answer is served only to the user who asked, only for the same question (exact, the same words reordered, or a rewording a small model confirms), and only after that user's live figures are checked to be unchanged. Questions that differ in a number, a "not" or a time word ("this month" and "last month") are never matched, however similar they look.
+The answer layer is the one you can see, and the chat marks it with a badge above the answer ("⚡ Cache hit · saved 12 s", "Cache miss · answered live" or "Cache not used" with the reason): a repeated question comes back in about 0.01 s instead of about 11 s, with no model call ([miss then hit](docs/evidence/week-3/task-22-cache-log.md); [measured](docs/evidence/week-3/task-23-cache-latency.md): median 11.05 s uncached against 0.009 s cached, and $0.012 of model cost against none). A stored answer is served only to the user who asked, only for the same question (exact, the same words reordered, or a rewording a small model confirms, trying the 3 closest stored questions; a confirmed rewording is remembered, so asking it again needs no model call), and only after that user's live figures are checked to be unchanged. Questions that differ in a number, a "not" or a time word ("this month" and "last month") are never matched, however similar they look.
 
 The cache is kept in Redis when `REDIS_URL` is set in `.env`:
 

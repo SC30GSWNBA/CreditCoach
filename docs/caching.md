@@ -1,6 +1,6 @@
 # CreditCoach: Caching
 
-*Week 3 · Task #22 · Last updated: 2026-11-10 ("next year" written as the year; goals naming a score or date put to the model from 0.70) · Status: Draft for team review · Code: `creditcoach/cache/`*
+*Week 3 · Task #22 · Last updated: 2026-11-12 (the 3 closest stored questions tried; confirmed rewordings remembered) · Status: Draft for team review · Code: `creditcoach/cache/`*
 
 An answer takes about 10 seconds and one chat-model call. Almost all of that is the model. This document defines what CreditCoach caches so repeated work isn't done twice, and the rules that keep a cached answer from being a wrong answer. Task #23 measures the hit rate and the latency improvement, and since Task #25 the chat UI shows a cache badge above each answer ([screenshots](evidence/week-3/task-25-badges.md)).
 
@@ -57,6 +57,8 @@ A cached answer can do harm in two ways: it can answer a different question, or 
 2. **Same words:** embedding similarity of at least 0.90, and the same set of meaning-bearing words. Contractions, word order, tense, filler words and British spellings don't count: "My credit score dropped 20 points this month. Why?" matches "Why did my credit score drop 20 points this month?".
 3. **Model-confirmed:** similarity of at least 0.80 (0.90 until 2026-10-27; 0.70 since 2026-11-10 for questions naming a score or year; see below) with different words, and `SMALL_MODEL` agrees the two questions ask for the same thing, words of degree such as "good" and "great" included (about 3 s at `low` reasoning; any doubt or error is a no). `CREDITCOACH_CACHE_CONFIRM=off` removes this step.
 
+Since 2026-11-12 the 3 closest stored questions are tried in turn, with at most 2 model calls, and a rewording the model confirms is remembered with the stored question: asking it again is an exact or same-words match with no model call, and the next rewording only has to come close to either (see below).
+
 **Embedding similarity alone is not safe.** Measured with the project's embedding model against "Why did my credit score drop 20 points this month?":
 
 | Question | Similarity | Same question? |
@@ -95,6 +97,15 @@ Showing the model the stored answer was dropped: an answer often touches the nei
 
 **A cross-encoder instead of cosine similarity? Measured, not adopted (2026-11-10).** A cross-encoder reads both questions together instead of embedding each alone, so it could pick better which questions go to the model. `scripts/task22_cross_encoder.py` scored the 44 pairs both ways, locally. The best, `cross-encoder/stsb-roberta-base`, separated rewordings from look-alikes better than cosine (AUC 0.933 against 0.826 on the pairs no veto stops), and with a cut-off letting every rewording through it would send 6 of 17 look-alikes to the model instead of 17. It also reaches the one rewording cosine can't ("How much of my card limit am I using right now?", 0.562 by cosine), which the model then confirms. It isn't used, for now: its cut-off is fitted to these same pairs (lowest rewording 0.655, a look-alike at 0.654), no cross-encoder is safe without the model (look-alikes at 0.886, and 0.938 for the duplicate-question one), and it would add about 500 MB to the app and up to 160 ms a lookup for one more hit in 22. To decide on more than these pairs, each miss now also records the closest stored question on its span (`cache.closest`), and `scripts/cache_misses.py` lists the chat app's misses from Langfuse as pairs to judge and add to `task22_confirm_band.py`.
 
+**The 3 closest, and confirmed rewordings remembered (2026-11-12).** The pair benchmark puts each rewording to the cache with only its own stored question. A user has up to 20, and only the closest went to the checks: when it was a look-alike, vetoed or refused, a stored question further down that asked the same thing was never tried. Now the 3 closest are (`CANDIDATES`, by `closeness`), with at most 2 model calls a lookup (`MAX_CONFIRMS`), and a confirmed rewording is kept with its stored question (up to 8, `MAX_PHRASINGS`). The vetoes and the model still compare with the stored question itself. `scripts/task22_cache_recall.py` replays the 44 pairs as one user's session, 17 questions stored and 44 asked in 3 random orders ([task-22-cache-recall.md](evidence/week-3/task-22-cache-recall.md)):
+
+| | Rewordings that hit (two runs) | Model calls per question |
+|---|---|---|
+| Before (the closest only) | 17 of 22 | 0.67 |
+| **Now** | **18–19 of 22** | 0.83–0.86 |
+
+Judged by hand, it adds no wrong hit: the one new match ("What accounts a good credit score ?" for "What counts towards a good credit score?") is the same question. The session also found a wrong hit that was there before: "What qualifies as a great credit score?" served the answer to "What counts towards a good credit score?", confirmed by the model in one run of two (§6, question 7). Remembered rewordings gave no further hit on these questions and saved a few model calls. Having `SMALL_MODEL` write 3 rewordings of each stored question was measured the same way and not adopted: no more hits, one more paid call per stored answer, and the one rewording out of reach ("How much of my card limit am I using right now?") rose only from 0.562 to 0.581, as the written rewordings kept the stored question's words.
+
 **What is never stored or served from the answer cache:**
 
 | Case | Why |
@@ -131,16 +142,17 @@ requirements.md §6 says every credit figure "must come from a live tool call, n
 The workload's overall hit rate was 57% (20 of 35), which cut its waiting time by 55% and its model cost by 57%. That rate belongs to the workload, where two thirds of the requests were deliberate repeats; real users repeat far less.
 
 **Miss, then hit (Task 22).** 
-[task-22-cache-log.md](evidence/week-3/task-22-cache-log.md), live against Redis: a question misses every layer and takes 11.0 s; the same question again hits and takes 0.01 s with no model call; a rewording hits; "last month" in place of "this month" misses on purpose; a different question reuses the user's cached lookups; another user shares nothing. `tests/test_cache.py` has 55 tests that need no Redis, API key or embedding model.
+[task-22-cache-log.md](evidence/week-3/task-22-cache-log.md), live against Redis: a question misses every layer and takes 11.0 s; the same question again hits and takes 0.01 s with no model call; a rewording hits; "last month" in place of "this month" misses on purpose; a different question reuses the user's cached lookups; another user shares nothing. `tests/test_cache.py` has 64 tests that need no Redis, API key or embedding model.
 
 ## 6. Open questions for team review
 
 1. **Tool results for 5 minutes.** Is serving a user's figures from a 5-minute-old lookup acceptable under §6's "live tool call"? Proposal: yes, with §4's safeguards, and the dataset is a static snapshot. Setting `TTL["tool"]` to 0 would make every lookup live at a cost of about 1.8 s a question with the dataset in Neon.
 2. **Answers for an hour.** Should the limit be shorter, or longer for the demo? Proposal: keep 1 hour; correctness comes from the checks in §3, not from the limit.
-3. **Reworded questions.** Step 3 asks a model whether two questions are the same. It gave no wrong hit in testing, but it is a model. Task 23 saw none either (0 of 5 look-alikes matched). Proposal: keep it on, and review any wrong hit seen in the Week 4 evals.
+3. **Reworded questions.** Step 3 asks a model whether two questions are the same. It gave no wrong hit in the pair tests, but it is a model. Task 23 saw none either (0 of 5 look-alikes matched). Proposal: keep it on, and review any wrong hit seen in the Week 4 evals. *2026-11-12:* the session benchmark found one between neighbouring questions (question 7).
 4. **Evaluations and the cache.** Caching answers in eval runs would cut their cost, but a run would then partly measure the cache. *Decided in Task 27:* the eval harness turns the cache off for the whole run, so every answer and tool call is fresh.
 5. **One Redis each, or one shared.** Each teammate runs a local Redis today. A shared Redis would let a demo machine reuse answers warmed elsewhere, at the cost of a secret to manage. Proposal: local for now.
-6. **Query router.** Sending simple questions to a cheaper model would cut the cost of a cache miss. Not in tasks.md. Task 23 measured a miss at $0.0122 and 11 s; proposal: the team decides whether that is worth a router.
+6. **Query router.** Sending simple questions to a cheaper model would cut the cost of a cache miss. Not in tasks.md. Task 23 measured a miss at $0.0122 and 11 s. *Decided 2026-11-06 (PR #74):* a router sends flagged, goal and multi-step questions to Claude Sonnet 5.5 and the rest to DeepSeek V4.1 Flash, at about $0.015 a question ([model-choice-and-caching.md](evidence/week-4/model-choice-and-caching.md)); its settings are part of the answer cache's "same setup" (§3).
+7. **A wrong hit between neighbours.** The session benchmark found "What qualifies as a great credit score?" (a score range) served the answer to "What counts towards a good credit score?" (the factors), confirmed by `SMALL_MODEL` in one run of two, with or without the 3 closest. The pair benchmark can't see it: it compares a rewording only with its own stored question. Proposal: add neighbouring pairs like this one to `task22_confirm_band.py`, and tighten the confirmation prompt on "a range or threshold" against "what affects it" if they fail.
 
 ## 7. Sign-off
 
