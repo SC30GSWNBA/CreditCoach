@@ -104,14 +104,20 @@ def create_schema(conn) -> None:
 def read_postgres() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Users, accounts and score history from Neon, in CSV row order.
 
+    One plain connection, without memory's pool or ``create_schema``: the import and sign-up create the tables. Each
+    answer's tool server reads the dataset once, and in a load test of 100 questions on Railway (2026-11-21) 50
+    servers at once queued on the pool's and the schema's locks, so a first tool call took over the 5 s limit.
+
     Raises:
         DatasetError: Neon is unreachable or not configured, or holds no users yet (run the import).
     """
-    from creditcoach.memory import pg  # the same connection pool as memory; imported only for this backend
+    import psycopg  # imported only for this backend
 
     try:
-        with pg.pool().connection() as conn:
-            create_schema(conn)
+        if not config.DATABASE_URL:
+            raise RuntimeError("DATABASE_URL is not set")
+        # prepare_threshold=None: Neon's pooled (PgBouncer) endpoint doesn't support prepared statements
+        with psycopg.connect(config.DATABASE_URL, autocommit=True, prepare_threshold=None, connect_timeout=15) as conn:
             frames = []
             for table in TABLES:
                 buffer = io.BytesIO()

@@ -39,7 +39,26 @@ The first column comes from the one-process client, so its arrivals are less bun
 | The app's own numeric libraries run on 8 threads, as in the local test | [Dockerfile](../../../Dockerfile) |
 | NeMo Guardrails and sentence-transformers log at WARNING: their INFO lines made Railway drop thousands of log lines a second, the crash's among them | [main.py](../../../creditcoach/app/main.py) `main` |
 
+## On Railway, after the thread fix (2026-11-21)
+
+With answers running 50 at once (`CREDITCOACH_ANSWER_CONCURRENCY` = 50 on Railway), 99 questions sent together: 50 ran at once and 98 were answered, a median of 37 s after Enter and 60 s at the slowest (4 more were answered after the test client's own 36 s read limit; 1 never connected). No crash.
+
+But 80 of 198 tool calls failed with `DATA_UNAVAILABLE`, all in this run (none with 8 at once). Each had timed out twice at the 5 s limit. A tool server reads the whole dataset on its first call, and it did so through memory's connection pool, which takes a database-wide lock to create the memory tables, and then took a second lock to create the dataset tables, though both exist. 50 servers at once queued on those locks. Measured from a Mac: alone, connecting took 0.49 s, the locks 0.47 s and the reads 0.41 s; with 50 at once, the locks took 1.77 s (3.44 s at the slowest), while connecting and reading didn't slow down.
+
+| Fix | Where |
+|---|---|
+| The dataset is read over one plain connection, with no pool and no table creation (the import and sign-up create the tables) | [dataset.py](../../../creditcoach/dataset.py) `read_postgres` |
+| The tool server reads the dataset as it starts, within the host's 20 s startup allowance, so the 5 s call limit covers only the lookup | [server.py](../../../creditcoach/tools/server.py) |
+
+50 real tool servers started at once from a Mac, against Neon:
+
+| | Before | After |
+|---|---|---|
+| First call: median / 90th percentile / slowest | 4.42 / 8.80 / 10.03 s | 0.13 / 0.24 / 0.29 s |
+| Failed (`DATA_UNAVAILABLE`) | 1 of 50 | 0 of 50 |
+| Server start | 1.9 s | 2.7 s |
+
 ## Not checked
 
-- **On Railway, after the fix.** To be re-run once it is deployed.
+- **On Railway, after the tool-server fix.** To be re-run once it is deployed.
 - **Page loads during a burst** after #2. They are expected to stay fast now that answers can't take every worker, but they weren't timed.
