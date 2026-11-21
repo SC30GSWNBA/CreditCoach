@@ -1,6 +1,6 @@
 # CreditCoach User Guide: Creating Your Account and Your Weekly Questions
 
-This guide is for anyone using CreditCoach for the first time. It walks you through creating an account, logging in, and how the limit of 5 questions a week works. The second half is a list of common questions.
+This guide is for anyone using CreditCoach for the first time. It walks you through creating an account, logging in, and how the limit of 4 questions a week works. The second half is a list of common questions.
 
 CreditCoach is a financial-literacy project. It explains credit scores in plain language. It is not financial advice, and it is not connected to your bank or to any credit bureau.
 
@@ -12,7 +12,7 @@ CreditCoach is a financial-literacy project. It explains credit scores in plain 
 4. [Save your User ID and password](#4-save-your-user-id-and-password)
 5. [Log in](#5-log-in)
 6. [Find your way around](#6-find-your-way-around)
-7. [Your 5 questions a week](#7-your-5-questions-a-week)
+7. [Your 4 questions a week](#7-your-4-questions-a-week)
 8. [Staying logged in, and logging out](#8-staying-logged-in-and-logging-out)
 9. [Your privacy](#9-your-privacy)
 10. [Frequently asked questions](#10-frequently-asked-questions)
@@ -28,7 +28,7 @@ CreditCoach is a financial-literacy project. It explains credit scores in plain 
 | **How you sign up** | Answer 10 short multiple-choice questions on the **Sign up** tab and tick one box. |
 | **What you get** | A User ID such as `creditcoach_user16`, a 16-character password, and a practice credit profile built from your answers. |
 | **The one thing to remember** | Your password is shown **once**. Copy it, or email it to yourself, before you close the pop-up. It cannot be recovered or reset. |
-| **How much you can ask** | 5 questions a week. Your week starts with your first question and resets 7 days later. |
+| **How much you can ask** | 4 questions a week. Your week starts with your first question and resets 7 days later. |
 | **What is always free to use** | The **My credit** tab (your score story and accounts) does not use up questions. |
 | **Help** | [creditcoachurcreditmentor@gmail.com](mailto:creditcoachurcreditmentor@gmail.com) |
 
@@ -206,7 +206,7 @@ Each answer shows:
 - **You ask how CreditCoach is built** (its design, code, AI model, database or hosting): it says it can't go into that, then offers to help with your credit and answers any credit part of your question.
 - **You ask about "this loan" or "that offer" without saying which:** it asks what the loan is (the kind of loan and the lender) and its terms (amount, interest or fees, repayment period) before giving a view.
 
-When your data couldn't be loaded, the question **doesn't count** towards your 5, and the line under the answer says *"This one wasn't counted"*. The other two are full answers, so they count (see section 7).
+When your data couldn't be loaded, the question **doesn't count** towards your 4, and the line under the answer says *"This one wasn't counted"*. The other two are full answers, so they count (see section 7).
 
 **Tell us how the answer was.** Under each answer are 👍 and 👎. If an answer was wrong, slow or hard to follow, press 👎 and pick the reason that fits best: *Wrong or missing figure*, *Didn't answer my question*, *Too slow* or *Hard to follow*. The project team reads every rating with the answer it belongs to, and uses them to decide what to fix. Rating an answer doesn't use up a question.
 
@@ -228,32 +228,32 @@ The **Admin sign-in** link under the Log in form is for the person who runs Cred
 
 ---
 
-## 7. Your 5 questions a week
+## 7. Your 4 questions a week
 
-Every answer CreditCoach writes has a real cost, so each person who signs up can ask **5 questions per week**. This keeps CreditCoach available to everyone testing it.
+Every answer CreditCoach writes has a real cost, so each person who signs up can ask **4 questions per week** (5 until 21 Nov 2026). This keeps CreditCoach available to everyone testing it.
 
 ### How your week works
 
 - **Your week is your own.** It starts the moment you ask your first question, not on a fixed day like Monday.
 - **It lasts exactly 7 days** (168 hours) from that moment.
-- **When it ends, you get 5 new questions.** Your next week starts when you ask your next question after that.
-- **Unused questions do not carry over.** If you ask 3 this week, next week you still have 5, not 7.
+- **When it ends, you get 4 new questions.** Your next week starts when you ask your next question after that.
+- **Unused questions do not carry over.** If you ask 3 this week, next week you still have 4, not 5.
 
-**Example.** You ask your first question on Tuesday at 3:10 PM. You now have 4 left, and your week resets the following Tuesday at 3:10 PM. If you use all 5 by Thursday, you wait until Tuesday 3:10 PM. If you then ask your next question on Wednesday at 9:00 AM, your new week runs until the Wednesday after that at 9:00 AM.
+**Example.** You ask your first question on Tuesday at 3:10 PM. You now have 3 left, and your week resets the following Tuesday at 3:10 PM. If you use all 4 by Thursday, you wait until Tuesday 3:10 PM. If you then ask your next question on Wednesday at 9:00 AM, your new week runs until the Wednesday after that at 9:00 AM.
 
 ### Where to see how many you have left
 
 Under every answer you will see a line like:
 
-> Questions left this week: **3 of 5** · resets Tue 20 Oct, 03:10 PM IST
+> Questions left this week: **3 of 4** · resets Tue 20 Oct, 03:10 PM IST
 
 The reset time is shown in CreditCoach's server time zone, with the zone's abbreviation after it.
 
 ### What happens when you reach the limit
 
-If you ask a sixth question, CreditCoach does not answer it. Instead you see:
+If you ask a fifth question, CreditCoach does not answer it. Instead you see:
 
-> You've used all 5 questions for this week. Your next 5 unlock on **Tue 20 Oct, 03:10 PM IST**. Until then the **My credit** tab still shows your score story and accounts.
+> You've used all 4 questions for this week. Your next 4 unlock on **Tue 20 Oct, 03:10 PM IST**. Until then the **My credit** tab still shows your score story and accounts.
 
 You stay logged in, and everything else keeps working: My credit, your memory panel and your past conversations.
 
@@ -263,7 +263,7 @@ You stay logged in, and everything else keeps working: My credit, your memory pa
 |---|---|
 | Any question CreditCoach answers | Sending an empty message |
 | A follow-up question in the same conversation | An answer that fails with "Sorry, I couldn't reach the answer service" |
-| Clicking one of the example questions | The "You've used all 5 questions" message itself |
+| Clicking one of the example questions | The "You've used all 4 questions" message itself |
 | A question CreditCoach declines to answer directly, such as a request to guarantee a score, to recommend a payday loan or to explain how CreditCoach is built. It still replies with an explanation, so it counts. | Anything on the My credit tab |
 | A question you have asked before, even if the answer is reused | Opening your memory and past conversations |
 | | An answer that says your data couldn't be loaded right now ("This one wasn't counted") |
@@ -271,7 +271,7 @@ You stay logged in, and everything else keeps working: My credit, your memory pa
 
 If CreditCoach cannot check your allowance for a technical reason, it tells you so, does not answer, and does not count the question. Try again a little later.
 
-### Getting the most from 5 questions
+### Getting the most from 4 questions
 
 - **Look at My credit first.** It is unlimited and often answers "what is my score?" or "how much do I owe?" without spending a question.
 - **Ask one complete question** instead of several short ones. "Why did my score drop in August, and what should I do first?" is one question.
@@ -285,7 +285,7 @@ If CreditCoach cannot check your allowance for a technical reason, it tells you 
 - **Press Log out** at the top when you are finished, especially on a shared computer. You return to the welcome page.
 - **You may be logged out early** if CreditCoach is restarted for an update. Just log in again; nothing is lost.
 - **Being logged out does not change your weekly questions.** The count belongs to your account, not to your browser session. Logging out and in again, using another browser, or using another device does not reset it or use any up.
-- **You can log in on more than one device** with the same User ID and password. They share the same 5 questions.
+- **You can log in on more than one device** with the same User ID and password. They share the same 4 questions.
 
 ---
 
@@ -374,12 +374,12 @@ The email is a convenience for a practice account that holds no real financial d
 Not at present.
 
 **Can I share my login with a friend?**
-It is better for them to sign up themselves. A shared login shares the same 5 questions, the same profile and the same conversation history.
+It is better for them to sign up themselves. A shared login shares the same 4 questions, the same profile and the same conversation history.
 
 ### Weekly questions and resets
 
 **How many questions do I get?**
-5 per week.
+4 per week.
 
 **When does my week start?**
 When you ask your first question. It is not tied to a calendar week.
@@ -394,7 +394,7 @@ No. The reset is at the same time of day as your first question, 7 days later.
 Until 7 days after the first of those 5. Using them quickly does not make the wait longer or shorter.
 
 **Do unused questions carry over?**
-No. Each new week starts at 5.
+No. Each new week starts at 4.
 
 **Does logging out, closing the browser or switching device reset the count?**
 No. The count belongs to your account.

@@ -344,7 +344,7 @@ def figures(answer: str, sources: str) -> list[Finding]:
 # ---- S2, S4: what the answer discloses ----
 
 LEAK_RUN = 14  # words in a row copied from the system prompt; measured on saved answers, see the Task 20 evidence
-USER_ID = re.compile(r"\bUSR-\d{3}\b")
+USER_ID = re.compile(r"\bUSR-\d{3,4}\b")
 
 
 def _words(text: str) -> list[str]:

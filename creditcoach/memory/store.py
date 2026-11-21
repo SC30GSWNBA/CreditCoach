@@ -44,7 +44,7 @@ from pathlib import Path
 from creditcoach import config
 
 VERSION = 1
-USER_ID = re.compile(r"USR-\d{3}")
+USER_ID = re.compile(r"USR-\d{3,4}")
 EVENT_TYPES = {"login", "user_message", "assistant_message", "error", "goal_set", "goal_cleared", "logout",
                "session_end"}
 SOURCES = {"chat_ui", "cli", "eval", "evidence"}

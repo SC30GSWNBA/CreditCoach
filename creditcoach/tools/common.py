@@ -12,6 +12,7 @@ Error codes raised here:
 enforced by the MCP host in Task 15, not by the tools.
 """
 
+import os
 import re
 from functools import lru_cache
 
@@ -19,7 +20,9 @@ import pandas as pd
 
 from creditcoach import dataset
 
-USER_ID = re.compile(r"USR-\d{3}")
+USER_ID = re.compile(r"USR-\d{3,4}")
+# Set by the MCP host for each answer's tool server: the signed-in user, so the server reads only their rows
+SERVER_USER = "CREDITCOACH_TOOL_USER"
 NO_CREDIT_FILE_NOTE = ("This user has no credit file yet: no credit accounts and no credit score. "
                        "Don't state or estimate a score.")
 
@@ -41,19 +44,22 @@ def error(code: str, message: str, retryable: bool = False, **details) -> dict:
 def tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Read users, accounts and score history once per process, from ``data/`` or Neon (``creditcoach.dataset``).
 
+    In a tool server started by the MCP host, only the signed-in user's rows (``SERVER_USER``), so another user's
+    id finds nothing (``UNKNOWN_USER``) and the read stays the same size however many people sign up.
+
     Raises:
         ToolFailure: ``DATA_UNAVAILABLE`` if the dataset can't be read. Nothing is cached in that case, so a
             later call can succeed once the file (or Neon) is back.
     """
     try:
-        return dataset.load()
+        return dataset.load(os.environ.get(SERVER_USER) or None)
     except dataset.DatasetError as exc:
         raise ToolFailure("DATA_UNAVAILABLE", f"Couldn't read the dataset: {exc}.", retryable=True) from exc
 
 
 def as_of() -> str:
     """The dataset's latest month (``YYYY-MM-01``). "Now" for both tools (``docs/tools.md`` §1, rule 5)."""
-    return str(tables()[2].date.max())[:10]
+    return dataset.latest_month(tables()[2])
 
 
 def check_user(user_id) -> str:

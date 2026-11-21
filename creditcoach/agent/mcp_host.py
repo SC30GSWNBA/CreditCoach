@@ -48,6 +48,7 @@ from mcp.client.stdio import StdioServerParameters, get_default_environment, std
 
 from creditcoach import cache, config
 from creditcoach import observability as obs
+from creditcoach.tools import common
 from creditcoach.tools.common import error
 
 log = logging.getLogger(__name__)
@@ -65,7 +66,7 @@ _confirmed_lock = threading.Lock()
 SERVER_THREADS = {"OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"}
 
 
-def server_params() -> StdioServerParameters:
+def server_params(user_id: str | None = None) -> StdioServerParameters:
     """How to start the tool server, reading the dataset from the same backend as this process.
 
     Built when a session opens, not at import, so a backend set at run time (tests force "files") reaches the
@@ -78,10 +79,14 @@ def server_params() -> StdioServerParameters:
     The server's numeric libraries get one thread each (``SERVER_THREADS``). Left alone they start one per CPU the
     machine reports, 48 on Railway: a 100-question load test on 2026-11-21 ran 50 servers at once, ran out of
     threads ("OpenBLAS blas_thread_init: pthread_create failed") and took the app down.
+
+    With ``user_id`` (the signed-in user), the server reads only that user's rows (``tools.common.SERVER_USER``).
     """
     env = {**get_default_environment(), **SERVER_THREADS, "CREDITCOACH_DATA_BACKEND": config.DATA_BACKEND}
     if config.DATABASE_URL:
         env["DATABASE_URL"] = config.DATABASE_URL
+    if user_id:
+        env[common.SERVER_USER] = user_id
     return StdioServerParameters(command=sys.executable, args=["-m", "creditcoach.tools.server"], cwd=str(config.ROOT),
                                  env=env)
 
@@ -190,7 +195,7 @@ class McpHost:
     async def __aenter__(self) -> "McpHost":
         self._stack = AsyncExitStack()
         try:
-            read, write = await self._stack.enter_async_context(stdio_client(self.server or server_params()))
+            read, write = await self._stack.enter_async_context(stdio_client(self.server or server_params(self.user_id)))
             self._session = await self._stack.enter_async_context(ClientSession(read, write))
             await asyncio.wait_for(self._session.initialize(), STARTUP_SECONDS)
             listed = (await asyncio.wait_for(self._session.list_tools(), STARTUP_SECONDS)).tools

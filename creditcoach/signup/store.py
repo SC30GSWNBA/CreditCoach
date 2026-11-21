@@ -8,7 +8,8 @@ A sign-up adds rows to the three dataset tables (``dataset_users``, ``dataset_ac
 
 Everything for one sign-up is written in a single transaction, under an advisory lock, so two people signing up
 at the same moment can't get the same number and a failed sign-up leaves nothing behind. ``N`` is the number of
-users already in Neon plus one: with 15 users the next is ``creditcoach_user16`` / ``USR-016``.
+users already in Neon plus one: with 15 users the next is ``creditcoach_user16`` / ``USR-016``, and from the
+1,000th ``USR-1000`` (ids were 3 digits until 2026-11-21; ``scripts/migrate_user_ids.py``).
 
 Sign-up needs Neon (``config.DATA_BACKEND == "postgres"``): ``data/*.csv`` and ``logins.json`` are the reviewed,
 committed copies of the original 15 and are never written by the app. ``scripts/data_import.py`` keeps sign-up rows
@@ -27,13 +28,13 @@ LOCK = "SELECT pg_advisory_xact_lock(hashtext('creditcoach_signup'))"  # also ta
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS app_logins (
     username  text PRIMARY KEY CHECK (username ~ '^creditcoach_user[0-9]+$'),
-    user_id   text NOT NULL UNIQUE CHECK (user_id ~ '^USR-[0-9]{3}$'),
+    user_id   text NOT NULL UNIQUE CHECK (user_id ~ '^USR-[0-9]{3,4}$'),
     salt      text NOT NULL,
     hash      text NOT NULL,
     created   timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS app_usage (
-    user_id     text PRIMARY KEY CHECK (user_id ~ '^USR-[0-9]{3}$'),
+    user_id     text PRIMARY KEY CHECK (user_id ~ '^USR-[0-9]{3,4}$'),
     week_start  timestamptz NOT NULL,
     asked       integer NOT NULL CHECK (asked >= 0)
 );
@@ -102,7 +103,7 @@ def insert(conn, answers: dict) -> dict:
     conn.execute(LOCK)
     total, signed_up = conn.execute("SELECT count(*), count(*) FILTER (WHERE source = %s) FROM dataset_users",
                                     (dataset.SIGNUP_SOURCE,)).fetchone()
-    if signed_up >= config.SIGNUP_MAX or total >= 999:  # user ids are USR-001 to USR-999
+    if signed_up >= config.SIGNUP_MAX or total >= 9999:  # user ids are USR-001 to USR-9999 (4 digits since 2026-11-21)
         raise SignupClosed(f"{signed_up} sign-ups, limit {config.SIGNUP_MAX}")
     n = total + 1
     user_id, username = f"USR-{n:03d}", f"creditcoach_user{n}"

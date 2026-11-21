@@ -45,7 +45,7 @@ COLUMNS = {"users": USER_COLUMNS, "accounts": ACCOUNT_COLUMNS, "score_history": 
 SCHEMA = f"""
 CREATE TABLE IF NOT EXISTS dataset_users (
     pos      bigint GENERATED ALWAYS AS IDENTITY,
-    user_id  text PRIMARY KEY CHECK (user_id ~ '^USR-[0-9]{{3}}$'),
+    user_id  text PRIMARY KEY CHECK (user_id ~ '^USR-[0-9]{{3,4}}$'),
     {", ".join(f"{c} text NOT NULL DEFAULT ''" for c in USER_COLUMNS[1:])}
 );
 CREATE TABLE IF NOT EXISTS dataset_accounts (
@@ -82,16 +82,27 @@ def parse(table: str, source) -> pd.DataFrame:
     return pd.read_csv(source, **READ_OPTIONS[table])
 
 
-def read_files() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Users, accounts and score history from ``config.DATA_DIR``.
+def latest_month(scores: pd.DataFrame) -> str:
+    """The latest month in ``scores`` (``YYYY-MM-01``), or the dataset-wide one a per-user read kept in its attrs."""
+    return scores.attrs.get("as_of") or str(scores.date.max())[:10]
+
+
+def read_files(user_id: str | None = None) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Users, accounts and score history from ``config.DATA_DIR``; only ``user_id``'s rows when given.
 
     Raises:
         DatasetError: A file is missing, unreadable or malformed.
     """
     try:
-        return tuple(parse(t, config.DATA_DIR / f"{t}.csv") for t in TABLES)
+        frames = tuple(parse(t, config.DATA_DIR / f"{t}.csv") for t in TABLES)
     except (OSError, pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
         raise DatasetError(exc.__class__.__name__) from exc
+    if user_id is None:
+        return frames
+    as_of = latest_month(frames[2])
+    frames = tuple(f[f.user_id == user_id].reset_index(drop=True) for f in frames)
+    frames[2].attrs["as_of"] = as_of
+    return frames
 
 
 def create_schema(conn) -> None:
@@ -101,8 +112,11 @@ def create_schema(conn) -> None:
         conn.execute(SCHEMA)
 
 
-def read_postgres() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Users, accounts and score history from Neon, in CSV row order.
+def read_postgres(user_id: str | None = None) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Users, accounts and score history from Neon, in CSV row order; only ``user_id``'s rows when given.
+
+    A per-user read (each answer's tool server, 2026-11-21) keeps its cost flat as sign-ups grow toward 1,000, and
+    keeps the dataset's latest month, "now" for the tools, in the score history's ``attrs["as_of"]``.
 
     One plain connection, without memory's pool or ``create_schema``: the import and sign-up create the tables. Each
     answer's tool server reads the dataset once, and in a load test of 100 questions on Railway (2026-11-21) 50
@@ -119,23 +133,28 @@ def read_postgres() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         # prepare_threshold=None: Neon's pooled (PgBouncer) endpoint doesn't support prepared statements
         with psycopg.connect(config.DATABASE_URL, autocommit=True, prepare_threshold=None, connect_timeout=15) as conn:
             frames = []
+            where, params = ("WHERE user_id = %s ", (user_id,)) if user_id else ("", None)
             for table in TABLES:
                 buffer = io.BytesIO()
-                with conn.cursor().copy(f"COPY (SELECT {SELECTS[table]} FROM dataset_{table} ORDER BY pos) "
-                                        "TO STDOUT WITH (FORMAT csv, HEADER)") as copy:
+                with conn.cursor().copy(f"COPY (SELECT {SELECTS[table]} FROM dataset_{table} {where}ORDER BY pos) "
+                                        "TO STDOUT WITH (FORMAT csv, HEADER)", params) as copy:
                     for chunk in copy:
                         buffer.write(chunk)
                 buffer.seek(0)
                 frames.append(parse(table, buffer))
+            if user_id:
+                latest = conn.execute("SELECT to_char(max(date), 'YYYY-MM-DD') FROM dataset_score_history").fetchone()
+                frames[2].attrs["as_of"] = latest[0]
     except Exception as exc:  # psycopg, pool timeout, or DATABASE_URL missing: all mean "can't read it now"
         raise DatasetError(exc.__class__.__name__) from exc
-    if frames[0].empty:
+    if frames[0].empty and not user_id:  # one user's read finds no rows when the user is unknown (UNKNOWN_USER)
         raise DatasetError("Neon has no dataset yet (run: uv run python scripts/data_import.py)")
     return tuple(frames)
 
 
-def load() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Users, accounts and score history from the configured backend (``config.DATA_BACKEND``).
+def load(user_id: str | None = None) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Users, accounts and score history from the configured backend (``config.DATA_BACKEND``); only ``user_id``'s
+    rows when given (``read_postgres``).
 
     Not cached here: the callers (``tools.common.tables``, ``user_data``) cache once per process.
 
@@ -144,9 +163,9 @@ def load() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         ValueError: ``config.DATA_BACKEND`` is neither "files" nor "postgres".
     """
     if config.DATA_BACKEND == "postgres":
-        return read_postgres()
+        return read_postgres(user_id)
     if config.DATA_BACKEND == "files":
-        return read_files()
+        return read_files(user_id)
     raise ValueError(f"unknown data backend {config.DATA_BACKEND!r} (use 'postgres' or 'files')")
 
 
