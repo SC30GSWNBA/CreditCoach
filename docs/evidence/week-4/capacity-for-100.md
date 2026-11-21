@@ -58,6 +58,18 @@ But 80 of 198 tool calls failed with `DATA_UNAVAILABLE`, all in this run (none w
 | Failed (`DATA_UNAVAILABLE`) | 1 of 50 | 0 of 50 |
 | Server start | 1.9 s | 2.7 s |
 
+## Up to 1,000 sign-ups, 4 questions a week (2026-11-21)
+
+For a cap of 1,000 people (about 100 a week, up to 100 asking at once):
+
+| Change | Where |
+|---|---|
+| User ids may have 4 digits (USR-1000 to USR-9999); they had to be 3, which stopped sign-up at 999 users in all. Five tables checked that: [scripts/migrate_user_ids.py](../../../scripts/migrate_user_ids.py) replaces their checks in Neon | [store.py](../../../creditcoach/signup/store.py), [pg.py](../../../creditcoach/memory/pg.py), [dataset.py](../../../creditcoach/dataset.py), the id patterns in tools, memory and guardrails |
+| Each answer's tool server reads only the signed-in user's rows, so its read stays the same size as sign-ups grow; the dataset's latest month is still read across everyone. Another user's id now finds nothing (`UNKNOWN_USER`) | [dataset.py](../../../creditcoach/dataset.py) `read_postgres`, [common.py](../../../creditcoach/tools/common.py) `SERVER_USER`, [mcp_host.py](../../../creditcoach/agent/mcp_host.py) |
+| 4 questions a week for every signed-up user (was 5) | [config.py](../../../creditcoach/config.py) `WEEKLY_QUESTIONS`, [user-guide.md](../../user-guide.md) |
+
+Checked against Neon: one user's read (USR-040) matches their rows in a full read, table for table, with the same latest month; 50 real tool servers started at once answered their first call in 0.11 s (median; 0.25 s at the slowest), 50 of 50.
+
 ## Not checked
 
 - **On Railway, after the tool-server fix.** To be re-run once it is deployed.

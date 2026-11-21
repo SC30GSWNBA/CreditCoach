@@ -16,7 +16,7 @@ Week 4 (observability, evals and demo readiness) is under way: since Task 26 eve
 
 Every Week 1–2 evaluation, and the Task 20 guardrail run, uses all 50 requirements.md queries (the 6 sample queries and the 44 additional ones), not just the original 6; see [Evaluation queries](#evaluation-queries). Known engineering gaps and the plan to close them are in the [Engineering Roadmap](#engineering-roadmap).
 
-After Week 3, beyond the task plan: the app opens on a welcome page with **Log in** and **Sign up**, so new people can test CreditCoach with a practice profile of their own. Since 2026-11-01 it also shows how many questions CreditCoach has answered (live) and how many people have signed up. Signing up answers the interview questions and creates a practice profile and a login in Neon; a signed-up user may ask 5 questions a week, and the committed dataset is unchanged (see [Sign-up](#sign-up) and the [User Guide](docs/user-guide.md)). The signed-in pages were restyled to match the welcome page.
+After Week 3, beyond the task plan: the app opens on a welcome page with **Log in** and **Sign up**, so new people can test CreditCoach with a practice profile of their own. Since 2026-11-01 it also shows how many questions CreditCoach has answered (live) and how many people have signed up. Signing up answers the interview questions and creates a practice profile and a login in Neon; a signed-up user may ask 4 questions a week (5 until 2026-11-21), and the committed dataset is unchanged (see [Sign-up](#sign-up) and the [User Guide](docs/user-guide.md)). The signed-in pages were restyled to match the welcome page.
 
 ## Quickstart (fresh clone)
 
@@ -53,7 +53,7 @@ uv run python -m creditcoach.app
 uv run pytest
 ```
 
-> **Share links are public.** Anyone with the link reaches the welcome page and can sign up (5 questions a week each, up to `CREDITCOACH_SIGNUP_MAX` people; set `CREDITCOACH_INVITE_CODE` to limit who), and every answer uses your OpenRouter key. Stop the app (Ctrl+C) when you're done; the link closes with it. See [Chat UI logins](#chat-ui-logins).
+> **Share links are public.** Anyone with the link reaches the welcome page and can sign up (4 questions a week each, up to `CREDITCOACH_SIGNUP_MAX` people; set `CREDITCOACH_INVITE_CODE` to limit who), and every answer uses your OpenRouter key. Stop the app (Ctrl+C) when you're done; the link closes with it. See [Chat UI logins](#chat-ui-logins).
 
 You should see every line marked `[PASS]`, ending with `All checks passed. Ready to build.`
 
@@ -102,7 +102,7 @@ CreditCoach/
                       #   counters.py: questions answered and people signed up (welcome page), and the user's own count
                       #   welcome.py: the first page, with Log in and Sign up; sessions.py: the sign-in cookie;
                       #   theme.py: the look of the signed-in pages, matching the welcome page, readable in light and dark mode, and fitted to phones
-                      #   server.py: serves the welcome page, the chat UI and the admin pages together; limits.py: 5 questions a week
+                      #   server.py: serves the welcome page, the chat UI and the admin pages together; limits.py: 4 questions a week
     evals/            #   golden.py + golden_queries.json: the 50 requirements.md queries with their checks;
                       #   live.py: runs them through the agent and saves every answer (Tasks 5, 10, 15; Week 4);
                       #   harness.py (+ __main__.py): the eval harness, `python -m creditcoach.evals` (Task 27);
@@ -348,7 +348,7 @@ All settings are read from `.env` (git-ignored). See [.env.example](.env.example
 | `RERANKER_MODEL` | No | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Local cross-encoder that reorders retrieved chunks |
 | `CREDITCOACH_SIGNUP_MAX` | No | `100` | How many people may sign up in total; sign-up closes when it is reached |
 | `CREDITCOACH_INVITE_CODE` | No | (none) | When set, the sign-up form asks for this code and refuses anyone without it |
-| `CREDITCOACH_WEEKLY_QUESTIONS` | No | `5` | Questions a signed-up user may ask per week |
+| `CREDITCOACH_WEEKLY_QUESTIONS` | No | `4` | Questions a signed-up user may ask per week |
 | `CREDITCOACH_SESSION_SECRET` | No | random each start | Signs the sign-in cookie. Set it to keep people signed in across restarts. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | No | (none); port `587` | Mail account for the "email me my login" backup at sign-up. Without it the option isn't shown. |
 | `BREVO_API_KEY` | No | (none) | Sends mail through Brevo's email API (HTTPS) instead of SMTP. Needed on Railway, whose Free, Trial and Hobby plans block outgoing SMTP. The sender is `SMTP_FROM` (else `SMTP_USER`), confirmed in Brevo. |
@@ -371,7 +371,7 @@ Someone without a login creates one on the **Sign up** tab. It needs Neon (`DATA
 4. **Pop-up.** The User ID and password are shown once, with copy buttons. If mail is configured (`BREVO_API_KEY` or `SMTP_*`), the person can email them to themselves; the address is used for that one message and not stored. A lost password can't be recovered or reset: the person signs up again as a new user.
 5. **Log in.** After confirming they saved the details, the person lands on the Log in tab with the User ID filled in.
 
-- **5 questions a week.** A signed-up user may ask 5 questions per week (`CREDITCOACH_WEEKLY_QUESTIONS`). The week starts with their first question and resets 7 days later; each answer ends with how many are left, and a sixth question gets the date the next ones unlock. A failed answer isn't counted; an answer from the cache is. Counts are in Neon's `app_usage`.
+- **4 questions a week.** A signed-up user may ask 4 questions per week (5 until 2026-11-21) (`CREDITCOACH_WEEKLY_QUESTIONS`). The week starts with their first question and resets 7 days later; each answer ends with how many are left, and a fifth question gets the date the next ones unlock. A failed answer isn't counted; an answer from the cache is. Counts are in Neon's `app_usage`.
 - **Keeping cost bounded.** Anyone with the link can sign up, so sign-up closes after `CREDITCOACH_SIGNUP_MAX` people (default 100), and `CREDITCOACH_INVITE_CODE` restricts it to people you gave the code to.
 - **The CSVs are untouched.** Sign-up users exist only in Neon. `scripts/data_import.py` keeps them when it reloads the CSVs, and the "Neon matches data/*.csv" check ignores them.
 - **Remove a sign-up user** in the Neon SQL editor: delete their rows from `app_usage`, `app_logins`, `dataset_score_history`, `dataset_accounts` and `dataset_users`, in that order. Remove the newest user first, since User IDs are numbered by how many users exist.
@@ -485,7 +485,7 @@ A technical review after Week 1 found gaps in testing, tooling and robustness. T
 - [docs/hld.html](docs/hld.html): high-level design: one swimlane diagram that follows a question through the chat UI, guardrails, cache, RAG, the MCP tools, memory, the models and Neon, with the details of each below it. Download or clone, then open it in a browser (GitHub shows only its source)
 - [docs/6-pager.md](docs/6-pager.md): narrative memo
 - [docs/pr-faq.md](docs/pr-faq.md): press release and FAQ
-- [docs/user-guide.md](docs/user-guide.md): for people using CreditCoach: creating an account, saving the login, what an answer shows (and what happens when data can't be reached), the 5 questions a week, and account FAQs
+- [docs/user-guide.md](docs/user-guide.md): for people using CreditCoach: creating an account, saving the login, what an answer shows (and what happens when data can't be reached), the 4 questions a week, and account FAQs
 - [docs/research/interview-questionnaire.md](docs/research/interview-questionnaire.md): 1:1 user interview questionnaire
 - [docs/tools.md](docs/tools.md): specs for the `get_score_history` and `get_account_summary` tools (Task 12), with how the host handles a server that's down and the last confirmed result (Task 32)
 - [docs/memory.md](docs/memory.md): memory schema: episodes, the goal record, dreaming (Task 16)

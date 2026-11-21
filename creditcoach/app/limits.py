@@ -1,4 +1,4 @@
-"""The weekly question allowance: a signed-up user may ask ``config.WEEKLY_QUESTIONS`` (5) questions a week.
+"""The weekly question allowance: a signed-up user may ask ``config.WEEKLY_QUESTIONS`` (4) questions a week.
 
 Every answer costs model calls, so people who sign up in the app get a fixed number of questions per week. The
 week is the user's own: it starts with their first question and ends 7 days later, when the count starts again
@@ -7,7 +7,7 @@ with their next question. The 15 team logins (``auth.is_team``) have no limit.
 A question is counted before it is answered (``take``), so two questions sent at once can't both slip past the
 limit, and handed back (``give_back``) if the answer service fails, or if the answer couldn't reach the user's
 data (``unreachable``: a data tool ended in ``DATA_UNAVAILABLE``, Task 32), since an answer that can only say "try
-again shortly" shouldn't use up one of 5. A question answered from the cache counts too.
+again shortly" shouldn't use up one of 4. A question answered from the cache counts too.
 Only real questions reach ``take``: empty messages are turned away earlier.
 
 The counts live in Neon (``app_usage``, created by ``creditcoach.signup.store``): one row per user with the start of

@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS memory_events (
     id       bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     v        integer     NOT NULL,
     ts       timestamptz NOT NULL,
-    user_id  text        NOT NULL CHECK (user_id ~ '^USR-[0-9]{3}$'),
+    user_id  text        NOT NULL CHECK (user_id ~ '^USR-[0-9]{3,4}$'),
     session  text        NOT NULL,
     type     text        NOT NULL CHECK (type IN ('login', 'user_message', 'assistant_message', 'error',
                                                   'goal_set', 'goal_cleared', 'logout', 'session_end')),
@@ -39,7 +39,7 @@ CREATE INDEX IF NOT EXISTS memory_events_session ON memory_events (session);
 
 CREATE TABLE IF NOT EXISTS memory_dreams (
     id       text        PRIMARY KEY,
-    user_id  text        NOT NULL CHECK (user_id ~ '^USR-[0-9]{3}$'),
+    user_id  text        NOT NULL CHECK (user_id ~ '^USR-[0-9]{3,4}$'),
     created  timestamptz NOT NULL,
     body     jsonb       NOT NULL
 );

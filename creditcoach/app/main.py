@@ -53,7 +53,7 @@ that user only.
 
 Welcome page and sign-up: the app opens on a welcome page with "Log in" and "Sign up" (``creditcoach.app.welcome``),
 served next to this UI by ``creditcoach.app.server``. Signing up answers the interview questions and creates a
-practice profile and a login in Neon (``creditcoach.signup``). A signed-up user may ask 5 questions a week
+practice profile and a login in Neon (``creditcoach.signup``). A signed-up user may ask 4 questions a week
 (``creditcoach.app.limits``); each of their answers ends with how many are left. The team logins have no limit.
 
 How to run:
