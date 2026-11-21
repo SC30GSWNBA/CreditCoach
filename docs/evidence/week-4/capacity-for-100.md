@@ -29,7 +29,17 @@ A demo for about 100 university students on 2026-11-29. With answers held to 8 a
 
 The first column comes from the one-process client, so its arrivals are less bunched than in the others. In the last run, an answer took a median of 9.0 s in the app (90th percentile 16.9 s): search 0.8 s (3.0 s), the model and tools 6.2 s (11.2 s), the output guardrail 1.4 s. Search, which runs one query at a time, wasn't the bottleneck. No server errors and no model rate limits. Pages opened in a median of 1.8 s.
 
+## On Railway: the first run crashed (2026-11-21)
+
+99 questions sent at once to the deployed app, from 20 accounts made for the test (USR-036 to USR-055, first name "Loadtest", kept so their ids are never reused). All 99 were cut off about 45 s in: the app restarted. Memory was not the cause (about 1 GB of the 24 GB limit). The logs show `OpenBLAS blas_thread_init: pthread_create failed for thread N of 48: Resource temporarily unavailable`: Railway's machine reports 48 CPUs, and every process that loads numpy starts one thread per CPU, each answer's tool server included, so 50 answers at once asked for more than 2,400 threads. The Mac copy has 16 CPUs and uses Apple's Accelerate, not OpenBLAS, so it never showed.
+
+| Fix | Where |
+|---|---|
+| Each tool server's numeric libraries run on one thread: in the Linux image, importing the server went from 16 threads (one per CPU) to 1 | [mcp_host.py](../../../creditcoach/agent/mcp_host.py) `SERVER_THREADS` |
+| The app's own numeric libraries run on 8 threads, as in the local test | [Dockerfile](../../../Dockerfile) |
+| NeMo Guardrails and sentence-transformers log at WARNING: their INFO lines made Railway drop thousands of log lines a second, the crash's among them | [main.py](../../../creditcoach/app/main.py) `main` |
+
 ## Not checked
 
-- **On Railway.** CPU and network times will differ. Railway Pro allows 24 GB per replica, and the service's replica limit must allow at least 8 GB.
+- **On Railway, after the fix.** To be re-run once it is deployed.
 - **Page loads during a burst** after #2. They are expected to stay fast now that answers can't take every worker, but they weren't timed.

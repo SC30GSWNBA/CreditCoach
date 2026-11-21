@@ -61,6 +61,10 @@ _confirmed: OrderedDict[tuple, dict] = OrderedDict()  # (scope, user, tool, argu
 _confirmed_lock = threading.Lock()
 
 
+# The tool server only reads a few rows with pandas, so one thread is plenty (see server_params)
+SERVER_THREADS = {"OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"}
+
+
 def server_params() -> StdioServerParameters:
     """How to start the tool server, reading the dataset from the same backend as this process.
 
@@ -70,8 +74,12 @@ def server_params() -> StdioServerParameters:
     The MCP client starts the server with only a minimal environment, so ``DATABASE_URL`` is passed on too. Locally
     the server would also find it in ``.env``, but a hosted deployment (Railway) has no ``.env``: its secrets are
     environment variables only, and without this every tool call failed with ``DATA_UNAVAILABLE``.
+
+    The server's numeric libraries get one thread each (``SERVER_THREADS``). Left alone they start one per CPU the
+    machine reports, 48 on Railway: a 100-question load test on 2026-11-21 ran 50 servers at once, ran out of
+    threads ("OpenBLAS blas_thread_init: pthread_create failed") and took the app down.
     """
-    env = {**get_default_environment(), "CREDITCOACH_DATA_BACKEND": config.DATA_BACKEND}
+    env = {**get_default_environment(), **SERVER_THREADS, "CREDITCOACH_DATA_BACKEND": config.DATA_BACKEND}
     if config.DATABASE_URL:
         env["DATABASE_URL"] = config.DATABASE_URL
     return StdioServerParameters(command=sys.executable, args=["-m", "creditcoach.tools.server"], cwd=str(config.ROOT),
