@@ -32,6 +32,12 @@ Memory storage (environment variable -> default):
     DATABASE_URL                ""  Neon Postgres connection string. When set, memory is kept in Neon.
     CREDITCOACH_MEMORY_BACKEND  "postgres" if DATABASE_URL is set, else "files". Tests and evidence scripts force
                                 "files" so they never write to the shared database.
+    CREDITCOACH_DB_POOL         15  Most Neon connections the app holds at once (was 4; raised for a 100-student demo).
+
+People at once (creditcoach.app.main; environment variable -> default):
+    CREDITCOACH_PAGE_CONCURRENCY    48  Page steps (a page-load step, a tab's chart) run for this many people at once.
+    CREDITCOACH_ANSWER_CONCURRENCY  50  Questions answered at once. Each starts an MCP tool server (about 110 MB), so
+                                        50 need about 6.5 GB with the app's 840 MB.
 
 Cache (Task 22; environment variable -> default):
     REDIS_URL                  ""    Redis connection string, e.g. ``redis://localhost:6379/0``. When set, the cache
@@ -127,6 +133,9 @@ LOGINS_FILE = ROOT / "creditcoach" / "app" / "logins.json"  # committed; holds p
 MEMORY_DIR = Path(os.getenv("CREDITCOACH_MEMORY_DIR", ROOT / "memory"))  # files backend; committed archive
 DATABASE_URL = os.getenv("DATABASE_URL", "")  # Neon Postgres; never commit it
 MEMORY_BACKEND = os.getenv("CREDITCOACH_MEMORY_BACKEND", "postgres" if DATABASE_URL else "files")
+DB_POOL = int(os.getenv("CREDITCOACH_DB_POOL", "15"))
+PAGE_CONCURRENCY = int(os.getenv("CREDITCOACH_PAGE_CONCURRENCY", "48"))
+ANSWER_CONCURRENCY = int(os.getenv("CREDITCOACH_ANSWER_CONCURRENCY", "50"))
 REDIS_URL = os.getenv("REDIS_URL", "")  # never commit one that holds a password
 CACHE = os.getenv("CREDITCOACH_CACHE", "on")
 CACHE_CONFIRM = os.getenv("CREDITCOACH_CACHE_CONFIRM", "on") != "off"

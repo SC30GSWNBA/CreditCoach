@@ -62,6 +62,10 @@ Merged as #76: October 2026 was added to every user's score history (`data/score
 
 [capacity-and-dashboard-groups.md](capacity-and-dashboard-groups.md), #77 and the PR after it. Page steps run for 16 people at once and answers for 8 (Gradio's default was one at a time; answers were held to 2), the Dashboard reads its traces when opened, people opening it together share one Langfuse read (each used to read it, and Langfuse answered 429), and sign-up allows 100 people. With 20 people at once the median answer went from 44.2 s to 13.3 s and the Dashboard from 12.6 s to 6.8 s. The Dashboard's choices are grouped as **Timeline**, **Type of runs** and **Performance**. 24 screen sizes × light and dark × 4 states in Chromium and WebKit: 384 captures, 0 faults, after fixing cut-off tabs on the iPad mini (744px) and on a 320px phone in Safari. 4 new pytest tests (2 in #77). Then, the Cost and speed charts made larger: smaller model tick boxes, taller scatter charts (560 and 500 px), Spend by day and Response time by day one above the other at full width, and a Refresh button that stands out (1 new test).
 
+## 100 people asking at once (2026-11-21)
+
+[capacity-for-100.md](capacity-for-100.md). Answers run 50 at once and page steps 48, both settable from the environment, and Gradio's overall limit of 40 events is now their sum. The Neon pool holds 15 connections. With 100 questions sent together (local copy, models on the CPU): all 100 answered, a median of 17.6 s after Enter and 32 s at the slowest, at 6.45 GB peak memory. Not yet run on Railway.
+
 ## Week 4 demo goal
 
 > *Full live walkthrough: Gradio UI + observability dashboard, an eval score shown before/after your error-analysis fixes, and a predatory-product refusal on demand.* (tasks.md)

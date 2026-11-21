@@ -568,9 +568,12 @@ OPEN_AT_TOP_JS = """() => { setTimeout(() => { window.scrollTo(0, 0);
 
 # Gradio runs each event (a page-load step, a tab's chart) for one person at a time unless told otherwise, so people
 # opening the app together queued behind each other (2026-11-07, users saw screens appear slowly). Page steps are
-# short reads, so 16 run at once. Each answer also starts an MCP tool server process, so answers are held to 8.
-PAGE_CONCURRENCY = 16
-ANSWER_CONCURRENCY = 8
+# short reads, so 16 run at once. Each answer also starts an MCP tool server process, so answers were held to 8.
+# Raised to 48 and 50 for a 100-student demo (2026-11-21); both are set in config, from the environment. Gradio
+# also runs at most ``max_threads`` (40) events in all, answers and page steps together: a load test of 100
+# questions at once never had more than 40 answers running, and none left for a page step, so it is their sum.
+PAGE_CONCURRENCY = config.PAGE_CONCURRENCY
+ANSWER_CONCURRENCY = config.ANSWER_CONCURRENCY
 
 
 def build() -> gr.Blocks:
@@ -665,6 +668,7 @@ def build() -> gr.Blocks:
         for other in (chat_tab, credit_tab):
             other.select(lambda: False, outputs=dash.active, show_progress="hidden", api_name=False)
         demo.unload(closed)
+    demo.max_threads = PAGE_CONCURRENCY + ANSWER_CONCURRENCY  # read by queue() and at startup
     demo.queue(default_concurrency_limit=PAGE_CONCURRENCY)
     return demo
 
