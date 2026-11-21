@@ -71,3 +71,9 @@ def test_tool_server_gets_the_database_url_from_this_process(monkeypatch):
     assert mcp_host.server_params().env["DATABASE_URL"] == "postgresql://u:p@example.neon.tech/db"
     monkeypatch.setattr(config, "DATABASE_URL", "")
     assert "DATABASE_URL" not in mcp_host.server_params().env
+
+
+def test_tool_server_runs_its_numeric_libraries_on_one_thread():
+    """Found load-testing Railway: each server started 48 threads, and 50 servers at once ran the app out of them."""
+    env = mcp_host.server_params().env
+    assert env["OMP_NUM_THREADS"] == env["OPENBLAS_NUM_THREADS"] == env["MKL_NUM_THREADS"] == "1"

@@ -712,6 +712,10 @@ def main() -> None:
     args = parser.parse_args()
     # stdout, not the default stderr: Railway labels every stderr line as an error
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", stream=sys.stdout)
+    # NeMo Guardrails logs every rail event at INFO (hundreds a question) and sentence-transformers a progress bar per
+    # search: with 50 answers at once Railway dropped thousands of lines a second, the crash's own among them
+    for noisy in ("nemoguardrails", "sentence_transformers"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
 
     if not auth.logins():
         log.error("No logins found in %s, so nobody could sign in. Add one with scripts/set_login.py.",
