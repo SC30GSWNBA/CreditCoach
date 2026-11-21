@@ -19,6 +19,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.types import CallToolResult, TextContent, ToolAnnotations
 from pydantic import Field
 
+from creditcoach.tools import common
 from creditcoach.tools.account_summary import get_account_summary as account_summary
 from creditcoach.tools.score_history import get_score_history as score_history
 
@@ -63,4 +64,10 @@ def get_account_summary(user_id: UserId) -> CallToolResult:
 
 
 if __name__ == "__main__":
+    # Read the dataset before answering, inside the host's startup allowance, so the first call's 5 s limit covers
+    # only the lookup. If it can't be read now, the first call tries again and reports DATA_UNAVAILABLE.
+    try:
+        common.tables()
+    except common.ToolFailure:
+        pass
     server.run("stdio")

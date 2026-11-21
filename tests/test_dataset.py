@@ -9,11 +9,11 @@ Run:
 import io
 
 import pandas as pd
+import psycopg
 import pytest
 
 from creditcoach import config, dataset
 from creditcoach.agent import mcp_host
-from creditcoach.memory import pg
 from creditcoach.tools import common
 from creditcoach.tools.score_history import get_score_history
 
@@ -44,11 +44,12 @@ def test_unknown_backend_is_refused(monkeypatch):
 
 
 def test_unreachable_neon_is_data_unavailable(monkeypatch):
-    def down():
+    def down(*args, **kwargs):
         raise ConnectionError("Neon is down")
 
     monkeypatch.setattr(config, "DATA_BACKEND", "postgres")
-    monkeypatch.setattr(pg, "pool", down)
+    monkeypatch.setattr(config, "DATABASE_URL", "postgresql://u:p@example.neon.tech/db")
+    monkeypatch.setattr(psycopg, "connect", down)
     common.tables.cache_clear()
     try:
         r = get_score_history("USR-001", "latest")
