@@ -74,8 +74,8 @@ def pool() -> ConnectionPool:
         raise RuntimeError("a Neon (postgres) backend is selected but DATABASE_URL is not set in .env")
     with _lock:
         if url not in _pools:
-            p = ConnectionPool(url, min_size=1, max_size=4, open=True, check=ConnectionPool.check_connection,
-                               kwargs={"autocommit": True, "prepare_threshold": None, "connect_timeout": 15})
+            p = ConnectionPool(url, min_size=1, max_size=config.DB_POOL, open=True,
+                               check=ConnectionPool.check_connection, kwargs={"autocommit": True, "prepare_threshold": None, "connect_timeout": 15})
             with p.connection() as conn, conn.transaction():
                 conn.execute("SELECT pg_advisory_xact_lock(hashtext('creditcoach_memory_schema'))")
                 conn.execute(SCHEMA)
