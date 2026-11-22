@@ -1,6 +1,6 @@
 # CreditCoach: Memory Schema
 
-*Week 2 · Tasks #16 (schema) and #17 (recall) · Last updated: 2026-11-01 (`store.answered` for the usage counters) · Status: Draft for team review · Code: `creditcoach/memory/`*
+*Week 2 · Tasks #16 (schema) and #17 (recall) · Last updated: 2026-11-22 (4-digit user ids) · Status: Draft for team review · Code: `creditcoach/memory/`*
 
 CreditCoach remembers each user across sessions, machines and teammates. This document defines what is stored, where, and the rules that keep it trustworthy (Task #16), and how answers use it (Task #17, §7). Task #18 shows it in the agent-trace panel.
 
@@ -47,7 +47,7 @@ Path `memory/<user_id>/episodes/<session>.jsonl`. Each line is one event:
 |---|---|---|
 | `v` | int | Schema version, `1` |
 | `ts` | string | UTC time, ISO 8601 to the millisecond (`2026-10-02T14:03:22.481Z`), so events in the same second stay in order |
-| `user_id` | string | `USR-NNN`. Always the signed-in user; events for anyone else are ignored on read |
+| `user_id` | string | `USR-NNN`, or `USR-NNNN` since 2026-11-21 (sign-ups past the 999th). Always the signed-in user; events for anyone else are ignored on read |
 | `session` | string | The episode id, the same as the file name |
 | `type` | string | One of the event types below |
 | `text` | string | The message, reply, quote or error, depending on `type` |

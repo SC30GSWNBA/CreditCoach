@@ -1,6 +1,6 @@
 # CreditCoach: Tool Specs
 
-*Week 2 · Task #12 · Last updated: 2026-10-28 (Task #32: last confirmed results, server down) · Status: Draft for team review*
+*Week 2 · Task #12 · Last updated: 2026-11-22 (each tool server reads only the signed-in user's rows; 4-digit user ids) · Status: Draft for team review*
 
 This spec defines the two tools the agent calls for a user's credit data:
 
@@ -14,10 +14,10 @@ Task #13 builds the first tool, Task #14 the second, and Task #15 exposes both t
 These rules come from requirements.md §6 and the edge cases in §4.7.
 
 1. **The tools do the arithmetic.** Every score change, total and utilization ratio the agent might quote is computed by the tool and returned as a field. The model copies figures and never calculates them. This is how we meet "never fabricate figures" (§6).
-2. **`user_id` comes from the signed-in session, never from the model or the user's text.** The MCP host (Task #15) fills `user_id` from the session before each call. If the model passes any other id, the host refuses the call with `USER_MISMATCH` and the tool doesn't run. This covers "What's Vikram's credit score?" (§4 #49). Inside the tool, every row is filtered by `user_id` and checked again before it's returned, as `user_data.py` does today.
+2. **`user_id` comes from the signed-in session, never from the model or the user's text.** The MCP host (Task #15) fills `user_id` from the session before each call. If the model passes any other id, the host refuses the call with `USER_MISMATCH` and the tool doesn't run. This covers "What's Vikram's credit score?" (§4 #49). Inside the tool, every row is filtered by `user_id` and checked again before it's returned, as `user_data.py` does today. Since 2026-11-21 the host also starts each answer's tool server for the signed-in user (`CREDITCOACH_TOOL_USER`), and the server reads only that user's rows, so any other id finds nothing (`UNKNOWN_USER`). User ids are `USR-` and 3 or 4 digits (4 since 2026-11-21).
 3. **No credit file is a normal result, not an error.** A user with no accounts and no score history (USR-004, USR-007) gets `ok: true`, `has_credit_file: false`, empty lists and a `note`. The agent must say "no credit history yet", not show an error or invent a score (§4 #14, #20).
 4. **Errors are structured and never partly filled.** A failed call returns the error envelope in §4 and no data. The agent explains the error in plain language and never fills the gap with an estimate.
-5. **"Now" is the dataset's latest month, not today's date.** The dataset is a static snapshot (read from `data/*.csv`, or from its copy in Neon when `DATABASE_URL` is set; see `creditcoach/dataset.py`). Both tools return `as_of`, the latest month in `score_history.csv` (`2026-10-01` since 2026-11-06; `2026-09-01` before). "This month" means that month.
+5. **"Now" is the dataset's latest month, not today's date.** The dataset is a static snapshot (read from `data/*.csv`, or from its copy in Neon when `DATABASE_URL` is set; see `creditcoach/dataset.py`). Both tools return `as_of`, the latest month in `score_history.csv` across every user, even when the server has read only one user's rows (`2026-10-01` since 2026-11-06; `2026-09-01` before). "This month" means that month.
 6. **Read-only.** Neither tool writes anything. Goal memory is a separate component (Task #16).
 7. **Amounts are whole rupees (`int`).** Ratios are decimals from 0 to 1, rounded to 3 places (0.374 = 37.4%).
 
