@@ -149,7 +149,7 @@ def _db():
 # ---- Validation ----
 
 def check_user(user_id: str) -> str:
-    """Return ``user_id`` if it has the dataset's form (``USR-NNN``), else raise ``MemoryRecordError``."""
+    """Return ``user_id`` if it has the dataset's form (``USR-NNN``, or ``USR-NNNN`` since 2026-11-21), else raise ``MemoryRecordError``."""
     if not isinstance(user_id, str) or not USER_ID.fullmatch(user_id):
         raise MemoryRecordError(f"invalid user id {user_id!r}")
     return user_id

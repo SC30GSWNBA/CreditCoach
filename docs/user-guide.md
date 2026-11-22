@@ -390,8 +390,8 @@ When you ask your first question. It is not tied to a calendar week.
 **Do I have to wait until midnight or Monday?**
 No. The reset is at the same time of day as your first question, 7 days later.
 
-**I used all 5 on the first day. How long do I wait?**
-Until 7 days after the first of those 5. Using them quickly does not make the wait longer or shorter.
+**I used all 4 on the first day. How long do I wait?**
+Until 7 days after the first of those 4. Using them quickly does not make the wait longer or shorter.
 
 **Do unused questions carry over?**
 No. Each new week starts at 4.
@@ -417,7 +417,7 @@ No. If you see "Sorry, I couldn't reach the answer service just now", the questi
 **Can I see how many I have left without asking a question?**
 The count is shown under each answer, so scroll up to your most recent answer. It is not shown anywhere else at present.
 
-**Can I get more than 5?**
+**Can I get more than 4?**
 Not through the app. The limit is the same for everyone who signs up.
 
 **What can I do while I wait?**

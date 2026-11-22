@@ -1,6 +1,6 @@
 # 100 people asking at once
 
-**Run:** 2026-11-21, a local copy of the app (models on the CPU with 8 threads, as on Railway; Neon for the data; answer cache off; memory in a scratch folder). The 100-question runs are tagged `script:load_test`, so the Dashboard counts them under "Eval and test runs". **Not yet run on Railway.**
+**Run:** 2026-11-21, a local copy of the app (models on the CPU with 8 threads, as on Railway; Neon for the data; answer cache off; memory in a scratch folder). The 100-question runs are tagged `script:load_test`, so the Dashboard counts them under "Eval and test runs". The runs on Railway are further down.
 
 ## Why
 
@@ -70,7 +70,19 @@ For a cap of 1,000 people (about 100 a week, up to 100 asking at once):
 
 Checked against Neon: one user's read (USR-040) matches their rows in a full read, table for table, with the same latest month; 50 real tool servers started at once answered their first call in 0.11 s (median; 0.25 s at the slowest), 50 of 50.
 
-## Not checked
+## On Railway, after the tool-server fixes (2026-11-21)
 
-- **On Railway, after the tool-server fix.** To be re-run once it is deployed.
+99 questions sent at once to the deployed app each time, from the load-test accounts, with `CREDITCOACH_ANSWER_CONCURRENCY` = 50. Counts are from the Langfuse traces, since the test client gives up reading after about 36 s and under-reports.
+
+| | After #87 | After #88 |
+|---|---|---|
+| Answered in the app | 98 of 99 | 99 of 99 |
+| Median / last | 34 s / 44 s | 33 s / 52 s |
+| Tool calls failed | 0 of 196 | 0 |
+| Cost per answer | | $0.0121 |
+| Goal recall | | 3 of 3 |
+
+The run after #88 asked for 100 answers at once but still peaked at 50, so the variable was most likely not applied. The OpenRouter key's spending limit was hit once during these runs and raised; check the key's credit before a load test or demo.
+
+## Not checked
 - **Page loads during a burst** after #2. They are expected to stay fast now that answers can't take every worker, but they weren't timed.
